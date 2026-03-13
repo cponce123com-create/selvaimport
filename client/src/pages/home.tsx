@@ -372,8 +372,8 @@ export default function Home() {
           <div className="bg-primary/10 border border-primary/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 flex items-center gap-3 sm:gap-4">
             <RefreshCw className="w-8 h-8 sm:w-10 sm:h-10 text-primary flex-shrink-0" />
             <div>
-              <p className="font-semibold text-sm">Devoluciones</p>
-              <p className="text-xs text-muted-foreground">30 dias para devoluciones</p>
+              <p className="font-semibold text-sm">Novedades y Tendencias</p>
+              <p className="text-xs text-muted-foreground">Productos importados y virales</p>
             </div>
           </div>
         </div>
