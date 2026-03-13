@@ -1,0 +1,160 @@
+Quiero corregir dos cosas importantes de la tienda sin romper lo que ya funciona.
+
+====================================================
+1. CORREGIR MENSAJE DE WHATSAPP SIN USAR EMOJIS ROTOS
+====================================================
+
+Actualmente el mensaje de pedido que se envía a WhatsApp muestra caracteres dañados como:
+
+�
+¿
+símbolos extraños
+
+Eso se ve poco profesional.
+
+QUIERO QUE EL MENSAJE SE REHAGA SIN EMOJIS.
+Usa un formato limpio, ordenado y profesional, solo con texto plano compatible con cualquier dispositivo.
+
+FORMATO DESEADO:
+
+SELVA IMPORT
+==============================
+PEDIDO NUEVO
+Fecha: {fecha}
+==============================
+
+PRODUCTOS:
+
+1. {nombre producto}
+   Cant: {cantidad} x S/ {precio} = S/ {subtotal item}
+
+2. {nombre producto}
+   Cant: {cantidad} x S/ {precio} = S/ {subtotal item}
+
+==============================
+RESUMEN:
+Subtotal: S/ {subtotal}
+Envio: {metodo de envio} - {costo envio}
+TOTAL: S/ {total}
+==============================
+
+DATOS DEL CLIENTE:
+Nombre: {nombre}
+Telefono: {telefono}
+Direccion: {direccion}
+Metodo: {metodo entrega}
+==============================
+
+Pago por: Yape / Transferencia
+Adjunto proforma del pedido
+
+Gracias por su compra
+SELVA IMPORT - Tu tienda de confianza
+
+REQUISITOS TECNICOS:
+- no usar emojis
+- usar solo caracteres compatibles
+- mantener saltos de línea correctos
+- usar encodeURIComponent() correctamente
+- evitar símbolos extraños o caracteres corruptos
+- el texto debe verse bien en WhatsApp Android, iPhone y navegador
+
+Ejemplo técnico esperado:
+
+const message = `
+SELVA IMPORT
+==============================
+PEDIDO NUEVO
+Fecha: ${fecha}
+==============================
+
+PRODUCTOS:
+
+${productosTexto}
+
+==============================
+RESUMEN:
+Subtotal: S/ ${subtotal}
+Envio: ${shippingLabel} - ${shippingCostText}
+TOTAL: S/ ${total}
+==============================
+
+DATOS DEL CLIENTE:
+Nombre: ${customerName}
+Telefono: ${customerPhone}
+Direccion: ${customerAddress}
+Metodo: ${shippingMethod}
+==============================
+
+Pago por: Yape / Transferencia
+Adjunto proforma del pedido
+
+Gracias por su compra
+SELVA IMPORT - Tu tienda de confianza
+`;
+
+const whatsappUrl = `https://wa.me/51998130656?text=${encodeURIComponent(message)}`;
+
+Revisa también si la fuente de datos o algún archivo está guardado con encoding incorrecto y corrígelo a UTF-8.
+
+====================================================
+2. FLECHAS PARA CAMBIAR FOTOS DESDE LA PAGINA PRINCIPAL
+====================================================
+
+Actualmente las flechas para cambiar fotos solo están disponibles cuando abro la página del producto.
+
+Quiero que también exista esa opción directamente en la página principal, en las secciones como:
+
+- Ofertas
+- Novedades
+- Productos destacados
+- Catálogo en cards si aplica
+
+OBJETIVO:
+Que el usuario pueda ver las otras fotos del producto sin entrar al detalle.
+
+IMPLEMENTACION DESEADA:
+Cada card de producto en la página principal debe permitir:
+
+- mostrar imagen principal
+- tener una flecha izquierda
+- tener una flecha derecha
+- cambiar entre las imágenes disponibles del producto
+- mantener visible el botón de agregar al carrito
+- no desordenar el diseño
+
+REQUISITOS:
+- las flechas deben ser pequeñas pero visibles
+- deben aparecer sobre la imagen del producto
+- si el producto solo tiene una imagen, no mostrar flechas
+- si tiene varias imágenes, permitir navegar entre ellas
+- debe funcionar bien en desktop y móvil
+- la transición debe ser suave
+- no debe afectar el rendimiento general de la página
+
+COMPORTAMIENTO ESPERADO:
+- en una card de "Ofertas", el usuario puede tocar la flecha derecha y ver otra foto del mismo producto
+- igual en "Novedades"
+- igual en productos mostrados en homepage
+
+====================================================
+3. ENTREGABLE
+====================================================
+
+Quiero que me indiques:
+
+1. qué archivos vas a modificar
+2. cómo corregirás el mensaje de WhatsApp para eliminar caracteres dañados
+3. qué cambios harás para mostrar galería con flechas en las cards de la página principal
+4. si hace falta agregar o ajustar el modelo de imágenes del producto
+5. el código completo de cada cambio
+
+IMPORTANTE:
+- no romper carrito
+- no romper checkout
+- no romper producto detalle
+- no romper ofertas ni novedades
+- mantener diseño responsive
+- mantener arquitectura actual del proyecto
+
+Empieza primero explicándome el plan y luego dame el código completo.

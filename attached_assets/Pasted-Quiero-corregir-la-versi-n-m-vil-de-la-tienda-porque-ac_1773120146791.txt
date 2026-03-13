@@ -1,0 +1,143 @@
+Quiero corregir la versión móvil de la tienda porque actualmente hay problemas visuales importantes.
+
+Te adjunto capturas de pantalla de cómo se ve ahora en celular.
+
+IMPORTANTE:
+No rompas la versión desktop ni las funciones actuales.
+Solo optimiza la experiencia móvil de forma profesional.
+
+====================================================
+1. CORREGIR EL BANNER PRINCIPAL EN MÓVIL
+====================================================
+
+Actualmente el banner principal en móvil no está bien optimizado.
+
+Problemas actuales:
+- la imagen se ve muy recortada o apretada
+- el contenido de texto queda demasiado junto
+- las flechas ocupan mucho espacio
+- el diseño no se siente limpio ni equilibrado
+- el producto no luce bien destacado en pantallas pequeñas
+
+Quiero que en versión móvil el banner principal tenga un diseño especial y mejor adaptado.
+
+OBJETIVO:
+Que el banner se vea limpio, ordenado, legible y visualmente atractivo en celular.
+
+CAMBIOS DESEADOS:
+- reducir la altura total del hero si hace falta
+- reorganizar el contenido en formato vertical
+- mostrar la imagen del producto más proporcionada
+- hacer que el texto tenga mejor separación
+- evitar que todo quede amontonado
+- hacer que las flechas del carrusel sean más pequeñas y menos invasivas
+- mantener el cambio automático de slides cada 5 segundos
+
+Si es necesario, en móvil usar una estructura como esta:
+
+[imagen del producto]
+[etiqueta oferta]
+[nombre del producto]
+[descripcion corta]
+[precio]
+[botón]
+
+En móvil priorizar legibilidad y equilibrio visual.
+
+====================================================
+2. CORREGIR EL BOTÓN "AGREGAR" EN LAS CARDS DE PRODUCTO EN MÓVIL
+====================================================
+
+Actualmente en móvil el botón "Agregar" sale demasiado grande y opaca la imagen del producto.
+
+Eso afecta mucho la visualización de la foto.
+
+Quiero que en versión móvil el botón ya no tape la imagen.
+
+SOLUCIÓN DESEADA:
+En móvil, mover el botón "Agregar" debajo de la foto del producto.
+
+La estructura en móvil debe quedar así:
+
+[imagen del producto]
+[flechas pequeñas si hay más fotos]
+[nombre del producto]
+[categoría]
+[precio]
+[botón agregar]
+
+NO quiero que el botón esté superpuesto sobre la imagen en móvil.
+
+En desktop puedes mantener el diseño actual si se ve bien.
+Pero en móvil debe usarse una versión más limpia.
+
+REQUISITOS:
+- botón ancho pero proporcionado
+- fácil de tocar con el dedo
+- sin tapar la foto
+- bien separado del contenido
+- consistente en todas las cards:
+  - ofertas
+  - novedades
+  - productos destacados
+  - catálogo general
+
+====================================================
+3. MANTENER FLECHAS DE FOTOS EN MÓVIL SIN TAPAR DEMASIADO
+====================================================
+
+Como ahora las cards tienen varias fotos, quiero que las flechas sigan existiendo en móvil, pero que sean más discretas.
+
+Requisitos:
+- flechas más pequeñas
+- menor opacidad o mejor posicionamiento
+- no tapar demasiado la imagen
+- que sigan siendo fáciles de presionar
+
+Si el producto solo tiene una foto, no mostrar flechas.
+
+====================================================
+4. HACER LA VERSIÓN MÓVIL REALMENTE MOBILE-FIRST
+====================================================
+
+Quiero que revises especialmente estas resoluciones:
+
+- 320px
+- 360px
+- 375px
+- 390px
+- 414px
+
+Y optimices:
+- espaciados
+- tamaños de fuente
+- tamaños de imágenes
+- altura del banner
+- tamaño de botones
+- separación entre cards
+
+====================================================
+5. IMPLEMENTACIÓN TÉCNICA
+====================================================
+
+Haz los cambios con buenas prácticas responsive:
+- Tailwind responsive classes si aplica
+- media queries si hace falta
+- separar diseño móvil y desktop cuando sea necesario
+- no romper el comportamiento del carrusel ni del catálogo
+
+====================================================
+6. ENTREGABLE
+====================================================
+
+Quiero que me indiques:
+
+1. qué componentes o archivos vas a modificar
+2. cómo vas a adaptar el banner principal para móvil
+3. cómo vas a mover el botón "Agregar" debajo de la imagen en móvil
+4. cómo vas a ajustar las flechas de navegación de imágenes
+5. el código completo de cada cambio
+
+IMPORTANTE:
+No quiero solo explicación.
+Quiero implementación real, limpia y responsive.

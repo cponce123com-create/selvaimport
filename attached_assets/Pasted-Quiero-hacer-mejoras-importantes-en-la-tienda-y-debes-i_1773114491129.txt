@@ -1,0 +1,176 @@
+Quiero hacer mejoras importantes en la tienda y debes implementarlas de forma segura, limpia y profesional, sin romper lo que ya funciona.
+
+IMPORTANTE:
+Te adjunto el logo oficial de la tienda. Quiero que lo uses correctamente en la interfaz, especialmente en el header, login, portada y si es posible también en el comprobante/proforma del pedido.
+
+NOMBRE / IDENTIDAD DE TIENDA
+- Tienda: Selva Import Chanchamayo
+- Usar el logo adjunto como identidad visual principal
+
+CAMBIO 1: USAR EL LOGO REAL DE LA TIENDA
+Quiero que el sistema use el logo oficial que adjunto.
+
+Debes:
+- colocarlo en el header/navbar
+- usarlo en la portada principal
+- usarlo en la pantalla de login si existe
+- usarlo también en el resumen visual del pedido o proforma si ya existe esa funcionalidad
+- cuidar que se vea responsive y bien proporcionado
+- no deformar la imagen
+- si hace falta, optimizar su tamaño para web
+
+CAMBIO 2: LOGIN CON GMAIL / GOOGLE
+Quiero agregar autenticación con Google.
+
+REQUISITOS:
+- El administrador principal debe ser este correo:
+  cponce123.com@gmail.com
+
+- Si ese correo inicia sesión con Google, debe ingresar con rol de administrador
+- Los demás usuarios deben poder iniciar sesión usando un botón de Google / Gmail
+- El sistema debe detectar automáticamente si el usuario es admin o cliente según su correo
+- Si el correo es el admin definido, asignar rol admin
+- Si es cualquier otro correo válido, asignar rol customer o cliente
+
+IMPORTANTE:
+- también debe seguir existiendo la opción de compra como invitado
+- no obligar al usuario a loguearse para comprar
+
+CAMBIO 3: COMPRA COMO INVITADO
+Quiero permitir que cualquier persona pueda hacer pedidos sin crear cuenta.
+
+Debe existir claramente una opción como:
+- "Continuar como invitado"
+
+El usuario invitado debe poder:
+- agregar productos al carrito
+- completar sus datos
+- elegir envío
+- enviar pedido por WhatsApp
+- pagar con Yape si corresponde
+
+Pero si el usuario desea, también puede:
+- iniciar sesión con Google
+
+CAMBIO 4: GUARDAR CLIENTES Y PEDIDOS
+Quiero que el sistema guarde un listado de clientes y pedidos.
+
+Debe almacenar al menos:
+
+CLIENTES REGISTRADOS CON GOOGLE
+- nombre
+- correo
+- foto de perfil si Google la entrega
+- fecha de registro
+- rol
+- cantidad de pedidos realizados
+
+CLIENTES INVITADOS
+- nombre
+- teléfono
+- dirección
+- fecha del pedido
+- pedidos realizados
+
+PEDIDOS
+- número o id de pedido
+- productos
+- cantidades
+- subtotal
+- costo de envío
+- total
+- método de entrega
+- estado del pedido
+- fecha
+- cliente relacionado (logueado o invitado)
+
+Quiero que en el panel de administración exista una sección para ver:
+- listado de clientes
+- listado de pedidos
+- quiénes compraron como invitados
+- quiénes compraron logueados
+- correos registrados
+- historial básico de compras
+
+CAMBIO 5: ELIMINAR USUARIOS DE PRUEBA
+Quiero que elimines completamente todas las notas, accesos, textos o cuentas de usuarios de prueba.
+
+Esto es importante porque:
+- se ve poco profesional
+- puede ser una vulnerabilidad
+- no quiero credenciales fake ni usuarios demo visibles
+- no quiero mensajes como “test user”, “demo admin”, “usuario de prueba” o similares
+
+Debes revisar:
+- frontend
+- backend
+- seeds
+- mocks
+- archivos de configuración
+- datos temporales
+- credenciales hardcodeadas
+- botones o textos de acceso rápido de prueba
+
+Si hay usuarios de prueba cargados en base de datos o seeds, eliminarlos o reemplazarlos por lógica segura.
+
+CAMBIO 6: SEGURIDAD Y BUENAS PRÁCTICAS
+Implementa esto con buenas prácticas.
+
+Requisitos:
+- no exponer credenciales en frontend
+- usar variables de entorno para Google Auth
+- proteger las rutas del admin
+- validar correctamente la sesión del usuario
+- no permitir que cualquier correo entre como admin
+- solo el correo cponce123.com@gmail.com debe tener rol admin
+- los demás usuarios deben ser clientes normales
+- mantener compatibilidad con compra como invitado
+
+FLUJO DESEADO
+Quiero que el sistema funcione así:
+
+1. El cliente entra a la tienda
+2. Puede:
+   - iniciar sesión con Google
+   - o continuar como invitado
+3. Agrega productos al carrito
+4. Elige envío
+5. Ve su resumen / proforma
+6. Puede pagar con Yape
+7. Envía pedido por WhatsApp
+8. El pedido queda guardado en el sistema
+9. Si estaba logueado, el pedido queda asociado a su cuenta
+10. Si fue invitado, igual queda guardado como cliente invitado
+
+SI YA EXISTE AUTENTICACIÓN
+Si ya existe login tradicional, no lo destruyas sin revisar. Evalúa si conviene:
+- mantenerlo
+- o reemplazarlo por Google + invitado
+
+Si lo reemplazas, hazlo de forma limpia y coherente.
+
+IMPLEMENTACIÓN TÉCNICA
+Necesito que me indiques:
+
+1. qué archivos vas a modificar
+2. cómo integrarás el logo
+3. cómo implementarás login con Google
+4. cómo asignarás el rol admin al correo cponce123.com@gmail.com
+5. cómo permitirás compra como invitado
+6. cómo guardarás clientes y pedidos
+7. qué partes eliminarás por ser usuarios de prueba o vulnerabilidades
+8. el código completo de cada archivo modificado
+
+IMPORTANTE
+- no quiero solo una explicación
+- quiero implementación real
+- no rompas el carrito ni el flujo de compra actual
+- mantén diseño responsive
+- deja el sistema más profesional y seguro
+- revisa posibles vulnerabilidades por datos de prueba visibles
+
+Empieza mostrándome:
+1. plan de implementación
+2. archivos a modificar
+3. cambios de base de datos si hacen falta
+4. luego genera el código completo paso a paso

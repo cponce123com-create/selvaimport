@@ -1,0 +1,181 @@
+Quiero optimizar completamente la versión móvil de la tienda.
+
+IMPORTANTE:
+No rompas ninguna funcionalidad existente (carrito, pedidos, WhatsApp, login, admin, etc.). 
+Solo mejora la experiencia en celulares.
+
+El objetivo es que la tienda funcione y se vea muy bien en pantallas de teléfono.
+
+====================================================
+1. OPTIMIZAR HEADER PARA MÓVIL
+====================================================
+
+Actualmente el header no está completamente optimizado para móvil.
+
+Quiero implementar:
+
+- menú tipo hamburguesa ☰
+- que el menú se abra como panel lateral o dropdown
+- incluir dentro del menú:
+
+Inicio
+Ofertas
+Novedades
+Categorías
+Quiénes somos
+Carrito
+Soporte
+
+Requisitos:
+- el logo debe verse bien centrado o alineado
+- el botón del carrito debe seguir visible
+- el menú debe ser fácil de usar con el dedo
+- animación suave al abrir/cerrar
+
+====================================================
+2. MEJORAR TARJETAS DE PRODUCTO EN MÓVIL
+====================================================
+
+Las cards de productos deben adaptarse mejor a celular.
+
+Cambios deseados:
+
+- mostrar productos en 2 columnas en móvil
+- imágenes más grandes
+- nombre del producto máximo 2 líneas
+- precio destacado
+- botón "Agregar al carrito" visible
+
+Además:
+
+si el producto tiene varias imágenes, permitir deslizar o usar flechas para ver las otras fotos directamente desde la card.
+
+====================================================
+3. MEJORAR BANNER PRINCIPAL EN MÓVIL
+====================================================
+
+El banner actual debe adaptarse mejor a celular.
+
+Requisitos:
+
+- altura adaptable
+- texto legible
+- imágenes optimizadas
+- mantener carrusel automático de ofertas
+- cambiar cada 5 segundos
+- botones grandes si existen
+
+Opcional:
+usar layout vertical en móvil.
+
+====================================================
+4. CHECKOUT MÁS SIMPLE EN MÓVIL
+====================================================
+
+El formulario de compra debe ser fácil de llenar desde el teléfono.
+
+Requisitos:
+
+- campos grandes
+- teclado correcto para cada campo (teléfono numérico)
+- autocompletar si es posible
+- botones grandes
+
+Campos ordenados así:
+
+Nombre  
+Teléfono  
+Dirección  
+Método de envío  
+
+Luego resumen del pedido.
+
+====================================================
+5. BOTONES IMPORTANTES MÁS GRANDES
+====================================================
+
+En móvil los botones deben ser más grandes.
+
+Especialmente:
+
+Agregar al carrito  
+Proceder a compra  
+Enviar pedido por WhatsApp  
+Continuar como invitado  
+
+Tamaño recomendado mínimo:
+44px de altura.
+
+====================================================
+6. OPTIMIZAR IMÁGENES PARA MÓVIL
+====================================================
+
+Las imágenes deben cargarse optimizadas.
+
+Requisitos:
+
+- usar lazy loading
+- comprimir imágenes
+- evitar imágenes demasiado pesadas
+- mantener buena calidad visual
+
+====================================================
+7. MEJORAR FOOTER EN MÓVIL
+====================================================
+
+El footer debe ser más ordenado en celular.
+
+Mostrar en formato vertical:
+
+Soporte  
+Términos y Condiciones  
+Política de Privacidad  
+Envíos y Devoluciones  
+Quiénes somos  
+
+Agregar también:
+
+WhatsApp de contacto si es posible.
+
+====================================================
+8. PRUEBA EN RESOLUCIONES MÓVILES
+====================================================
+
+Asegurarte de que la tienda se vea correctamente en:
+
+320px  
+375px  
+390px  
+414px  
+
+Dispositivos típicos:
+
+Android  
+iPhone
+
+====================================================
+9. MANTENER RESPONSIVE
+====================================================
+
+Usar buenas prácticas:
+
+flex  
+grid  
+media queries  
+Tailwind responsive classes si aplica
+
+====================================================
+ENTREGABLE
+====================================================
+
+Quiero que me indiques:
+
+1. qué archivos modificarás
+2. qué componentes mejorarás
+3. qué cambios CSS o Tailwind aplicarás
+4. el código completo de cada modificación
+
+No quiero solo explicación.
+Quiero implementación real.
+
+Prioriza una experiencia rápida, limpia y moderna en celular.

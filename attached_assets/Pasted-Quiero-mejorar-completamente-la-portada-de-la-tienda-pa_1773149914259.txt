@@ -1,0 +1,121 @@
+Quiero mejorar completamente la portada de la tienda para que se vea más profesional, moderna y dinámica, tipo ecommerce grande como Ripley.
+
+OBJETIVO
+Quiero que la portada principal deje de ser un banner simple y pase a ser un banner/carrusel administrable desde el panel de administrador.
+
+La idea es que yo pueda crear y editar slides de portada desde el admin.
+
+FORMATO DESEADO DEL BANNER
+Quiero una estructura visual similar a una portada promocional moderna:
+
+- lado izquierdo o mitad izquierda:
+  una imagen promocional grande o banner principal
+
+- lado derecho o mitad derecha:
+  2 productos destacados relacionados con esa promoción
+
+Ejemplo:
+- una imagen grande de campaña o promoción
+- al costado 2 cards de productos seleccionados
+- cada slide debe verse elegante, moderno y comercial
+
+Cada slide del carrusel debe poder tener:
+
+1. imagen principal promocional
+2. título o texto promocional opcional
+3. subtítulo o descripción opcional
+4. botón opcional (por ejemplo: "Ver productos")
+5. 2 productos destacados visibles al costado
+6. estilo limpio, premium y responsive
+
+COMPORTAMIENTO
+- el banner debe funcionar como carrusel
+- debe cambiar automáticamente cada 1 minuto
+- también debe permitir navegación manual con flechas o indicadores
+- debe tener transición suave
+- debe verse muy bien en desktop
+- en móvil debe adaptarse de forma limpia, aunque con un diseño simplificado si es necesario
+
+PANEL DE ADMINISTRACIÓN
+Quiero que desde el panel admin exista una sección para gestionar la portada, por ejemplo:
+
+"Gestión de portada"
+o
+"Banner principal"
+
+Desde ahí debo poder:
+
+- crear un slide nuevo
+- editar un slide existente
+- eliminar slides
+- cambiar el orden de los slides
+- activar o desactivar slides
+- subir o cambiar la imagen principal
+- seleccionar los 2 productos que aparecerán en ese slide
+- editar título
+- editar subtítulo
+- editar texto del botón
+- editar enlace del botón si aplica
+
+DATOS QUE DEBE GUARDAR CADA SLIDE
+Cada slide debe tener algo como:
+
+- id
+- título
+- subtítulo
+- imagen principal
+- productId1
+- productId2
+- texto del botón
+- link del botón
+- orden
+- activo/inactivo
+
+DISEÑO
+Quiero que el diseño del banner sea bonito, moderno y de nivel ecommerce profesional.
+
+Debe transmitir:
+- orden
+- elegancia
+- modernidad
+- protagonismo visual
+- enfoque comercial
+
+REFERENCIA VISUAL
+Toma como referencia banners de tiendas tipo:
+- Ripley
+- Falabella
+- Oechsle
+- ecommerce modernos
+
+Pero adáptalo al estilo de Selva Import, manteniendo una identidad limpia y moderna.
+
+RESPONSIVE
+En móvil:
+- no debe romperse
+- puede mostrar primero la imagen promocional y luego los productos en versión adaptada
+- debe seguir viéndose bien y clara la promoción
+
+REQUISITOS TÉCNICOS
+- no romper el resto de la home
+- no romper ofertas, novedades ni productos
+- usar la arquitectura actual del proyecto
+- guardar la configuración del banner en base de datos
+- si ya existe una tabla o modelo similar, reutilizarlo o mejorarlo
+- mantener el frontend rápido y ordenado
+
+ENTREGABLE
+Quiero que me indiques:
+
+1. qué archivos vas a modificar
+2. qué tabla o modelo vas a crear para los slides
+3. cómo funcionará la gestión de portada desde el admin
+4. cómo seleccionarás los 2 productos por slide
+5. cómo implementarás el carrusel automático cada 1 minuto
+6. cómo quedará el diseño responsive
+7. el código completo de cada cambio
+
+IMPORTANTE
+No quiero solo una explicación.
+Quiero implementación real, profesional y bonita.
+La portada debe quedar visualmente mucho más atractiva y administrable desde el panel.

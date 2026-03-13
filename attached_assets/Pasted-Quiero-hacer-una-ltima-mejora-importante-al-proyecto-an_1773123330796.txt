@@ -1,0 +1,145 @@
+Quiero hacer una última mejora importante al proyecto antes de migrarlo fuera de Replit a otro servidor.
+
+OBJETIVO:
+Dejar la tienda lista para producción y fácil de mover a otro hosting o servidor, sin depender de configuraciones específicas de Replit.
+
+NO quiero cambios grandes en diseño.
+Quiero una mejora técnica de preparación para despliegue y migración.
+
+====================================================
+1. PREPARAR EL PROYECTO PARA MIGRARLO FUERA DE REPLIT
+====================================================
+
+Quiero que revises el proyecto completo y lo dejes listo para funcionar en otro entorno como:
+
+- Render
+- Railway
+- VPS
+- servidor Node tradicional
+
+Debes eliminar o aislar cualquier dependencia innecesaria de Replit.
+
+====================================================
+2. VARIABLES DE ENTORNO Y CONFIGURACIÓN
+====================================================
+
+Quiero que toda configuración sensible o dependiente del entorno quede en variables de entorno.
+
+Por ejemplo:
+
+- DATABASE_URL
+- GOOGLE_CLIENT_ID
+- GOOGLE_CLIENT_SECRET
+- SESSION_SECRET o JWT_SECRET
+- WHATSAPP_NUMBER
+- ADMIN_EMAIL
+- cualquier clave o ruta sensible
+
+Debes:
+
+- mover configuraciones hardcodeadas a variables de entorno
+- crear un archivo .env.example con todas las variables necesarias
+- asegurarte de que el proyecto funcione leyendo process.env
+- no dejar credenciales expuestas en frontend
+
+====================================================
+3. LIMPIEZA DE CÓDIGO Y CONFIGURACIÓN
+====================================================
+
+Quiero que hagas una limpieza técnica del proyecto:
+
+- eliminar referencias innecesarias a Replit
+- eliminar archivos demo, test o ejemplo que no se usen
+- eliminar notas de usuarios de prueba si aún existen
+- revisar imports no usados
+- revisar dependencias innecesarias
+- dejar scripts claros en package.json
+
+====================================================
+4. BUILD Y EJECUCIÓN EN PRODUCCIÓN
+====================================================
+
+Necesito que el proyecto quede listo para producción.
+
+Asegúrate de que existan scripts claros como:
+
+- npm install
+- npm run dev
+- npm run build
+- npm run start
+
+Si hace falta, corrige package.json para que quede bien.
+
+También quiero que revises:
+
+- build frontend
+- servir archivos estáticos en producción
+- backend funcionando con build final
+- compatibilidad con puertos definidos por process.env.PORT
+
+====================================================
+5. BASE DE DATOS Y MIGRACIÓN
+====================================================
+
+Quiero que el proyecto quede listo para conectar la base de datos en otro servidor.
+
+Debes:
+
+- revisar la configuración actual de la base de datos
+- dejar claro cómo cambiar DATABASE_URL
+- asegurarte de que las migraciones funcionen fuera de Replit
+- documentar el proceso de migración
+
+Si usas Drizzle, Prisma u otro ORM, déjalo bien configurado para producción.
+
+====================================================
+6. DOCUMENTACIÓN DE DESPLIEGUE
+====================================================
+
+Quiero que generes un archivo README.md o DEPLOY.md con instrucciones claras para desplegar la tienda fuera de Replit.
+
+Debe incluir:
+
+1. requisitos previos
+2. variables de entorno necesarias
+3. cómo instalar dependencias
+4. cómo ejecutar en desarrollo
+5. cómo compilar
+6. cómo ejecutar en producción
+7. cómo configurar la base de datos
+8. cómo desplegar en Render o Railway
+9. posibles errores comunes
+
+====================================================
+7. REVISIÓN DE PRODUCCIÓN
+====================================================
+
+Haz una revisión para detectar cosas que podrían romperse al migrar:
+
+- rutas absolutas o hardcodeadas
+- dependencias de entorno local
+- configuraciones de puerto fijas
+- archivos que faltan en producción
+- referencias a almacenamiento local incompatible
+- fallos de build
+
+====================================================
+8. ENTREGABLE
+====================================================
+
+Quiero que me indiques:
+
+1. qué archivos vas a modificar
+2. qué referencias a Replit encontraste y cómo las corregiste
+3. qué variables de entorno necesita el proyecto
+4. el contenido del archivo .env.example
+5. cambios en package.json
+6. cambios necesarios para producción
+7. documentación de despliegue
+8. código completo de todos los archivos modificados
+
+IMPORTANTE:
+- no rompas la tienda actual
+- no cambies funcionalidades ya operativas
+- prioriza compatibilidad, limpieza y facilidad de migración
+- quiero que el proyecto quede listo para salir de Replit

@@ -1,0 +1,76 @@
+Quiero mejorar la sección de "Contenido" dentro del panel de administrador.
+
+Actualmente los cuadros de texto son muy simples y el resultado visual se ve feo y poco profesional.
+
+Necesito que reemplaces esos textareas básicos por un editor de contenido enriquecido, tipo HTML / rich text editor, para que pueda dar formato al contenido de páginas informativas.
+
+OBJETIVO
+Quiero que en el panel administrador, en la sección de contenido, pueda editar páginas como:
+
+- Quiénes somos
+- Términos y Condiciones
+- Política de Privacidad
+- Envíos y Devoluciones
+
+pero con un editor visual profesional, no con un textarea plano.
+
+FUNCIONALIDADES QUE QUIERO EN EL EDITOR
+El editor debe permitirme al menos:
+
+- negrita
+- cursiva
+- subrayado si es posible
+- títulos (H1, H2, H3)
+- párrafos
+- listas con viñetas
+- listas numeradas
+- enlaces
+- separación entre párrafos
+- alineación básica si es posible
+- insertar imagen si ya existe soporte
+- vista previa o render correcto del contenido
+
+TIPO DE SOLUCIÓN
+Puedes usar una librería de editor rich text moderna y fácil de mantener, por ejemplo algo tipo:
+
+- TipTap
+- Quill
+- React Quill
+- TinyMCE
+- o una alternativa ligera y moderna
+
+Elige la opción que mejor encaje con la arquitectura actual del proyecto.
+
+REQUISITOS TÉCNICOS
+- mantener la estructura actual del panel admin
+- no romper el sistema actual de contenido
+- guardar el contenido en formato HTML o en un formato que luego pueda renderizarse correctamente
+- al mostrarlo en el frontend, debe verse limpio y profesional
+- sanitizar el HTML si es necesario para evitar problemas de seguridad
+- asegurar que el contenido editado se renderice bien en desktop y móvil
+
+MEJORA VISUAL
+Además del editor, quiero que la interfaz de edición se vea más profesional:
+
+- área de edición más amplia
+- barra de herramientas clara
+- botones bien organizados
+- padding correcto
+- vista elegante dentro del panel de administración
+
+RESULTADO ESPERADO
+Cuando entre a "Contenido" en el admin, en vez de ver cajas de texto simples, quiero ver un editor visual tipo CMS donde pueda escribir y dar formato al texto como si fuera una mini página web.
+
+ENTREGABLE
+Quiero que me indiques:
+
+1. qué archivos vas a modificar
+2. qué librería usarás
+3. cómo guardarás el contenido
+4. cómo lo renderizarás en el frontend
+5. el código completo de cada cambio
+
+IMPORTANTE
+No quiero solo explicación.
+Quiero implementación real, limpia y profesional.
+No rompas lo que ya funciona.

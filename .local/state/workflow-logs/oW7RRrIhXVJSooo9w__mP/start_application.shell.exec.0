@@ -1,0 +1,39 @@
+
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+[1G[0K3:29:14 PM [express] serving on port 5000
+3:29:22 PM [express] GET /api/auth/me 401 in 3ms :: {"message":"No autenticado"}
+3:29:22 PM [express] GET /api/products 200 in 6ms :: [{"id":2,"categoryId":1,"name":"Mechanical Keyboard","slug":"mech-keyboard","description":"Clicky tactile mechanical keyboard for typists and gamers.","price":"129.50","offerPrice":null,"inventory":20,"imageUrl":"https://images.unsplash.com/photo-1595225476474-87563907a212","images":[],"isOffer":true,"isVisible":true,"createdAt":"2026-03-10T01:20:38.068Z","category":{"id":1,"name":"Tecnologia","slug":"tecnologia","description":"Gadgets, dispositivos electronicos y accesorios tecnologicos"}},{"id":3,"categoryId":2,"name":"Classic T-Shirt","slug":"classic-tshirt","description":"100% cotton essential tee.","price":"24.99","offerPrice":null,"inventory":100,"imageUrl":"https://images.unsplash.com/photo-1521572163474-6864f9cf17ab","images":[],"isOffer":true,"isVisible":true,"createdAt":"2026-03-10T01:20:38.073Z","category":{"id":2,"name":"Moda y Accesorios","slug":"moda-accesorios","description":"Ropa, calzado y accesorios de moda"}},{"id":1,"categoryId":1,"name":"Wireless Headphones","slug":"wireless-headphones","description":"High quality noise-cancelling wireless headphones.","price":"199.99","offerPrice":"149.99","inventory":50,"imageUrl":"https://images.unsplash.com/photo-1505740420928-5e560c06d30e","images":["https://images.unsplash.com/photo-1505740420928-5e560c06d30e"],"isOffer":true,"isVisible":true,"createdAt":"2026-03-10T01:20:38.063Z","category":{"id":1,"name":"Tecnologia","slug":"tecnologia","description":"Gadgets, dispositivos electronicos y accesorios tecnologicos"}}]
+3:29:22 PM [express] GET /api/categories 304 in 3ms :: [{"id":1,"name":"Tecnologia","slug":"tecnologia","description":"Gadgets, dispositivos electronicos y accesorios tecnologicos"},{"id":2,"name":"Moda y Accesorios","slug":"moda-accesorios","description":"Ropa, calzado y accesorios de moda"},{"id":3,"name":"Hogar y Cocina","slug":"hogar-cocina","description":"Articulos para el hogar, cocina y decoracion"},{"id":4,"name":"Belleza y Cuidado Personal","slug":"belleza-cuidado","description":"Cosmeticos, skincare y cuidado personal"},{"id":5,"name":"Salud y Bienestar","slug":"salud-bienestar","description":"Suplementos, equipos de salud y bienestar"},{"id":6,"name":"Juguetes y Ninos","slug":"juguetes-ninos","description":"Juguetes, juegos y articulos infantiles"},{"id":7,"name":"Papeleria y Oficina","slug":"papeleria-oficina","description":"Material de escritorio, papeleria y organizacion"},{"id":8,"name":"Mascotas","slug":"mascotas","description":"Alimentos, accesorios y cuidado para mascotas"},{"id":9,"name":"Deportes y Fitness","slug":"deportes-fitness","description":"Equipamiento deportivo, ropa fitness y accesorios"},{"id":10,"name":"Herramientas y Ferreteria","slug":"herramientas-ferreteria","description":"Herramientas manuales, electricas y accesorios"}]
+3:29:22 PM [express] GET /api/banner-slides 200 in 5ms :: [{"id":1,"title":"Mejores ofertas en tecnologia","subtitle":"Hasta 30% de descuento","imageUrl":null,"productId1":1,"productId2":2,"buttonText":"Ver ofertas","buttonLink":null,"buttonCategoryId":1,"sortOrder":0,"isActive":true,"product1":{"id":1,"categoryId":1,"name":"Wireless Headphones","slug":"wireless-headphones","description":"High quality noise-cancelling wireless headphones.","price":"199.99","offerPrice":"149.99","inventory":50,"imageUrl":"https://images.unsplash.com/photo-1505740420928-5e560c06d30e","images":["https://images.unsplash.com/photo-1505740420928-5e560c06d30e"],"isOffer":true,"isVisible":true,"createdAt":"2026-03-10T01:20:38.063Z"},"product2":{"id":2,"categoryId":1,"name":"Mechanical Keyboard","slug":"mech-keyboard","description":"Clicky tactile mechanical keyboard for typists and gamers.","price":"129.50","offerPrice":null,"inventory":20,"imageUrl":"https://images.unsplash.com/photo-1595225476474-87563907a212","images":[],"isOffer":true,"isVisible":true,"createdAt":"2026-03-10T01:20:38.068Z"},"buttonCategory":{"id":1,"name":"Tecnologia","slug":"tecnologia","description":"Gadgets, dispositivos electronicos y accesorios tecnologicos"}}]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1;1H[0J[2m3:30:29 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/home.tsx, /src/index.css[22m

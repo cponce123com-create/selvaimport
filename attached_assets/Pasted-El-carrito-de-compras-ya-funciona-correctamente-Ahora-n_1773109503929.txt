@@ -1,0 +1,130 @@
+El carrito de compras ya funciona correctamente.
+
+Ahora necesito implementar el paso final antes de confirmar el pedido: las opciones de envío, el resumen tipo recibo y el botón para enviar el pedido por WhatsApp.
+
+Quiero que modifiques el flujo del carrito y checkout con estas nuevas funciones.
+
+OBJETIVO
+Cuando el usuario termine de agregar productos al carrito y presione "Proceder a la compra", debe aparecer una pantalla de confirmación de pedido con:
+
+1) Opciones de envío
+2) Cálculo automático del costo total
+3) Generación de un recibo en texto
+4) Botón para enviar el pedido por WhatsApp
+5) Opción de pago mediante QR de Yape
+
+OPCIONES DE ENVÍO
+
+Agregar estas opciones seleccionables (radio buttons o selector):
+
+1. Recojo en tienda  
+Costo: GRATIS
+
+2. Envío a San Ramón urbano  
+Costo adicional: S/ 4.00
+
+3. Envío a La Merced  
+Costo adicional: S/ 8.00
+
+4. Envío por Shalom  
+Costo: según tarifario de Shalom  
+En este caso mostrar un mensaje:
+"El costo de envío se coordinará según tarifario de Shalom."
+
+El sistema debe recalcular el total automáticamente al elegir la opción.
+
+EJEMPLO DE CÁLCULO
+
+Subtotal productos: S/ 50  
+Envío San Ramón: S/ 4  
+
+TOTAL: S/ 54
+
+RESUMEN DEL PEDIDO (RECIBO)
+
+Antes de enviar el pedido se debe generar un recibo en texto con este formato:
+
+--------------------------------
+PEDIDO NUEVO
+
+Producto 1 x2 - S/ 20
+Producto 2 x1 - S/ 15
+Producto 3 x1 - S/ 10
+
+Subtotal: S/ 45
+Envío: San Ramón urbano - S/ 4
+
+TOTAL: S/ 49
+
+Cliente:
+Nombre:
+Teléfono:
+Dirección:
+
+Método de entrega:
+San Ramón urbano
+
+--------------------------------
+
+ENVÍO DEL PEDIDO A WHATSAPP
+
+Agregar un botón:
+
+"Enviar pedido por WhatsApp"
+
+Ese botón debe abrir WhatsApp con el mensaje del pedido usando el formato:
+
+https://wa.me/51998130656?text=MENSAJE
+
+El mensaje debe incluir todo el recibo generado.
+
+Número destino:
++51998130656
+
+De esta forma el cliente enviará el pedido directamente y luego se coordinará la entrega.
+
+PAGO CON YAPE
+
+Agregar también en la pantalla final del carrito:
+
+Sección "Pago con Yape"
+
+Mostrar:
+"Escanea el QR para pagar con Yape"
+
+Permitir mostrar una imagen QR (archivo configurable) que yo pueda cambiar fácilmente.
+
+Ejemplo:
+public/yape-qr.png
+
+Debajo mostrar el texto:
+
+"Después de pagar envía tu comprobante por WhatsApp junto con tu pedido."
+
+FLUJO FINAL
+
+Carrito →
+Proceder a la compra →
+Seleccionar envío →
+Ver resumen del pedido →
+Escanear QR Yape (opcional) →
+Botón "Enviar pedido por WhatsApp"
+
+REQUISITOS TÉCNICOS
+
+- El costo de envío debe actualizar el total dinámicamente
+- El recibo debe generarse automáticamente desde los productos del carrito
+- El mensaje de WhatsApp debe estar correctamente codificado
+- Mantener el diseño limpio y responsive
+- No romper el funcionamiento actual del carrito
+
+ENTREGABLE
+
+Necesito que me indiques:
+
+1. Qué archivos modificar
+2. El código completo de cada modificación
+3. Cómo integrar el QR de Yape
+4. Cómo generar correctamente el enlace de WhatsApp
+
+No cambies la arquitectura existente del proyecto. Solo extiende el sistema del carrito y checkout.

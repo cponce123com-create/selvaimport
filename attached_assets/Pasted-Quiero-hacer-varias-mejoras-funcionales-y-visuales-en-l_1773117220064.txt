@@ -1,0 +1,219 @@
+Quiero hacer varias mejoras funcionales y visuales en la tienda. 
+No debes romper ninguna funcionalidad existente (carrito, pedidos, WhatsApp, etc.). 
+Solo extender el sistema actual con estas mejoras.
+
+------------------------------------------------
+1. PROBLEMA CON EMOJIS EN WHATSAPP
+------------------------------------------------
+
+Actualmente el mensaje que se envía a WhatsApp muestra los emojis como signos de interrogación (¿?).
+
+Necesito que corrijas esto.
+
+Posible causa:
+El mensaje no está correctamente codificado antes de enviarlo al enlace de WhatsApp.
+
+Solución esperada:
+
+El texto debe enviarse usando correctamente:
+
+encodeURIComponent()
+
+Ejemplo:
+
+const message = encodeURIComponent(textoPedido);
+const url = `https://wa.me/51998130656?text=${message}`;
+
+Debes asegurarte que:
+
+- los emojis funcionen correctamente
+- los saltos de línea funcionen
+- no aparezcan caracteres extraños
+
+------------------------------------------------
+2. GALERÍA DE FOTOS EN PRODUCTOS
+------------------------------------------------
+
+En la página del producto quiero que el usuario pueda ver varias imágenes del producto.
+
+Actualmente solo se ve una imagen.
+
+Necesito implementar:
+
+- galería de imágenes
+- flechas izquierda/derecha
+- cambio de imagen al presionar flechas
+
+Funcionamiento esperado:
+
+Imagen principal grande
+
+debajo o al lado:
+flechas ← →
+
+El usuario puede cambiar entre varias fotos del producto antes de añadirlo al carrito.
+
+Requisitos:
+
+- permitir subir múltiples imágenes al crear producto
+- guardarlas en base de datos
+- mostrar carrusel o slider
+- transición suave
+- compatible con celular
+
+------------------------------------------------
+3. SLUG AUTOMÁTICO
+------------------------------------------------
+
+Actualmente al crear un producto el sistema pide obligatoriamente un slug.
+
+Quiero que el slug se genere automáticamente a partir del nombre del producto.
+
+Ejemplo:
+
+Nombre del producto:
+Mechanical Keyboard RGB
+
+Slug generado automáticamente:
+mechanical-keyboard-rgb
+
+Reglas:
+
+- convertir a minúsculas
+- eliminar caracteres especiales
+- reemplazar espacios por guiones
+- si ya existe, agregar número
+
+Ejemplo:
+
+mechanical-keyboard-rgb-2
+
+El administrador no debería tener que escribir el slug manualmente.
+
+------------------------------------------------
+4. PÁGINAS DE SOPORTE EDITABLES DESDE ADMIN
+------------------------------------------------
+
+Actualmente existen estas páginas:
+
+- Términos y Condiciones
+- Política de Privacidad
+- Envíos y Devoluciones
+
+Pero no muestran contenido.
+
+Quiero que estas páginas puedan editarse desde el panel de administración.
+
+Crear en el administrador una sección:
+
+GESTIÓN DE CONTENIDO
+
+Ahí debe haber un editor de texto para:
+
+- Términos y Condiciones
+- Política de Privacidad
+- Envíos y Devoluciones
+
+El administrador debe poder:
+
+- editar texto
+- guardar cambios
+- que se reflejen automáticamente en la web
+
+Se puede usar:
+
+textarea grande
+o editor tipo rich text simple.
+
+------------------------------------------------
+5. PÁGINA "QUIÉNES SOMOS"
+------------------------------------------------
+
+Crear una nueva página:
+
+QUIÉNES SOMOS
+
+Debe poder editarse desde el panel administrador.
+
+El administrador debe poder:
+
+- escribir texto
+- subir una imagen
+
+Diseño sugerido:
+
+imagen a la izquierda
+texto a la derecha
+
+responsive en celular.
+
+También agregar la pestaña "Quiénes somos" en el menú principal.
+
+------------------------------------------------
+6. MEJORAR BANNER DE OFERTAS
+------------------------------------------------
+
+En el banner principal actualmente ocurre esto:
+
+1. aparece presentación de la tienda
+2. luego aparecen productos en oferta
+
+Pero el problema es que:
+
+la imagen del producto es muy pequeña.
+
+Quiero mejorar esto.
+
+Opciones aceptables:
+
+OPCIÓN A
+imagen del producto más grande
+
+OPCIÓN B
+mostrar dos productos en oferta al mismo tiempo
+
+OPCIÓN C
+producto grande + información destacada
+
+Requisitos:
+
+- que el producto tenga más protagonismo visual
+- que se vea bien en móvil
+- mantener carrusel automático
+- transición cada 5 segundos
+
+------------------------------------------------
+REQUISITOS IMPORTANTES
+------------------------------------------------
+
+No romper:
+
+- carrito
+- checkout
+- WhatsApp
+- sistema de pedidos
+- login
+
+El código debe:
+
+- estar limpio
+- modular
+- responsive
+- consistente con la arquitectura actual
+
+------------------------------------------------
+ENTREGABLE
+------------------------------------------------
+
+Quiero que me indiques:
+
+1. qué archivos vas a modificar
+2. qué nuevas tablas o campos se necesitan
+3. cómo implementarás la galería de imágenes
+4. cómo generarás automáticamente el slug
+5. cómo implementarás el CMS simple para páginas legales
+6. cómo funcionará la página "Quiénes somos"
+7. el código completo de cada cambio
+
+No quiero solo teoría.
+Quiero implementación real paso a paso.
