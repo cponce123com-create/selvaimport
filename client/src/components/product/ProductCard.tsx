@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useAddToCart } from "@/hooks/use-cart";
 import { ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, memo } from "react";
 import { toWebP, getDisplayPrice } from "@/lib/utils";
 
 interface ProductCardProps {
@@ -11,7 +11,7 @@ interface ProductCardProps {
   badge?: string;
 }
 
-export function ProductCard({ product, badge }: ProductCardProps) {
+export const ProductCard = memo(function ProductCard({ product, badge }: ProductCardProps) {
   const { mutate: addToCart, isPending } = useAddToCart();
   const { toast } = useToast();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -81,10 +81,13 @@ export function ProductCard({ product, badge }: ProductCardProps) {
         ) : null}
         {allImages.length > 0 ? (
           <img
-            src={toWebP(allImages[currentImageIndex])}
+            src={toWebP(allImages[currentImageIndex], 400)}
+            srcSet={`${toWebP(allImages[currentImageIndex], 300)} 300w, ${toWebP(allImages[currentImageIndex], 500)} 500w`}
+            sizes="(max-width: 640px) 50vw, 25vw"
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
             loading="lazy"
+            decoding="async"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground/30 text-3xl sm:text-4xl font-bold bg-gradient-to-br from-accent to-muted">
@@ -164,4 +167,4 @@ export function ProductCard({ product, badge }: ProductCardProps) {
       </div>
     </Link>
   );
-}
+});

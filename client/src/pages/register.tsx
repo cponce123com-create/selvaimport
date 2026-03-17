@@ -1,5 +1,5 @@
 import { AppLayout } from "@/components/layout/AppLayout";
-import { useRegister } from "@/hooks/use-auth";
+import { useRegister, useGoogleLogin } from "@/hooks/use-auth";
 import { Link, useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -8,6 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect, useRef } from "react";
 
 const schema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
@@ -17,8 +18,48 @@ const schema = z.object({
 
 export default function Register() {
   const { mutate: register, isPending } = useRegister();
+  const { mutate: googleLogin, isPending: googlePending } = useGoogleLogin();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const googleBtnRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) return;
+
+    const handleGoogleResponse = (response: any) => {
+      googleLogin(response.credential, {
+        onSuccess: (user) => {
+          toast({ title: "Bienvenido/a con Google" });
+          setLocation(user.role === "admin" ? "/admin" : "/");
+        },
+        onError: (err) => {
+          toast({ title: "Error con Google", description: err.message, variant: "destructive" });
+        }
+      });
+    };
+
+    const interval = setInterval(() => {
+      if ((window as any).google) {
+        clearInterval(interval);
+        (window as any).google.accounts.id.initialize({
+          client_id: clientId,
+          callback: handleGoogleResponse,
+        });
+        if (googleBtnRef.current) {
+          (window as any).google.accounts.id.renderButton(googleBtnRef.current, {
+            theme: "outline",
+            size: "large",
+            width: "100%",
+            text: "signup_with",
+            shape: "rectangular",
+          });
+        }
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [googleLogin, setLocation, toast]);
 
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
@@ -93,6 +134,17 @@ export default function Register() {
               </Button>
             </form>
           </Form>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-3 text-muted-foreground">o</span>
+            </div>
+          </div>
+
+          <div ref={googleBtnRef} className="w-full mb-4 min-h-[44px]" />
 
           <p className="text-center mt-8 text-sm text-muted-foreground">
             Ya tienes cuenta? <Link href="/login" className="text-primary font-semibold hover:underline" data-testid="link-login">Iniciar Sesion</Link>

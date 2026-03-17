@@ -153,7 +153,7 @@ function BannerCTA({
   );
 }
 
-function DynamicBannerSlide({ slide }: { slide: BannerSlideData }) {
+function DynamicBannerSlide({ slide, priority }: { slide: BannerSlideData, priority?: boolean }) {
   const hasProducts = slide.product1 || slide.product2;
   const productCards = [slide.product1, slide.product2].filter(
     Boolean
@@ -172,14 +172,18 @@ function DynamicBannerSlide({ slide }: { slide: BannerSlideData }) {
           muted
           loop
           playsInline
-          poster={slide.imageUrl ? toWebP(slide.imageUrl) : undefined}
+          poster={slide.imageUrl ? toWebP(slide.imageUrl, 1200) : undefined}
         />
       ) : slide.imageUrl ? (
         <img
-          src={toWebP(slide.imageUrl)}
+          src={toWebP(slide.imageUrl, 1200)}
+          srcSet={`${toWebP(slide.imageUrl, 600)} 600w, ${toWebP(slide.imageUrl, 1200)} 1200w, ${toWebP(slide.imageUrl, 1920)} 1920w`}
+          sizes="100vw"
           alt={slide.title || ""}
           className="absolute inset-0 w-full h-full object-cover"
-          loading="lazy"
+          loading={priority ? "eager" : "lazy"}
+          decoding={priority ? "sync" : "async"}
+          {...(priority ? { fetchPriority: "high" } : {})}
         />
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-primary/5" />
@@ -370,7 +374,10 @@ export default function Home() {
                 transition={{ duration: 0.4 }}
                 className="absolute inset-0"
               >
-                <DynamicBannerSlide slide={bannerSlides[currentSlide]} />
+                <DynamicBannerSlide 
+                  slide={bannerSlides[currentSlide]} 
+                  priority={currentSlide === 0}
+                />
               </motion.div>
             ) : (
               <div className="absolute inset-0 bg-white" />

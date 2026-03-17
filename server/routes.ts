@@ -2,6 +2,7 @@ import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, hashPassword } from "./auth";
+import { OAuth2Client } from "google-auth-library";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import { v2 as cloudinary } from "cloudinary";
@@ -34,6 +35,40 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   setupAuth(app);
+
+  const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+  app.post("/api/auth/google", async (req, res) => {
+    try {
+      const { credential } = req.body;
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+
+      const payload = ticket.getPayload();
+      if (!payload || !payload.email) {
+        return res.status(400).json({ message: "Invalid Google token" });
+      }
+
+      let user = await storage.getUserByEmail(payload.email);
+      if (!user) {
+        user = await storage.createUser({
+          email: payload.email,
+          name: payload.name || payload.email.split("@")[0],
+          password: null as any,
+        });
+      }
+
+      req.login(user, (err) => {
+        if (err) return res.status(500).json({ message: "Login failed" });
+        res.json(user);
+      });
+    } catch (error) {
+      console.error("Google Auth Error:", error);
+      res.status(400).json({ message: "Google authentication failed" });
+    }
+  });
 
   app.post("/api/upload", requireAdmin, upload.single("file"), async (req, res) => {
     try {
@@ -128,13 +163,20 @@ export async function registerRoutes(
       const data = api.products.create.input.parse(req.body);
 
       const baseSlug = data.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
-      const existingProducts = await storage.getProducts();
-      const existingSlugs = new Set(existingProducts.map(p => p.slug));
+      
       let slug = baseSlug;
-      let counter = 2;
-      while (existingSlugs.has(slug)) {
-        slug = `${baseSlug}-${counter}`;
-        counter++;
+      let counter = 1;
+      let isUnique = false;
+      
+      while (!isUnique) {
+        const testSlug = counter === 1 ? baseSlug : `${baseSlug}-${counter}`;
+        const existing = await storage.getProductBySlug(testSlug);
+        if (!existing) {
+          slug = testSlug;
+          isUnique = true;
+        } else {
+          counter++;
+        }
       }
       (data as any).slug = slug;
 

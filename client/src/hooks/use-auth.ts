@@ -39,6 +39,30 @@ export function useLogin() {
   });
 }
 
+export function useGoogleLogin() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (credential: string) => {
+      const res = await fetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential }),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.message || "Error al iniciar sesion con Google");
+      }
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.auth.me.path] });
+      queryClient.invalidateQueries({ queryKey: [api.cart.get.path] });
+      queryClient.invalidateQueries({ queryKey: [api.orders.list.path] });
+    },
+  });
+}
+
 export function useRegister() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -24,14 +24,18 @@ export function getDisplayPrice(product: { price: string; offerPrice?: string | 
   return { current: price, original: null, discount: null };
 }
 
-export function toWebP(url: string | null | undefined): string {
+export function toWebP(url: string | null | undefined, width?: number): string {
   if (!url) return "";
   if (url.includes("res.cloudinary.com")) {
-    return url.replace("/upload/", "/upload/f_webp,q_auto/");
+    let transform = "f_auto,q_auto";
+    if (width) transform += `,w_${width},c_limit`;
+    return url.replace("/upload/", `/upload/${transform}/`);
   }
   if (url.includes("images.unsplash.com")) {
     const sep = url.includes("?") ? "&" : "?";
-    return `${url}${sep}fm=webp&q=80`;
+    let params = `fm=webp&q=80`;
+    if (width) params += `&w=${width}`;
+    return `${url}${sep}${params}`;
   }
   return url;
 }

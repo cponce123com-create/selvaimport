@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, and, isNull, isNotNull, desc } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, desc, ilike, or } from "drizzle-orm";
 import {
   users, categories, products, carts, cartItems, orders, orderItems, sitePages, bannerSlides, coupons,
   type User, type InsertUser,
@@ -28,6 +28,7 @@ export interface IStorage {
 
   getProducts(categoryId?: number, search?: string): Promise<ProductWithCategory[]>;
   getProduct(id: number): Promise<ProductWithCategory | undefined>;
+  getProductBySlug(slug: string): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product>;
   deleteProduct(id: number): Promise<void>;
@@ -104,25 +105,26 @@ export class DatabaseStorage implements IStorage {
   }
 
 async getProducts(categoryId?: number, search?: string): Promise<ProductWithCategory[]> {
-  const cats = await this.getCategories();
-
-  let query = db.select().from(products);
-  const allProducts = await query;
-  let filtered = allProducts;
-
-  if (categoryId) {
-    filtered = filtered.filter(p => p.categoryId === categoryId);
-  }
-
+  const conditions = [];
+  if (categoryId) conditions.push(eq(products.categoryId, categoryId));
   if (search) {
-    filtered = filtered.filter(
-      p =>
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.description.toLowerCase().includes(search.toLowerCase())
+    conditions.push(
+      or(
+        ilike(products.name, `%${search}%`),
+        ilike(products.description, `%${search}%`)
+      )
     );
   }
 
-  return filtered.map(p => ({
+  const query = db.select().from(products);
+  if (conditions.length > 0) {
+    query.where(and(...conditions));
+  }
+  
+  const filteredProducts = await query.orderBy(desc(products.createdAt));
+  const cats = await this.getCategories();
+
+  return filteredProducts.map(p => ({
     ...p,
     category: cats.find(c => c.id === p.categoryId)
   }));
@@ -133,6 +135,11 @@ async getProducts(categoryId?: number, search?: string): Promise<ProductWithCate
     if (!product) return undefined;
     const [category] = product.categoryId ? await db.select().from(categories).where(eq(categories.id, product.categoryId)) : [undefined];
     return { ...product, category };
+  }
+
+  async getProductBySlug(slug: string): Promise<Product | undefined> {
+    const [product] = await db.select().from(products).where(eq(products.slug, slug));
+    return product;
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {
@@ -211,24 +218,40 @@ async getProducts(categoryId?: number, search?: string): Promise<ProductWithCate
   }
 
   async getOrders(userId?: number): Promise<OrderWithItems[]> {
-    let ordersList;
-    if (userId) {
-      ordersList = await db.select().from(orders).where(eq(orders.userId, userId)).orderBy(desc(orders.createdAt));
-    } else {
-      ordersList = await db.select().from(orders).orderBy(desc(orders.createdAt));
+    const conditions = [];
+    if (userId) conditions.push(eq(orders.userId, userId));
+
+    const query = db.select().from(orders).orderBy(desc(orders.createdAt));
+    if (conditions.length > 0) {
+      query.where(and(...conditions));
     }
 
+    const ordersList = await query;
     if (ordersList.length === 0) return [];
 
-    const allItems = await db.select().from(orderItems);
-    const allProducts = await db.select().from(products);
+    const orderIds = ordersList.map(o => o.id);
+    const items = await db.select().from(orderItems).where(or(...orderIds.map(id => eq(orderItems.orderId, id))));
+    
+    const productIds = Array.from(new Set(items.map(i => i.productId)));
+    const allProducts = productIds.length > 0 
+      ? await db.select().from(products).where(or(...productIds.map(id => eq(products.id, id))))
+      : [];
+    
+    const productMap = new Map(allProducts.map(p => [p.id, p]));
+    const itemsByOrder = new Map<number, (OrderItem & { product: Product })[]>();
+
+    items.forEach(item => {
+      const orderId = item.orderId;
+      if (!itemsByOrder.has(orderId)) itemsByOrder.set(orderId, []);
+      itemsByOrder.get(orderId)!.push({
+        ...item,
+        product: productMap.get(item.productId)!
+      });
+    });
 
     return ordersList.map(o => ({
       ...o,
-      items: allItems.filter(i => i.orderId === o.id).map(i => ({
-        ...i,
-        product: allProducts.find(p => p.id === i.productId)!
-      }))
+      items: itemsByOrder.get(o.id) || []
     }));
   }
 
@@ -325,16 +348,43 @@ async getProducts(categoryId?: number, search?: string): Promise<ProductWithCate
   }
 
   async getBannerSlides(activeOnly = false): Promise<BannerSlideWithProducts[]> {
-    const allSlides = await db.select().from(bannerSlides).orderBy(bannerSlides.sortOrder);
-    const filtered = activeOnly ? allSlides.filter(s => s.isActive) : allSlides;
-    if (filtered.length === 0) return [];
-    const allProducts = await db.select().from(products);
-    const allCategories = await db.select().from(categories);
-    return filtered.map(s => ({
-      ...s,
-      product1: s.productId1 ? allProducts.find(p => p.id === s.productId1) || null : null,
-      product2: s.productId2 ? allProducts.find(p => p.id === s.productId2) || null : null,
-      buttonCategory: s.buttonCategoryId ? allCategories.find(c => c.id === s.buttonCategoryId) || null : null,
+    const conditions = [];
+    if (activeOnly) conditions.push(eq(bannerSlides.isActive, true));
+
+    const query = db.select().from(bannerSlides).orderBy(bannerSlides.sortOrder);
+    if (conditions.length > 0) {
+      query.where(and(...conditions));
+    }
+
+    const slides = await query;
+    if (slides.length === 0) return [];
+
+    const productIds = new Set<number>();
+    const categoryIds = new Set<number>();
+    
+    slides.forEach(s => {
+      if (s.productId1) productIds.add(s.productId1);
+      if (s.productId2) productIds.add(s.productId2);
+      if (s.buttonCategoryId) categoryIds.add(s.buttonCategoryId);
+    });
+
+    const [allProducts, allCategories] = await Promise.all([
+      productIds.size > 0 
+        ? db.select().from(products).where(or(...Array.from(productIds).map(id => eq(products.id, id))))
+        : Promise.resolve([]),
+      categoryIds.size > 0
+        ? db.select().from(categories).where(or(...Array.from(categoryIds).map(id => eq(categories.id, id))))
+        : Promise.resolve([])
+    ]);
+
+    const productMap = new Map(allProducts.map(p => [p.id, p]));
+    const categoryMap = new Map(allCategories.map(c => [c.id, c]));
+
+    return slides.map(slide => ({
+      ...slide,
+      product1: slide.productId1 ? productMap.get(slide.productId1) || null : null,
+      product2: slide.productId2 ? productMap.get(slide.productId2) || null : null,
+      buttonCategory: slide.buttonCategoryId ? categoryMap.get(slide.buttonCategoryId) || null : null
     }));
   }
 
