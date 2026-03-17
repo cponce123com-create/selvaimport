@@ -76,9 +76,12 @@ export const ProductCard = memo(function ProductCard({ product, badge }: Product
         {/* Etiqueta de stock agotado o vendido */}
         {outOfStock ? (
           isTacora ? (
-            <span className="absolute top-2 right-2 sm:top-3 sm:right-3 z-20 bg-gray-800/80 text-white text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:px-3 sm:py-1 rounded-full shadow-md tracking-widest backdrop-blur-sm border border-white/20">
-              VENDIDO
-            </span>
+            // Etiqueta VENDIDO para TACORA: grande, roja, centrada, muy visible
+            <div className="absolute inset-0 z-20 flex items-center justify-center">
+              <div className="bg-red-600 text-white font-black tracking-widest shadow-2xl border-2 border-white/30 rounded-xl px-4 py-2 sm:px-6 sm:py-3 text-center" style={{ transform: "rotate(-3deg)" }}>
+                <span className="block text-sm sm:text-base md:text-lg leading-none">VENDIDO</span>
+              </div>
+            </div>
           ) : (
             <span className="absolute top-2 right-2 sm:top-3 sm:right-3 z-20 bg-red-600 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 sm:px-3 sm:py-1 rounded-full shadow-md">
               SIN STOCK
