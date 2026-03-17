@@ -24,29 +24,31 @@ function ProductThumbCard({ product }: { product: ProductThumb }) {
 
   return (
     <Link href={`/product/${product.id}`}>
-      <div className="flex-shrink-0 w-[130px] sm:w-[150px] md:w-[160px] group cursor-pointer">
-        <div className="relative aspect-square rounded-xl overflow-hidden bg-white border border-gray-100 shadow-sm group-hover:shadow-md group-hover:border-gray-200 transition-all duration-200">
+      <div className="flex-shrink-0 w-[100px] sm:w-[120px] md:w-[130px] group cursor-pointer">
+        {/* Imagen cuadrada compacta */}
+        <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-white border border-gray-100 shadow-sm group-hover:shadow-md group-hover:border-gray-200 transition-all duration-200">
           {img ? (
             <img
-              src={toWebP(img, 320)}
+              src={toWebP(img, 260)}
               alt={product.name}
-              className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${outOfStock ? "opacity-60" : ""}`}
+              className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${outOfStock ? "opacity-55" : ""}`}
               loading="lazy"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-2xl font-bold">
+            <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-xl font-bold">
               {product.name.charAt(0)}
             </div>
           )}
           {outOfStock && (
-            <div className="absolute inset-0 flex items-end justify-center pb-2">
-              <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
+            <div className="absolute inset-0 flex items-end justify-center pb-1.5">
+              <span className="bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow">
                 SIN STOCK
               </span>
             </div>
           )}
         </div>
-        <p className="mt-1.5 text-xs text-center text-gray-700 line-clamp-2 leading-tight px-0.5">
+        {/* Nombre compacto */}
+        <p className="mt-1 text-[10px] sm:text-xs text-center text-gray-700 line-clamp-2 leading-tight px-0.5">
           {product.name}
         </p>
       </div>
@@ -61,39 +63,38 @@ export function HomeProductRow({ title, products, viewMoreHref }: HomeProductRow
 
   const scroll = (dir: "left" | "right") => {
     if (!scrollRef.current) return;
-    const amount = 320;
-    scrollRef.current.scrollBy({ left: dir === "right" ? amount : -amount, behavior: "smooth" });
+    scrollRef.current.scrollBy({ left: dir === "right" ? 280 : -280, behavior: "smooth" });
   };
 
   return (
-    <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mx-4 sm:mx-6 lg:mx-8 my-4">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-5 pb-3">
-        <h2 className="text-base sm:text-lg font-bold text-gray-900">{title}</h2>
+    <section className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mx-3 sm:mx-4 lg:mx-6 my-3">
+      {/* Header compacto */}
+      <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
+        <h2 className="text-sm sm:text-base font-bold text-gray-900 leading-tight">{title}</h2>
         {viewMoreHref && (
           <Link href={viewMoreHref}>
-            <span className="text-xs text-blue-600 hover:text-blue-800 hover:underline font-medium flex items-center gap-0.5">
-              Ver más <ChevronRight className="w-3.5 h-3.5" />
+            <span className="text-[11px] text-blue-600 hover:text-blue-800 hover:underline font-medium flex items-center gap-0.5 whitespace-nowrap">
+              Ver más <ChevronRight className="w-3 h-3" />
             </span>
           </Link>
         )}
       </div>
 
-      {/* Scroll container with arrows */}
-      <div className="relative group/row px-5 pb-5">
-        {/* Left arrow */}
+      {/* Scroll con flechas */}
+      <div className="relative group/row px-4 pb-3.5">
+        {/* Flecha izquierda */}
         <button
           onClick={() => scroll("left")}
-          className="absolute left-1 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-md border border-gray-200 rounded-full p-1.5 opacity-0 group-hover/row:opacity-100 transition-opacity duration-200 hidden sm:flex"
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/95 hover:bg-white shadow border border-gray-200 rounded-full p-1 opacity-0 group-hover/row:opacity-100 transition-opacity hidden sm:flex"
           aria-label="Anterior"
         >
-          <ChevronLeft className="w-4 h-4 text-gray-700" />
+          <ChevronLeft className="w-3.5 h-3.5 text-gray-700" />
         </button>
 
-        {/* Products scroll */}
+        {/* Productos */}
         <div
           ref={scrollRef}
-          className="flex gap-3 overflow-x-auto scroll-smooth pb-1"
+          className="flex gap-2.5 overflow-x-auto pb-0.5"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {products.map((product) => (
@@ -101,13 +102,13 @@ export function HomeProductRow({ title, products, viewMoreHref }: HomeProductRow
           ))}
         </div>
 
-        {/* Right arrow */}
+        {/* Flecha derecha */}
         <button
           onClick={() => scroll("right")}
-          className="absolute right-1 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-md border border-gray-200 rounded-full p-1.5 opacity-0 group-hover/row:opacity-100 transition-opacity duration-200 hidden sm:flex"
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/95 hover:bg-white shadow border border-gray-200 rounded-full p-1 opacity-0 group-hover/row:opacity-100 transition-opacity hidden sm:flex"
           aria-label="Siguiente"
         >
-          <ChevronRight className="w-4 h-4 text-gray-700" />
+          <ChevronRight className="w-3.5 h-3.5 text-gray-700" />
         </button>
       </div>
     </section>

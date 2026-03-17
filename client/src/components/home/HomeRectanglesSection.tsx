@@ -30,7 +30,7 @@ interface HomeRectangleData {
   items?: { product: ProductThumb }[];
 }
 
-// ─── Rectángulo con 1 producto grande ─────────────────────────────────────────
+// ─── Producto único ────────────────────────────────────────────────────────────
 function RectSingleProduct({ rect }: { rect: HomeRectangleData }) {
   const product = rect.product;
   if (!product) return <RectEmpty />;
@@ -38,12 +38,12 @@ function RectSingleProduct({ rect }: { rect: HomeRectangleData }) {
   const outOfStock = product.inventory === 0;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col h-full">
-      <div className="px-4 pt-4 pb-2">
-        <h3 className="font-bold text-sm text-gray-900 line-clamp-2 leading-snug">{rect.title}</h3>
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col h-full">
+      <div className="px-3 pt-3 pb-1.5">
+        <h3 className="font-bold text-xs sm:text-sm text-gray-900 line-clamp-2 leading-snug">{rect.title}</h3>
       </div>
-      <Link href={`/product/${product.id}`} className="flex-1 block overflow-hidden relative">
-        <div className="relative w-full h-full min-h-[160px]">
+      <Link href={`/product/${product.id}`} className="flex-1 block overflow-hidden">
+        <div className="relative w-full h-full min-h-[120px] sm:min-h-[140px]">
           {img ? (
             <img
               src={toWebP(img, 400)}
@@ -52,22 +52,22 @@ function RectSingleProduct({ rect }: { rect: HomeRectangleData }) {
               loading="lazy"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-3xl font-bold min-h-[160px]">
+            <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-2xl font-bold min-h-[120px]">
               {product.name.charAt(0)}
             </div>
           )}
           {outOfStock && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow">
+              <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
                 SIN STOCK
               </span>
             </div>
           )}
         </div>
       </Link>
-      <div className="px-4 py-2">
+      <div className="px-3 py-2">
         <Link href={`/product/${product.id}`}>
-          <span className="text-xs text-blue-600 hover:underline font-medium flex items-center gap-0.5">
+          <span className="text-[11px] text-blue-600 hover:underline font-medium flex items-center gap-0.5">
             Ver producto <ChevronRight className="w-3 h-3" />
           </span>
         </Link>
@@ -76,23 +76,23 @@ function RectSingleProduct({ rect }: { rect: HomeRectangleData }) {
   );
 }
 
-// ─── Rectángulo con grid de hasta 4 productos ─────────────────────────────────
+// ─── Grid de hasta 4 productos ────────────────────────────────────────────────
 function RectMultiProduct({ rect }: { rect: HomeRectangleData }) {
   const items = rect.items || [];
   const categoryHref = rect.categoryId ? `/?cat=${rect.categoryId}` : "#catalogo";
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col h-full">
-      <div className="px-4 pt-4 pb-2">
-        <h3 className="font-bold text-sm text-gray-900 line-clamp-2 leading-snug">{rect.title}</h3>
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col h-full">
+      <div className="px-3 pt-3 pb-1.5">
+        <h3 className="font-bold text-xs sm:text-sm text-gray-900 line-clamp-2 leading-snug">{rect.title}</h3>
       </div>
-      <div className="flex-1 grid grid-cols-2 gap-1.5 px-3 pb-2">
+      <div className="flex-1 grid grid-cols-2 gap-1 px-2.5 pb-1.5">
         {items.slice(0, 4).map(({ product }) => {
           const img = product.images?.[0] || product.imageUrl;
           const outOfStock = product.inventory === 0;
           return (
             <Link key={product.id} href={`/product/${product.id}`}>
-              <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-50 group">
+              <div className="relative aspect-square overflow-hidden rounded-md bg-gray-50 group">
                 {img ? (
                   <img
                     src={toWebP(img, 200)}
@@ -101,13 +101,13 @@ function RectMultiProduct({ rect }: { rect: HomeRectangleData }) {
                     loading="lazy"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-base font-bold">
+                  <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-sm font-bold">
                     {product.name.charAt(0)}
                   </div>
                 )}
                 {outOfStock && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                    <span className="bg-red-600 text-white text-[8px] font-bold px-1 py-0.5 rounded-full">
                       SIN STOCK
                     </span>
                   </div>
@@ -116,14 +116,13 @@ function RectMultiProduct({ rect }: { rect: HomeRectangleData }) {
             </Link>
           );
         })}
-        {/* Rellenar celdas vacías */}
         {Array.from({ length: Math.max(0, 4 - Math.min(items.length, 4)) }).map((_, i) => (
-          <div key={`empty-${i}`} className="aspect-square rounded-lg bg-gray-50" />
+          <div key={`empty-${i}`} className="aspect-square rounded-md bg-gray-50" />
         ))}
       </div>
-      <div className="px-4 pb-3">
+      <div className="px-3 pb-2.5">
         <a href={categoryHref}>
-          <span className="text-xs text-blue-600 hover:underline font-medium flex items-center gap-0.5">
+          <span className="text-[11px] text-blue-600 hover:underline font-medium flex items-center gap-0.5">
             Ver más <ChevronRight className="w-3 h-3" />
           </span>
         </a>
@@ -132,23 +131,23 @@ function RectMultiProduct({ rect }: { rect: HomeRectangleData }) {
   );
 }
 
-// ─── Rectángulo por categoría ─────────────────────────────────────────────────
+// ─── Por categoría ────────────────────────────────────────────────────────────
 function RectCategory({ rect }: { rect: HomeRectangleData }) {
   const category = rect.category;
   const items = rect.items || [];
   const href = category ? `/?cat=${category.id}` : "#catalogo";
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col h-full">
-      <div className="px-4 pt-4 pb-2">
-        <h3 className="font-bold text-sm text-gray-900 line-clamp-2 leading-snug">{rect.title}</h3>
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col h-full">
+      <div className="px-3 pt-3 pb-1.5">
+        <h3 className="font-bold text-xs sm:text-sm text-gray-900 line-clamp-2 leading-snug">{rect.title}</h3>
       </div>
-      <div className="flex-1 grid grid-cols-2 gap-1.5 px-3 pb-2">
+      <div className="flex-1 grid grid-cols-2 gap-1 px-2.5 pb-1.5">
         {items.slice(0, 4).map(({ product }) => {
           const img = product.images?.[0] || product.imageUrl;
           return (
             <Link key={product.id} href={`/product/${product.id}`}>
-              <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-50 group">
+              <div className="relative aspect-square overflow-hidden rounded-md bg-gray-50 group">
                 {img ? (
                   <img
                     src={toWebP(img, 200)}
@@ -157,7 +156,7 @@ function RectCategory({ rect }: { rect: HomeRectangleData }) {
                     loading="lazy"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-base font-bold">
+                  <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-sm font-bold">
                     {product.name.charAt(0)}
                   </div>
                 )}
@@ -166,12 +165,12 @@ function RectCategory({ rect }: { rect: HomeRectangleData }) {
           );
         })}
         {Array.from({ length: Math.max(0, 4 - Math.min(items.length, 4)) }).map((_, i) => (
-          <div key={`empty-${i}`} className="aspect-square rounded-lg bg-gray-50" />
+          <div key={`empty-${i}`} className="aspect-square rounded-md bg-gray-50" />
         ))}
       </div>
-      <div className="px-4 pb-3">
+      <div className="px-3 pb-2.5">
         <a href={href}>
-          <span className="text-xs text-blue-600 hover:underline font-medium flex items-center gap-0.5">
+          <span className="text-[11px] text-blue-600 hover:underline font-medium flex items-center gap-0.5">
             Ver {category?.name || "más"} <ChevronRight className="w-3 h-3" />
           </span>
         </a>
@@ -180,10 +179,10 @@ function RectCategory({ rect }: { rect: HomeRectangleData }) {
   );
 }
 
-// ─── Rectángulo vacío ─────────────────────────────────────────────────────────
+// ─── Vacío ────────────────────────────────────────────────────────────────────
 function RectEmpty() {
   return (
-    <div className="bg-white rounded-2xl border border-dashed border-gray-200 h-full flex items-center justify-center text-gray-300 text-xs min-h-[200px]">
+    <div className="bg-white rounded-xl border border-dashed border-gray-200 h-full flex items-center justify-center text-gray-300 text-xs min-h-[160px]">
       Sin configurar
     </div>
   );
@@ -198,22 +197,19 @@ export function HomeRectanglesSection({ rectangles }: { rectangles: HomeRectangl
   if (activeRects.length === 0) return null;
 
   return (
-    <section className="px-4 sm:px-6 lg:px-8 py-4">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4" style={{ minHeight: "240px" }}>
+    <section className="px-3 sm:px-4 lg:px-6 py-3">
+      {/* En móvil: 2 columnas. En desktop: 4 columnas */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
         {activeRects.map((rect) => {
-          // Grid de múltiples productos
           if (rect.rectType === "multi" && rect.items && rect.items.length > 0) {
             return <RectMultiProduct key={rect.id} rect={rect} />;
           }
-          // Por categoría
           if (rect.rectType === "category") {
             return <RectCategory key={rect.id} rect={rect} />;
           }
-          // Producto único
           if (rect.rectType === "product" && rect.product) {
             return <RectSingleProduct key={rect.id} rect={rect} />;
           }
-          // Fallback: si tiene items, mostrar como multi
           if (rect.items && rect.items.length > 0) {
             return <RectMultiProduct key={rect.id} rect={rect} />;
           }
