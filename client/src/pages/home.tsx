@@ -433,17 +433,23 @@ export default function Home() {
 
       {/* Sección de 4 rectángulos estilo Amazon */}
       {homeRectangles.length > 0 && (
-        <HomeRectanglesSection rectangles={homeRectangles} />
+        <div className="max-w-7xl mx-auto">
+          <HomeRectanglesSection rectangles={homeRectangles} />
+        </div>
       )}
 
       {/* Filas estilo Amazon administrables */}
-      {homeRows.map((row: any) => (
-        <HomeProductRow
-          key={row.id}
-          title={row.title}
-          products={row.items?.map((item: any) => item.product) || []}
-        />
-      ))}
+      {homeRows.length > 0 && (
+        <div className="max-w-7xl mx-auto">
+          {homeRows.map((row: any) => (
+            <HomeProductRow
+              key={row.id}
+              title={row.title}
+              products={(row.items || []).map((item: any) => item.product).filter(Boolean)}
+            />
+          ))}
+        </div>
+      )}
 
       {offerProducts.length > 0 && (
         <section
