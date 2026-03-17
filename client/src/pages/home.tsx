@@ -223,6 +223,10 @@ export default function Home() {
     categoryId: selectedCat
   });
 
+  const visibleProducts = products.filter(
+  (p) => p.category?.slug !== "tacora"
+);
+
   const { data: categories } = useCategories();
 
   const { data: bannerSlides = [] } = useQuery<BannerSlideData[]>({
