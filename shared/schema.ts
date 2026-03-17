@@ -108,6 +108,43 @@ export const bannerSlides = pgTable("banner_slides", {
   isActive: boolean("is_active").notNull().default(true),
 });
 
+// Filas estilo Amazon del home
+export const homeRows = pgTable("home_rows", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  rowType: text("row_type").notNull().default("products"), // "products" | "category"
+  categoryId: integer("category_id").references(() => categories.id),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const homeRowItems = pgTable("home_row_items", {
+  id: serial("id").primaryKey(),
+  homeRowId: integer("home_row_id").references(() => homeRows.id).notNull(),
+  productId: integer("product_id").references(() => products.id).notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+// Sección de 4 rectángulos del home
+export const homeRectangles = pgTable("home_rectangles", {
+  id: serial("id").primaryKey(),
+  position: integer("position").notNull().default(1), // 1-4
+  title: text("title").notNull().default(""),
+  rectType: text("rect_type").notNull().default("product"), // "product" | "category"
+  productId: integer("product_id").references(() => products.id),
+  categoryId: integer("category_id").references(() => categories.id),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+// Items del rectángulo 2 (puede tener hasta 4 productos)
+export const homeRectangleItems = pgTable("home_rectangle_items", {
+  id: serial("id").primaryKey(),
+  homeRectangleId: integer("home_rectangle_id").references(() => homeRectangles.id).notNull(),
+  productId: integer("product_id").references(() => products.id).notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
 export const productsRelations = relations(products, ({ one }) => ({
   category: one(categories, {
     fields: [products.categoryId],
@@ -197,6 +234,18 @@ export type InsertBannerSlide = z.infer<typeof insertBannerSlideSchema>;
 
 export type Coupon = typeof coupons.$inferSelect;
 export type InsertCoupon = z.infer<typeof insertCouponSchema>;
+
+export const insertHomeRowSchema = createInsertSchema(homeRows).omit({ id: true, createdAt: true });
+export const insertHomeRowItemSchema = createInsertSchema(homeRowItems).omit({ id: true });
+export const insertHomeRectangleSchema = createInsertSchema(homeRectangles).omit({ id: true });
+export const insertHomeRectangleItemSchema = createInsertSchema(homeRectangleItems).omit({ id: true });
+
+export type HomeRow = typeof homeRows.$inferSelect;
+export type InsertHomeRow = z.infer<typeof insertHomeRowSchema>;
+export type HomeRowItem = typeof homeRowItems.$inferSelect;
+export type HomeRectangle = typeof homeRectangles.$inferSelect;
+export type InsertHomeRectangle = z.infer<typeof insertHomeRectangleSchema>;
+export type HomeRectangleItem = typeof homeRectangleItems.$inferSelect;
 
 export type BannerSlideWithProducts = BannerSlide & {
   product1?: Product | null;

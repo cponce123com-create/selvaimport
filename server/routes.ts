@@ -675,6 +675,117 @@ export async function registerRoutes(
     }
   });
 
+  // ---- Home Rows (filas estilo Amazon) - Public ----
+  app.get("/api/home-rows", async (req, res) => {
+    try {
+      const rows = await storage.getHomeRows(true);
+      res.json(rows);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // ---- Home Rows - Admin ----
+  app.get("/api/admin/home-rows", requireAdmin, async (req, res) => {
+    try {
+      const rows = await storage.getHomeRows(false);
+      res.json(rows);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  app.post("/api/admin/home-rows", requireAdmin, async (req, res) => {
+    try {
+      const { title, rowType, categoryId, sortOrder, isActive } = req.body;
+      const allRows = await storage.getHomeRows(false);
+      const maxOrder = allRows.reduce((max, r) => Math.max(max, r.sortOrder), -1);
+      const row = await storage.createHomeRow({
+        title: title || "Nueva fila",
+        rowType: rowType || "products",
+        categoryId: categoryId || null,
+        sortOrder: sortOrder ?? maxOrder + 1,
+        isActive: isActive ?? true,
+      });
+      res.status(201).json(row);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  app.put("/api/admin/home-rows/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const { title, rowType, categoryId, sortOrder, isActive, productIds } = req.body;
+      const row = await storage.updateHomeRow(id, {
+        ...(title !== undefined && { title }),
+        ...(rowType !== undefined && { rowType }),
+        ...(categoryId !== undefined && { categoryId }),
+        ...(sortOrder !== undefined && { sortOrder }),
+        ...(isActive !== undefined && { isActive }),
+      });
+      if (Array.isArray(productIds)) {
+        await storage.setHomeRowItems(id, productIds);
+      }
+      res.json(row);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  app.delete("/api/admin/home-rows/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteHomeRow(Number(req.params.id));
+      res.status(204).end();
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  app.post("/api/admin/home-rows/reorder", requireAdmin, async (req, res) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids)) return res.status(400).json({ message: "ids requerido" });
+      for (let i = 0; i < ids.length; i++) {
+        await storage.updateHomeRow(ids[i], { sortOrder: i });
+      }
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // ---- Home Rectangles (sección de 4 rectángulos) - Public ----
+  app.get("/api/home-rectangles", async (req, res) => {
+    try {
+      const rects = await storage.getHomeRectangles();
+      res.json(rects);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // ---- Home Rectangles - Admin ----
+  app.put("/api/admin/home-rectangles/:position", requireAdmin, async (req, res) => {
+    try {
+      const position = Number(req.params.position);
+      const { title, rectType, productId, categoryId, isActive, productIds } = req.body;
+      const rect = await storage.upsertHomeRectangle(position, {
+        title: title || "",
+        rectType: rectType || "product",
+        productId: productId || null,
+        categoryId: categoryId || null,
+        isActive: isActive ?? true,
+      });
+      if (Array.isArray(productIds)) {
+        await storage.setHomeRectangleItems(rect.id, productIds);
+      }
+      res.json(rect);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
   seedDatabase().catch(console.error);
 
   return httpServer;
@@ -745,7 +856,7 @@ async function seedCatalog() {
   if (existingCats.length > 0) return;
 
   const allCats = await storage.getCategories();
-  const catBySlug = (slug: string) => allCats.find((c: any) => c.slug === slug);
+  const catBySlug = (slug: string) => allCats.find((c: any) => c.slug === slug)!;
   const createdCats = [catBySlug("tecnologia"), catBySlug("moda-accesorios"), catBySlug("hogar-cocina")];
 
   await storage.createProduct({

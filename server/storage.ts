@@ -2,6 +2,7 @@ import { db } from "./db";
 import { eq, and, isNull, isNotNull, desc, ilike, or } from "drizzle-orm";
 import {
   users, categories, products, carts, cartItems, orders, orderItems, sitePages, bannerSlides, coupons,
+  homeRows, homeRowItems, homeRectangles, homeRectangleItems,
   type User, type InsertUser,
   type Category, type InsertCategory,
   type Product, type InsertProduct, type ProductWithCategory,
@@ -9,7 +10,9 @@ import {
   type Order, type InsertOrder, type OrderItem, type OrderWithItems,
   type SitePage, type InsertSitePage,
   type BannerSlide, type InsertBannerSlide, type BannerSlideWithProducts,
-  type Coupon, type InsertCoupon
+  type Coupon, type InsertCoupon,
+  type HomeRow, type InsertHomeRow, type HomeRowItem,
+  type HomeRectangle, type InsertHomeRectangle, type HomeRectangleItem
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -62,6 +65,19 @@ export interface IStorage {
   updateCoupon(id: number, data: Partial<InsertCoupon>): Promise<Coupon>;
   deleteCoupon(id: number): Promise<void>;
   incrementCouponUses(id: number): Promise<Coupon>;
+
+  // Home Rows (filas estilo Amazon)
+  getHomeRows(activeOnly?: boolean): Promise<(HomeRow & { items: (HomeRowItem & { product: ProductWithCategory })[] })[]>;
+  getHomeRow(id: number): Promise<HomeRow | undefined>;
+  createHomeRow(data: InsertHomeRow): Promise<HomeRow>;
+  updateHomeRow(id: number, data: Partial<InsertHomeRow>): Promise<HomeRow>;
+  deleteHomeRow(id: number): Promise<void>;
+  setHomeRowItems(homeRowId: number, productIds: number[]): Promise<void>;
+
+  // Home Rectangles (sección de 4 rectángulos)
+  getHomeRectangles(): Promise<(HomeRectangle & { product?: ProductWithCategory | null; category?: Category | null; items?: (HomeRectangleItem & { product: ProductWithCategory })[] })[]>;
+  upsertHomeRectangle(position: number, data: Partial<InsertHomeRectangle>): Promise<HomeRectangle>;
+  setHomeRectangleItems(homeRectangleId: number, productIds: number[]): Promise<void>;
 
   sessionStore: session.Store;
 }
@@ -448,6 +464,120 @@ async getProducts(categoryId?: number, search?: string): Promise<ProductWithCate
       currentUses: (coupon.currentUses || 0) + 1,
     }).where(eq(coupons.id, id)).returning();
     return updated;
+  }
+
+  // ---- Home Rows (filas estilo Amazon) ----
+  async getHomeRows(activeOnly = false): Promise<(HomeRow & { items: (HomeRowItem & { product: ProductWithCategory })[] })[]> {
+    const rows = activeOnly
+      ? await db.select().from(homeRows).where(eq(homeRows.isActive, true)).orderBy(homeRows.sortOrder)
+      : await db.select().from(homeRows).orderBy(homeRows.sortOrder);
+
+    if (rows.length === 0) return [];
+
+    const rowIds = rows.map(r => r.id);
+    const items = await db.select().from(homeRowItems)
+      .where(or(...rowIds.map(id => eq(homeRowItems.homeRowId, id))))
+      .orderBy(homeRowItems.sortOrder);
+
+    const productIds = Array.from(new Set(items.map(i => i.productId)));
+    const allProducts = productIds.length > 0
+      ? await db.select().from(products).where(or(...productIds.map(id => eq(products.id, id))))
+      : [];
+    const allCats = await this.getCategories();
+    const productMap = new Map(allProducts.map(p => [p.id, { ...p, category: allCats.find(c => c.id === p.categoryId) }]));
+
+    return rows.map(row => ({
+      ...row,
+      items: items
+        .filter(i => i.homeRowId === row.id)
+        .map(i => ({ ...i, product: productMap.get(i.productId)! }))
+        .filter(i => i.product)
+    }));
+  }
+
+  async getHomeRow(id: number): Promise<HomeRow | undefined> {
+    const [row] = await db.select().from(homeRows).where(eq(homeRows.id, id));
+    return row;
+  }
+
+  async createHomeRow(data: InsertHomeRow): Promise<HomeRow> {
+    const [row] = await db.insert(homeRows).values(data).returning();
+    return row;
+  }
+
+  async updateHomeRow(id: number, data: Partial<InsertHomeRow>): Promise<HomeRow> {
+    const [row] = await db.update(homeRows).set(data).where(eq(homeRows.id, id)).returning();
+    return row;
+  }
+
+  async deleteHomeRow(id: number): Promise<void> {
+    await db.delete(homeRowItems).where(eq(homeRowItems.homeRowId, id));
+    await db.delete(homeRows).where(eq(homeRows.id, id));
+  }
+
+  async setHomeRowItems(homeRowId: number, productIds: number[]): Promise<void> {
+    await db.delete(homeRowItems).where(eq(homeRowItems.homeRowId, homeRowId));
+    if (productIds.length > 0) {
+      await db.insert(homeRowItems).values(
+        productIds.map((productId, idx) => ({ homeRowId, productId, sortOrder: idx }))
+      );
+    }
+  }
+
+  // ---- Home Rectangles (sección de 4 rectángulos) ----
+  async getHomeRectangles(): Promise<(HomeRectangle & { product?: ProductWithCategory | null; category?: Category | null; items?: (HomeRectangleItem & { product: ProductWithCategory })[] })[]> {
+    const rects = await db.select().from(homeRectangles).orderBy(homeRectangles.position);
+    if (rects.length === 0) return [];
+
+    const productIds = new Set<number>();
+    const categoryIds = new Set<number>();
+    rects.forEach(r => {
+      if (r.productId) productIds.add(r.productId);
+      if (r.categoryId) categoryIds.add(r.categoryId);
+    });
+
+    const rectIds = rects.map(r => r.id);
+    const allItems = rectIds.length > 0
+      ? await db.select().from(homeRectangleItems).where(or(...rectIds.map(id => eq(homeRectangleItems.homeRectangleId, id)))).orderBy(homeRectangleItems.sortOrder)
+      : [];
+    allItems.forEach(i => productIds.add(i.productId));
+
+    const allCats = await this.getCategories();
+    const allProds = productIds.size > 0
+      ? await db.select().from(products).where(or(...Array.from(productIds).map(id => eq(products.id, id))))
+      : [];
+    const productMap = new Map(allProds.map(p => [p.id, { ...p, category: allCats.find(c => c.id === p.categoryId) }]));
+    const categoryMap = new Map(allCats.map(c => [c.id, c]));
+
+    return rects.map(rect => ({
+      ...rect,
+      product: rect.productId ? productMap.get(rect.productId) || null : null,
+      category: rect.categoryId ? categoryMap.get(rect.categoryId) || null : null,
+      items: allItems
+        .filter(i => i.homeRectangleId === rect.id)
+        .map(i => ({ ...i, product: productMap.get(i.productId)! }))
+        .filter(i => i.product)
+    }));
+  }
+
+  async upsertHomeRectangle(position: number, data: Partial<InsertHomeRectangle>): Promise<HomeRectangle> {
+    const [existing] = await db.select().from(homeRectangles).where(eq(homeRectangles.position, position));
+    if (existing) {
+      const [updated] = await db.update(homeRectangles).set(data).where(eq(homeRectangles.id, existing.id)).returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(homeRectangles).values({ ...data, position } as any).returning();
+      return created;
+    }
+  }
+
+  async setHomeRectangleItems(homeRectangleId: number, productIds: number[]): Promise<void> {
+    await db.delete(homeRectangleItems).where(eq(homeRectangleItems.homeRectangleId, homeRectangleId));
+    if (productIds.length > 0) {
+      await db.insert(homeRectangleItems).values(
+        productIds.map((productId, idx) => ({ homeRectangleId, productId, sortOrder: idx }))
+      );
+    }
   }
 }
 
