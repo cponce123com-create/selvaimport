@@ -660,7 +660,7 @@ export async function registerRoutes(
       }
 
       // Validar si se ha alcanzado el límite de usos
-      if (coupon.maxUses && coupon.currentUses >= coupon.maxUses) {
+      if (coupon.maxUses && (coupon.currentUses ?? 0) >= coupon.maxUses) {
         return res.status(400).json({ message: "Cupón ha alcanzado el límite de usos" });
       }
 

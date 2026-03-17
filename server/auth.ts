@@ -56,7 +56,7 @@ export function setupAuth(app: Express) {
     new LocalStrategy({ usernameField: "email" }, async (email, password, done) => {
       try {
         const user = await storage.getUserByEmail(email);
-        if (!user || !(await comparePasswords(password, user.password))) {
+        if (!user || !user.password || !(await comparePasswords(password, user.password))) {
           return done(null, false, { message: "Credenciales invalidas" });
         }
         return done(null, user);

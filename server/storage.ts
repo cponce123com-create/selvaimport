@@ -203,7 +203,7 @@ async getProducts(categoryId?: number, search?: string): Promise<ProductWithCate
     let finalItem: CartItem;
     if (existing) {
       [finalItem] = await db.update(cartItems)
-        .set({ quantity: existing.quantity + item.quantity })
+        .set({ quantity: existing.quantity + (item.quantity ?? 1) })
         .where(eq(cartItems.id, existing.id))
         .returning();
     } else {
