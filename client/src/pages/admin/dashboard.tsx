@@ -27,7 +27,7 @@ export default function AdminDashboard() {
     <AdminLayout>
       <div className="mb-8">
         <h1 className="text-3xl font-bold" data-testid="text-dashboard-title">Vista General</h1>
-        <p className="text-muted-foreground mt-1">Resumen de tu tienda SELVA IMPORT.</p>
+        <p className="text-muted-foreground mt-1">Resumen de tu tienda Selva Import.</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">

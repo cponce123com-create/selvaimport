@@ -13,9 +13,10 @@ import {
   Tag,
   Sparkles,
   Grid3X3,
-  Users,
   Headphones,
   MessageCircle,
+  MapPin,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -88,8 +89,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-background selection:bg-primary selection:text-primary-foreground">
+      {/* ── HEADER ── */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
+          {/* Logo + hamburger */}
           <div className="flex items-center gap-2">
             <button
               className="md:hidden p-2 -ml-2 rounded-lg hover:bg-accent transition-colors"
@@ -106,10 +109,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 alt="Selva Import"
                 className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg object-cover group-hover:scale-110 transition-transform shadow-sm"
               />
-              <span className="font-bold text-lg sm:text-xl tracking-tight">SELVA IMPORT</span>
+              <span className="font-bold text-lg sm:text-xl tracking-tight">Selva Import</span>
             </Link>
           </div>
 
+          {/* Navegación desktop: Inicio · Ofertas · Novedades · TACORA */}
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
             <button
               onClick={() => handleNavClick("inicio")}
@@ -142,16 +146,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             >
               TACORA
             </Link>
-
-            <Link
-              href="/page/quienes-somos"
-              className="hover:text-foreground transition-colors"
-              data-testid="link-quienes-somos"
-            >
-              Quienes Somos
-            </Link>
           </nav>
 
+          {/* Carrito + usuario */}
           <nav className="flex items-center gap-1 sm:gap-4">
             <Link href="/cart">
               <Button
@@ -243,6 +240,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
+      {/* ── MENÚ MÓVIL: Inicio · Ofertas · Novedades · TACORA (sin Quienes Somos) ── */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-40 md:hidden" data-testid="mobile-menu-overlay">
           <div
@@ -297,15 +295,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </button>
 
               <button
-                onClick={() => handleMobileLink("/page/quienes-somos")}
-                className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-sm font-medium hover:bg-accent transition-colors"
-                data-testid="mobile-link-quienes-somos"
-              >
-                <Users className="w-5 h-5 text-primary" />
-                Quienes Somos
-              </button>
-
-              <button
                 onClick={() => handleMobileLink("/cart")}
                 className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-sm font-medium hover:bg-accent transition-colors"
                 data-testid="mobile-link-carrito"
@@ -348,9 +337,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
       <main className="flex-1">{children}</main>
 
+      {/* ── FOOTER ── */}
       <footer className="border-t bg-card py-10 sm:py-12 mt-12 sm:mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-8 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+
+            {/* Columna 1: Marca + contacto */}
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-2">
                 <img
@@ -358,7 +350,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   alt="Selva Import"
                   className="w-7 h-7 rounded-md object-cover"
                 />
-                <span className="font-bold text-lg text-foreground">SELVA IMPORT</span>
+                <span className="font-bold text-lg text-foreground">Selva Import</span>
               </div>
               <p className="text-sm text-muted-foreground mb-3">
                 Tu tienda de confianza con los mejores productos importados al mejor precio.
@@ -378,8 +370,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </a>
             </div>
 
+            {/* Columna 2: Navegación */}
             <div>
-              <h4 className="font-semibold text-sm mb-3">Enlaces</h4>
+              <h4 className="font-semibold text-sm mb-3">Tienda</h4>
               <div className="flex flex-col gap-2.5 text-sm text-muted-foreground">
                 <button
                   onClick={() => handleNavClick("inicio")}
@@ -400,18 +393,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   Novedades
                 </button>
                 <Link
+                  href="/tacora"
+                  className="hover:text-foreground transition-colors font-medium text-primary"
+                >
+                  TACORA
+                </Link>
+              </div>
+            </div>
+
+            {/* Columna 3: Información */}
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Información</h4>
+              <div className="flex flex-col gap-2.5 text-sm text-muted-foreground">
+                <Link
                   href="/page/quienes-somos"
                   className="hover:text-foreground transition-colors"
                   data-testid="link-footer-quienes-somos"
                 >
                   Quienes Somos
                 </Link>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-semibold text-sm mb-3">Soporte</h4>
-              <div className="flex flex-col gap-2.5 text-sm text-muted-foreground">
                 <Link
                   href="/page/terminos"
                   className="hover:text-foreground transition-colors"
@@ -435,11 +435,27 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </Link>
               </div>
             </div>
+
+            {/* Columna 4: Datos fiscales */}
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Datos de la empresa</h4>
+              <div className="flex flex-col gap-2.5 text-sm text-muted-foreground">
+                <div className="flex items-start gap-2">
+                  <FileText className="w-4 h-4 mt-0.5 flex-shrink-0 text-muted-foreground/60" />
+                  <span>RUC: 10469475714</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-muted-foreground/60" />
+                  <span>Pasaje San Elias Mb Lote 14 - San Ramón</span>
+                </div>
+              </div>
+            </div>
           </div>
 
+          {/* Copyright */}
           <div className="border-t pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
             <span className="text-xs sm:text-sm text-muted-foreground text-center">
-              SELVA IMPORT &copy; {new Date().getFullYear()} - Todos los derechos reservados
+              Selva Import &copy; {new Date().getFullYear()} — Todos los derechos reservados
             </span>
           </div>
         </div>
