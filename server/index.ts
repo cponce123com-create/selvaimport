@@ -4,6 +4,7 @@ import compression from "compression";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { initDatabase } from "./db-init";
 
 const app = express();
 const httpServer = createServer(app);
@@ -64,6 +65,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Inicializar tablas nuevas si no existen (home_rows, home_rectangles, etc.)
+  await initDatabase();
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
@@ -89,9 +93,9 @@ app.use((req, res, next) => {
     await setupVite(httpServer, app);
   }
 
-const port = parseInt(process.env.PORT || "5000", 10);
+  const port = parseInt(process.env.PORT || "5000", 10);
 
-httpServer.listen(port, () => {
-  log(`serving on port ${port}`);
-});
+  httpServer.listen(port, () => {
+    log(`serving on port ${port}`);
+  });
 })();
