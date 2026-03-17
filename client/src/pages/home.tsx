@@ -223,26 +223,33 @@ export default function Home() {
     categoryId: selectedCat
   });
 
-  const visibleProducts = products.filter(
-  (p) => p.category?.slug !== "tacora"
-);
-
   const { data: categories } = useCategories();
 
   const { data: bannerSlides = [] } = useQuery<BannerSlideData[]>({
     queryKey: ["/api/banner-slides"],
   });
 
-  const allProducts = products || [];
-  const offerProducts = useMemo(() => allProducts.filter((p: any) => p.isOffer), [allProducts]);
-  const newProducts = useMemo(() => {
-    return [...allProducts].sort((a: any, b: any) => {
-      const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return db - da;
-    }).slice(0, 6);
-  }, [allProducts]);
+  const allProducts = products ?? [];
 
+  const visibleProducts = allProducts.filter(
+    (p: any) => p.category?.slug !== "tacora"
+  );
+
+  const offerProducts = useMemo(
+    () => visibleProducts.filter((p: any) => p.isOffer),
+    [visibleProducts]
+  );
+
+  const newProducts = useMemo(() => {
+    return [...visibleProducts]
+      .sort((a: any, b: any) => {
+        const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return db - da;
+      })
+      .slice(0, 6);
+  }, [visibleProducts]);
+  
   const hasDynamicSlides = bannerSlides.length > 0;
   const totalSlides = hasDynamicSlides ? bannerSlides.length : 1;
 
