@@ -1,14 +1,13 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ProductCard } from "@/components/product/ProductCard";
+import { HomeProductRow } from "@/components/home/HomeProductRow";
+import { HomeRectanglesSection } from "@/components/home/HomeRectanglesSection";
 import { useProducts } from "@/hooks/use-products";
 import { useCategories } from "@/hooks/use-categories";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Search,
-  Truck,
-  ShieldCheck,
-  RefreshCw,
   Sparkles,
   Tag,
   Star,
@@ -279,6 +278,14 @@ export default function Home() {
     queryKey: ["/api/banner-slides"],
   });
 
+  const { data: homeRows = [] } = useQuery<any[]>({
+    queryKey: ["/api/home-rows"],
+  });
+
+  const { data: homeRectangles = [] } = useQuery<any[]>({
+    queryKey: ["/api/home-rectangles"],
+  });
+
   const allProducts = products ?? [];
   const allCategories = categories ?? [];
 
@@ -424,39 +431,19 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          <div className="bg-primary/10 border border-primary/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 flex items-center gap-3 sm:gap-4">
-            <Truck className="w-8 h-8 sm:w-10 sm:h-10 text-primary flex-shrink-0" />
-            <div>
-              <p className="font-semibold text-sm">Envio Disponible</p>
-              <p className="text-xs text-muted-foreground">
-                San Ramon, La Merced, Shalom
-              </p>
-            </div>
-          </div>
+      {/* Sección de 4 rectángulos estilo Amazon */}
+      {homeRectangles.length > 0 && (
+        <HomeRectanglesSection rectangles={homeRectangles} />
+      )}
 
-          <div className="bg-primary/10 border border-primary/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 flex items-center gap-3 sm:gap-4">
-            <ShieldCheck className="w-8 h-8 sm:w-10 sm:h-10 text-primary flex-shrink-0" />
-            <div>
-              <p className="font-semibold text-sm">Compra Segura</p>
-              <p className="text-xs text-muted-foreground">
-                Proteccion en cada pedido
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-primary/10 border border-primary/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 flex items-center gap-3 sm:gap-4">
-            <RefreshCw className="w-8 h-8 sm:w-10 sm:h-10 text-primary flex-shrink-0" />
-            <div>
-              <p className="font-semibold text-sm">Novedades y Tendencias</p>
-              <p className="text-xs text-muted-foreground">
-                Productos importados y virales
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Filas estilo Amazon administrables */}
+      {homeRows.map((row: any) => (
+        <HomeProductRow
+          key={row.id}
+          title={row.title}
+          products={row.items?.map((item: any) => item.product) || []}
+        />
+      ))}
 
       {offerProducts.length > 0 && (
         <section
