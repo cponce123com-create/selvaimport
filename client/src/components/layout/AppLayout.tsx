@@ -136,6 +136,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </button>
 
             <Link
+              href="/tacora"
+              className="text-primary font-bold hover:text-primary/80 transition-colors"
+              data-testid="link-tacora"
+            >
+              TACORA
+            </Link>
+
+            <Link
               href="/page/quienes-somos"
               className="hover:text-foreground transition-colors"
               data-testid="link-quienes-somos"
@@ -268,6 +276,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               >
                 <Sparkles className="w-5 h-5 text-primary" />
                 Novedades
+              </button>
+
+              <button
+                onClick={() => handleMobileLink("/tacora")}
+                className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-sm font-bold text-primary hover:bg-accent transition-colors"
+                data-testid="mobile-link-tacora"
+              >
+                <Tag className="w-5 h-5" />
+                TACORA
               </button>
 
               <button

@@ -53,6 +53,7 @@ export default function ProductDetail() {
 
   const pricing = getDisplayPrice(product);
   const formattedPrice = "S/ " + pricing.current.toFixed(2);
+  const isTacora = product.category?.slug === "tacora";
 
   const handleAdd = () => {
     addToCart({ productId: product.id, quantity, product }, {
@@ -76,8 +77,8 @@ export default function ProductDetail() {
   return (
     <AppLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-        <Link href="/" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground mb-8 transition-colors" data-testid="link-back-catalog">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Volver al catalogo
+        <Link href={isTacora ? "/tacora" : "/"} className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground mb-8 transition-colors" data-testid="link-back-catalog">
+          <ArrowLeft className="w-4 h-4 mr-2" /> {isTacora ? "Volver a TACORA" : "Volver al catalogo"}
         </Link>
 
         <div className="grid md:grid-cols-2 gap-10 lg:gap-16 items-start">

@@ -638,6 +638,7 @@ async function seedCatalog() {
     { name: "Mascotas", slug: "mascotas", description: "Alimentos, accesorios y cuidado para mascotas" },
     { name: "Deportes y Fitness", slug: "deportes-fitness", description: "Equipamiento deportivo, ropa fitness y accesorios" },
     { name: "Herramientas y Ferreteria", slug: "herramientas-ferreteria", description: "Herramientas manuales, electricas y accesorios" },
+    { name: "TACORA", slug: "tacora", description: "Productos de segunda mano y oportunidades unicas" },
   ];
 
   for (const cat of cats) {
