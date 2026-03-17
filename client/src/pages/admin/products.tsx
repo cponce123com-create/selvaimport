@@ -42,9 +42,13 @@ export default function AdminProducts() {
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [images, setImages] = useState<string[]>([]);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoPublicId, setVideoPublicId] = useState<string | null>(null);
   const [isOffer, setIsOffer] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -67,6 +71,8 @@ export default function AdminProducts() {
       existingImages.push(p.imageUrl);
     }
     setImages(existingImages);
+    setVideoUrl(p.videoUrl || null);
+    setVideoPublicId(p.videoPublicId || null);
     setIsOffer(!!p.isOffer);
     setIsOpen(true);
   };
@@ -75,6 +81,8 @@ export default function AdminProducts() {
     setEditingId(null);
     form.reset({ name: "", description: "", price: "", offerPrice: "", inventory: 0 });
     setImages([]);
+    setVideoUrl(null);
+    setVideoPublicId(null);
     setIsOffer(false);
     setIsOpen(true);
   };
@@ -111,6 +119,29 @@ export default function AdminProducts() {
     }
   };
 
+  const handleVideoUpload = async (file: File | null) => {
+    if (!file) return;
+    setUploadingVideo(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: formData, credentials: "include" });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Error al subir video");
+      }
+      const data = await res.json();
+      setVideoUrl(data.url);
+      setVideoPublicId(data.publicId);
+      toast({ title: "Video subido exitosamente" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setUploadingVideo(false);
+      if (videoInputRef.current) videoInputRef.current.value = "";
+    }
+  };
+
   const removeImage = (index: number) => {
     setImages(prev => prev.filter((_, i) => i !== index));
   };
@@ -127,6 +158,8 @@ export default function AdminProducts() {
       slug: generateSlug(data.name),
       imageUrl: images.length > 0 ? images[0] : null,
       images: images,
+      videoUrl: videoUrl,
+      videoPublicId: videoPublicId,
       isOffer: isOffer,
       offerPrice: isOffer && data.offerPrice && Number(data.offerPrice) > 0 ? data.offerPrice : null,
     };
@@ -236,58 +269,102 @@ export default function AdminProducts() {
                   )}
                 </div>
 
-                <div>
-                  <FormLabel>Imagenes del Producto ({images.length}/{MAX_IMAGES})</FormLabel>
-                  <div className="mt-2 grid grid-cols-5 gap-3">
-                    {images.map((url, i) => (
-                      <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border border-border bg-muted" data-testid={`image-preview-${i}`}>
-                        <img src={url} alt={`Imagen ${i + 1}`} className="w-full h-full object-cover" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <FormLabel>Imagenes del Producto ({images.length}/{MAX_IMAGES})</FormLabel>
+                    <div className="mt-2 grid grid-cols-5 gap-3">
+                      {images.map((url, i) => (
+                        <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border border-border bg-muted" data-testid={`image-preview-${i}`}>
+                          <img src={url} alt={`Imagen ${i + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(i)}
+                            className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                            data-testid={`button-remove-image-${i}`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                          {i === 0 && (
+                            <span className="absolute bottom-1 left-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-medium">
+                              Principal
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                      {images.length < MAX_IMAGES && (
                         <button
                           type="button"
-                          onClick={() => removeImage(i)}
-                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
-                          data-testid={`button-remove-image-${i}`}
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploading}
+                          className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          data-testid="button-upload-image"
                         >
-                          <X className="w-3 h-3" />
+                          {uploading ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <>
+                              <Upload className="w-5 h-5" />
+                              <span className="text-[10px] font-medium">Subir</span>
+                            </>
+                          )}
                         </button>
-                        {i === 0 && (
-                          <span className="absolute bottom-1 left-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-medium">
-                            Principal
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                    {images.length < MAX_IMAGES && (
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploading}
-                        className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                        data-testid="button-upload-image"
-                      >
-                        {uploading ? (
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                          <>
-                            <Upload className="w-5 h-5" />
-                            <span className="text-[10px] font-medium">Subir</span>
-                          </>
-                        )}
-                      </button>
-                    )}
+                      )}
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => handleUpload(e.target.files)}
+                      data-testid="input-file-upload"
+                    />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Maximo {MAX_IMAGES} imagenes. Formatos: JPG, PNG, WebP.
+                    </p>
                   </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => handleUpload(e.target.files)}
-                    data-testid="input-file-upload"
-                  />
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Maximo {MAX_IMAGES} imagenes. Formatos: JPG, PNG, WebP. Tamano max: 5MB por imagen.
-                  </p>
+
+                  <div>
+                    <FormLabel>Video del Producto (Opcional)</FormLabel>
+                    <div className="mt-2">
+                      {videoUrl ? (
+                        <div className="relative group aspect-video rounded-xl overflow-hidden border border-border bg-muted">
+                          <video src={videoUrl} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => { setVideoUrl(null); setVideoPublicId(null); }}
+                            className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => videoInputRef.current?.click()}
+                          disabled={uploadingVideo}
+                          className="w-full aspect-video rounded-xl border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {uploadingVideo ? (
+                            <Loader2 className="w-8 h-8 animate-spin" />
+                          ) : (
+                            <>
+                              <Upload className="w-8 h-8" />
+                              <span className="text-sm font-medium">Subir Video (Max 20MB)</span>
+                              <span className="text-xs">MP4, WebM</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      ref={videoInputRef}
+                      type="file"
+                      accept="video/*"
+                      className="hidden"
+                      onChange={(e) => handleVideoUpload(e.target.files?.[0] || null)}
+                    />
+                  </div>
                 </div>
 
                 <Button type="submit" className="w-full" data-testid="button-save-product">Guardar Producto</Button>

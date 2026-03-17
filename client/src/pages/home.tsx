@@ -24,7 +24,10 @@ interface BannerSlideData {
   id: number;
   title: string | null;
   subtitle: string | null;
+  mediaType: "image" | "video";
   imageUrl: string | null;
+  videoUrl: string | null;
+  publicId: string | null;
   buttonText: string | null;
   buttonLink: string | null;
   buttonCategoryId: number | null;
@@ -156,9 +159,22 @@ function DynamicBannerSlide({ slide }: { slide: BannerSlideData }) {
     Boolean
   ) as NonNullable<BannerSlideData["product1"]>[];
 
+  const isVideo = slide.mediaType === "video" && slide.videoUrl;
+  const hasMedia = slide.imageUrl || slide.videoUrl;
+
   return (
-    <div className="w-full h-full relative">
-      {slide.imageUrl ? (
+    <div className="w-full h-full relative overflow-hidden">
+      {isVideo ? (
+        <video
+          src={slide.videoUrl!}
+          className="absolute inset-0 w-full h-full object-cover"
+          autoPlay
+          muted
+          loop
+          playsInline
+          poster={slide.imageUrl ? toWebP(slide.imageUrl) : undefined}
+        />
+      ) : slide.imageUrl ? (
         <img
           src={toWebP(slide.imageUrl)}
           alt={slide.title || ""}
@@ -169,10 +185,10 @@ function DynamicBannerSlide({ slide }: { slide: BannerSlideData }) {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-primary/5" />
       )}
 
-      {slide.imageUrl && (
+      {hasMedia && (
         <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent" />
       )}
-      {slide.imageUrl && (
+      {hasMedia && (
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
       )}
 
@@ -183,7 +199,7 @@ function DynamicBannerSlide({ slide }: { slide: BannerSlideData }) {
               {slide.title && (
                 <h2
                   className={`font-bold leading-[1.1] mb-1 sm:mb-2 ${
-                    slide.imageUrl ? "text-white drop-shadow-lg" : "text-foreground"
+                    hasMedia ? "text-white drop-shadow-lg" : "text-foreground"
                   }`}
                   style={{ fontSize: "clamp(1.25rem, 3vw, 2.5rem)" }}
                   data-testid="text-banner-title"
@@ -195,7 +211,7 @@ function DynamicBannerSlide({ slide }: { slide: BannerSlideData }) {
               {slide.subtitle && (
                 <p
                   className={`mb-3 sm:mb-4 ${
-                    slide.imageUrl ? "text-white/90 drop-shadow" : "text-muted-foreground"
+                    hasMedia ? "text-white/90 drop-shadow" : "text-muted-foreground"
                   }`}
                   style={{ fontSize: "clamp(0.75rem, 1.3vw, 1rem)" }}
                 >
@@ -206,7 +222,7 @@ function DynamicBannerSlide({ slide }: { slide: BannerSlideData }) {
               <BannerCTA
                 slide={slide}
                 className={`inline-block px-5 py-2 sm:px-7 sm:py-3 font-semibold rounded-full hover:scale-105 transition-transform duration-300 shadow-lg text-sm sm:text-base cursor-pointer ${
-                  slide.imageUrl
+                  hasMedia
                     ? "bg-white text-foreground"
                     : "bg-primary text-primary-foreground"
                 }`}

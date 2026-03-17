@@ -15,7 +15,10 @@ interface BannerSlide {
   id: number;
   title: string | null;
   subtitle: string | null;
+  mediaType: "image" | "video";
   imageUrl: string | null;
+  videoUrl: string | null;
+  publicId: string | null;
   productId1: number | null;
   productId2: number | null;
   buttonText: string | null;
@@ -115,10 +118,17 @@ export default function AdminBanner() {
         body: formData,
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Error al subir imagen");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Error al subir archivo");
+      }
       const data = await res.json();
       if (editingSlide) {
-        setEditingSlide({ ...editingSlide, imageUrl: data.url });
+        if (data.resourceType === "video") {
+          setEditingSlide({ ...editingSlide, videoUrl: data.url, publicId: data.publicId, mediaType: "video" });
+        } else {
+          setEditingSlide({ ...editingSlide, imageUrl: data.url, publicId: data.publicId, mediaType: "image" });
+        }
       }
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -132,7 +142,10 @@ export default function AdminBanner() {
     const payload = {
       title: editingSlide.title,
       subtitle: editingSlide.subtitle,
+      mediaType: editingSlide.mediaType,
       imageUrl: editingSlide.imageUrl,
+      videoUrl: editingSlide.videoUrl,
+      publicId: editingSlide.publicId,
       productId1: editingSlide.productId1,
       productId2: editingSlide.productId2,
       buttonText: editingSlide.buttonText,
@@ -153,7 +166,10 @@ export default function AdminBanner() {
       id: 0,
       title: "",
       subtitle: "",
+      mediaType: "image",
       imageUrl: null,
+      videoUrl: null,
+      publicId: null,
       productId1: null,
       productId2: null,
       buttonText: "Ver productos",
@@ -235,8 +251,15 @@ export default function AdminBanner() {
                   </button>
                 </div>
 
-                <div className="w-20 h-14 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                  {slide.imageUrl ? (
+                <div className="w-20 h-14 rounded-lg overflow-hidden bg-muted flex-shrink-0 relative">
+                  {slide.mediaType === "video" && slide.videoUrl ? (
+                    <>
+                      <video src={slide.videoUrl} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                        <div className="w-0 h-0 border-t-[4px] border-t-transparent border-l-[6px] border-l-white border-b-[4px] border-b-transparent" />
+                      </div>
+                    </>
+                  ) : slide.imageUrl ? (
                     <img src={slide.imageUrl} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -296,51 +319,122 @@ export default function AdminBanner() {
                 </Button>
               </div>
 
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">Imagen Principal (1920x800 recomendado)</label>
-                <div className="border-2 border-dashed rounded-xl overflow-hidden bg-muted/30">
-                  {editingSlide.imageUrl ? (
-                    <div className="relative group" style={{ aspectRatio: "21/9" }}>
-                      <img src={editingSlide.imageUrl} alt="" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()} data-testid="button-change-image">
-                          <Upload className="w-3.5 h-3.5 mr-1.5" /> Cambiar
-                        </Button>
-                        <Button size="sm" variant="destructive" onClick={() => setEditingSlide({ ...editingSlide, imageUrl: null })} data-testid="button-remove-image">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full flex flex-col items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                      style={{ aspectRatio: "21/9" }}
-                      data-testid="button-upload-image"
-                    >
-                      {uploading ? (
-                        <Loader2 className="w-8 h-8 animate-spin" />
-                      ) : (
-                        <>
-                          <Upload className="w-8 h-8 mb-2" />
-                          <span className="text-sm font-medium">Subir imagen (1920x800)</span>
-                          <span className="text-xs mt-1">JPG, PNG, WebP (max 5MB)</span>
-                        </>
-                      )}
-                    </button>
-                  )}
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <label className="text-sm font-medium">Tipo de Media:</label>
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      variant={editingSlide.mediaType === "image" ? "default" : "outline"}
+                      onClick={() => setEditingSlide({ ...editingSlide, mediaType: "image" })}
+                    >Imagen</Button>
+                    <Button 
+                      size="sm" 
+                      variant={editingSlide.mediaType === "video" ? "default" : "outline"}
+                      onClick={() => setEditingSlide({ ...editingSlide, mediaType: "video" })}
+                    >Video</Button>
+                  </div>
                 </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleUpload(file);
-                    e.target.value = "";
-                  }}
-                />
+
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">
+                    {editingSlide.mediaType === "video" ? "Video del Banner (Max 20MB)" : "Imagen Principal (1920x800 recomendado)"}
+                  </label>
+                  <div className="border-2 border-dashed rounded-xl overflow-hidden bg-muted/30">
+                    {editingSlide.mediaType === "video" && editingSlide.videoUrl ? (
+                      <div className="relative group" style={{ aspectRatio: "21/9" }}>
+                        <video src={editingSlide.videoUrl} className="w-full h-full object-cover" autoPlay muted loop playsInline />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()} data-testid="button-change-video">
+                            <Upload className="w-3.5 h-3.5 mr-1.5" /> Cambiar
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => setEditingSlide({ ...editingSlide, videoUrl: null, publicId: null })} data-testid="button-remove-video">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : editingSlide.mediaType === "image" && editingSlide.imageUrl ? (
+                      <div className="relative group" style={{ aspectRatio: "21/9" }}>
+                        <img src={editingSlide.imageUrl} alt="" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()} data-testid="button-change-image">
+                            <Upload className="w-3.5 h-3.5 mr-1.5" /> Cambiar
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => setEditingSlide({ ...editingSlide, imageUrl: null, publicId: null })} data-testid="button-remove-image">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full flex flex-col items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                        style={{ aspectRatio: "21/9" }}
+                        data-testid="button-upload-media"
+                      >
+                        {uploading ? (
+                          <Loader2 className="w-8 h-8 animate-spin" />
+                        ) : (
+                          <>
+                            <Upload className="w-8 h-8 mb-2" />
+                            <span className="text-sm font-medium">
+                              {editingSlide.mediaType === "video" ? "Subir Video (MP4, WebM)" : "Subir imagen (1920x800)"}
+                            </span>
+                            <span className="text-xs mt-1">
+                              {editingSlide.mediaType === "video" ? "Max 20MB" : "JPG, PNG, WebP (max 5MB)"}
+                            </span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={editingSlide.mediaType === "video" ? "video/*" : "image/*"}
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleUpload(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </div>
+
+                {editingSlide.mediaType === "video" && (
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block text-muted-foreground">Poster del Video (Opcional - Imagen que se muestra antes de cargar)</label>
+                    <div className="flex items-center gap-3">
+                      <div className="w-24 h-12 rounded border bg-muted overflow-hidden flex-shrink-0">
+                        {editingSlide.imageUrl ? (
+                          <img src={editingSlide.imageUrl} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground"><Image className="w-4 h-4" /></div>
+                        )}
+                      </div>
+                      <Button size="sm" variant="outline" onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.onchange = async (e: any) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setUploading(true);
+                            try {
+                              const formData = new FormData();
+                              formData.append("file", file);
+                              const res = await fetch("/api/upload", { method: "POST", body: formData, credentials: "include" });
+                              const data = await res.json();
+                              setEditingSlide({ ...editingSlide, imageUrl: data.url });
+                            } catch (e) {} finally { setUploading(false); }
+                          }
+                        };
+                        input.click();
+                      }}>Subir Poster</Button>
+                      {editingSlide.imageUrl && <Button size="sm" variant="ghost" onClick={() => setEditingSlide({...editingSlide, imageUrl: null})}><Trash2 className="w-4 h-4" /></Button>}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>

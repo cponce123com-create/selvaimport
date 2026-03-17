@@ -40,13 +40,31 @@ export async function registerRoutes(
       if (!req.file) {
         return res.status(400).json({ message: "No se envio ningun archivo" });
       }
-      const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-      if (!allowedTypes.includes(req.file.mimetype)) {
-        return res.status(400).json({ message: "Formato no permitido. Use JPG, PNG, WebP o GIF." });
+      
+      const isVideo = req.file.mimetype.startsWith("video/");
+      const isImage = req.file.mimetype.startsWith("image/");
+      
+      if (!isImage && !isVideo) {
+        return res.status(400).json({ message: "Formato no permitido. Use imágenes o videos (MP4, WebM)." });
       }
+
+      // Limitar video a 20MB
+      if (isVideo && req.file.size > 20 * 1024 * 1024) {
+        return res.status(400).json({ message: "El video es demasiado grande. Máximo 20MB." });
+      }
+
       const result = await new Promise<any>((resolve, reject) => {
+        const uploadOptions: any = { 
+          folder: "selva-import", 
+          resource_type: "auto" 
+        };
+        
+        if (isImage) {
+          uploadOptions.transformation = [{ width: 1200, height: 1200, crop: "limit", quality: "auto" }];
+        }
+
         const stream = cloudinary.uploader.upload_stream(
-          { folder: "selva-import", resource_type: "image", transformation: [{ width: 1200, height: 1200, crop: "limit", quality: "auto" }] },
+          uploadOptions,
           (error, result) => {
             if (error) reject(error);
             else resolve(result);
@@ -54,21 +72,26 @@ export async function registerRoutes(
         );
         stream.end(req.file!.buffer);
       });
-      res.json({ url: result.secure_url, publicId: result.public_id });
+      
+      res.json({ 
+        url: result.secure_url, 
+        publicId: result.public_id,
+        resourceType: result.resource_type 
+      });
     } catch (e: any) {
-      console.error("Error subiendo imagen:", e);
-      res.status(500).json({ message: "Error al subir la imagen" });
+      console.error("Error subiendo archivo:", e);
+      res.status(500).json({ message: "Error al subir el archivo" });
     }
   });
 
   app.delete("/api/upload", requireAdmin, async (req, res) => {
     try {
-      const { publicId } = req.body;
+      const { publicId, resourceType } = req.body;
       if (!publicId) return res.status(400).json({ message: "publicId requerido" });
-      await cloudinary.uploader.destroy(publicId);
+      await cloudinary.uploader.destroy(publicId, { resource_type: resourceType || "image" });
       res.json({ success: true });
     } catch (e: any) {
-      res.status(500).json({ message: "Error al eliminar la imagen" });
+      res.status(500).json({ message: "Error al eliminar el archivo" });
     }
   });
 
@@ -126,6 +149,7 @@ export async function registerRoutes(
     try {
       const data = api.products.update.input.parse(req.body);
       const productId = Number(req.params.id);
+      const existing = await storage.getProduct(productId);
 
       if (data.name) {
         const baseSlug = data.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
@@ -141,6 +165,12 @@ export async function registerRoutes(
       }
 
       const p = await storage.updateProduct(productId, data as any);
+
+      // Si se cambió el video, eliminar el anterior de Cloudinary
+      if (existing && existing.videoPublicId && (data as any).videoPublicId && existing.videoPublicId !== (data as any).videoPublicId) {
+        await cloudinary.uploader.destroy(existing.videoPublicId, { resource_type: "video" }).catch(console.error);
+      }
+
       res.json(p);
     } catch (e: any) {
       res.status(400).json({ message: e.message });
@@ -148,7 +178,12 @@ export async function registerRoutes(
   });
 
   app.delete(api.products.delete.path, requireAdmin, async (req, res) => {
-    await storage.deleteProduct(Number(req.params.id));
+    const productId = Number(req.params.id);
+    const product = await storage.getProduct(productId);
+    if (product && product.videoPublicId) {
+      await cloudinary.uploader.destroy(product.videoPublicId, { resource_type: "video" }).catch(console.error);
+    }
+    await storage.deleteProduct(productId);
     res.status(204).end();
   });
 
@@ -419,7 +454,10 @@ export async function registerRoutes(
   const bannerSlideValidator = z.object({
     title: z.string().nullable().optional(),
     subtitle: z.string().nullable().optional(),
+    mediaType: z.enum(["image", "video"]).optional(),
     imageUrl: z.string().nullable().optional(),
+    videoUrl: z.string().nullable().optional(),
+    publicId: z.string().nullable().optional(),
     productId1: z.number().nullable().optional(),
     productId2: z.number().nullable().optional(),
     buttonText: z.string().nullable().optional(),
@@ -449,11 +487,20 @@ export async function registerRoutes(
 
   app.put("/api/admin/banner-slides/:id", requireAdmin, async (req, res) => {
     try {
-      const existing = await storage.getBannerSlide(Number(req.params.id));
+      const slideId = Number(req.params.id);
+      const existing = await storage.getBannerSlide(slideId);
       if (!existing) return res.status(404).json({ message: "Slide no encontrado" });
       const parsed = bannerSlideValidator.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Datos invalidos", errors: parsed.error.flatten() });
-      const slide = await storage.updateBannerSlide(Number(req.params.id), parsed.data);
+      
+      const slide = await storage.updateBannerSlide(slideId, parsed.data);
+      
+      // Si se cambió el archivo, eliminar el anterior de Cloudinary
+      if (existing.publicId && parsed.data.publicId && existing.publicId !== parsed.data.publicId) {
+        const resourceType = existing.mediaType === "video" ? "video" : "image";
+        await cloudinary.uploader.destroy(existing.publicId, { resource_type: resourceType }).catch(console.error);
+      }
+      
       res.json(slide);
     } catch (e: any) {
       res.status(500).json({ message: e.message });
@@ -478,7 +525,13 @@ export async function registerRoutes(
 
   app.delete("/api/admin/banner-slides/:id", requireAdmin, async (req, res) => {
     try {
-      await storage.deleteBannerSlide(Number(req.params.id));
+      const slideId = Number(req.params.id);
+      const slide = await storage.getBannerSlide(slideId);
+      if (slide && slide.publicId) {
+        const resourceType = slide.mediaType === "video" ? "video" : "image";
+        await cloudinary.uploader.destroy(slide.publicId, { resource_type: resourceType }).catch(console.error);
+      }
+      await storage.deleteBannerSlide(slideId);
       res.status(204).send();
     } catch (e: any) {
       res.status(500).json({ message: e.message });

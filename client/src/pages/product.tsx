@@ -51,6 +51,9 @@ export default function ProductDetail() {
       ? [product.imageUrl]
       : [];
 
+  const hasVideo = !!product.videoUrl;
+  const totalMediaCount = allImages.length + (hasVideo ? 1 : 0);
+
   const pricing = getDisplayPrice(product);
   const formattedPrice = "S/ " + pricing.current.toFixed(2);
   const isTacora = product.category?.slug === "tacora";
@@ -67,11 +70,11 @@ export default function ProductDetail() {
   };
 
   const handlePreviousImage = () => {
-    setSelectedImage(prev => (prev === 0 ? allImages.length - 1 : prev - 1));
+    setSelectedImage(prev => (prev === 0 ? totalMediaCount - 1 : prev - 1));
   };
 
   const handleNextImage = () => {
-    setSelectedImage(prev => (prev === allImages.length - 1 ? 0 : prev + 1));
+    setSelectedImage(prev => (prev === totalMediaCount - 1 ? 0 : prev + 1));
   };
 
   return (
@@ -84,9 +87,17 @@ export default function ProductDetail() {
         <div className="grid md:grid-cols-2 gap-10 lg:gap-16 items-start">
           <div className="sticky top-24 space-y-3">
             <div className="relative bg-accent/30 rounded-3xl overflow-hidden aspect-square border border-border/50 group">
-              {allImages.length > 0 ? (
+              {hasVideo && selectedImage === 0 ? (
+                <video
+                  src={product.videoUrl!}
+                  className="w-full h-full object-cover"
+                  controls
+                  playsInline
+                  poster={allImages[0] ? toWebP(allImages[0]) : undefined}
+                />
+              ) : allImages.length > 0 ? (
                 <img
-                  src={toWebP(allImages[selectedImage] || allImages[0])}
+                  src={toWebP(allImages[hasVideo ? selectedImage - 1 : selectedImage] || allImages[0])}
                   alt={product.name}
                   className="w-full h-full object-cover transition-opacity duration-300"
                   data-testid="img-product-main"
@@ -96,7 +107,7 @@ export default function ProductDetail() {
                   {product.name.charAt(0)}
                 </div>
               )}
-              {allImages.length > 1 && (
+              {totalMediaCount > 1 && (
                 <>
                   <button
                     onClick={handlePreviousImage}
@@ -117,22 +128,42 @@ export default function ProductDetail() {
                 </>
               )}
             </div>
-            {allImages.length > 1 && (
-              <div className="flex gap-2 justify-center" data-testid="image-thumbnails">
-                {allImages.map((url, i) => (
+            {totalMediaCount > 1 && (
+              <div className="flex gap-2 justify-center overflow-x-auto py-2 no-scrollbar" data-testid="image-thumbnails">
+                {hasVideo && (
                   <button
-                    key={i}
-                    onClick={() => setSelectedImage(i)}
-                    className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 ${
-                      selectedImage === i
+                    onClick={() => setSelectedImage(0)}
+                    className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 relative ${
+                      selectedImage === 0
                         ? "border-primary ring-2 ring-primary/20"
                         : "border-border/50 hover:border-border opacity-70 hover:opacity-100"
                     }`}
-                    data-testid={`button-thumbnail-${i}`}
                   >
-                    <img src={toWebP(url)} alt={`Vista ${i + 1}`} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                      <div className="w-8 h-8 bg-white/80 rounded-full flex items-center justify-center">
+                        <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-primary border-b-[6px] border-b-transparent ml-1" />
+                      </div>
+                    </div>
+                    {allImages[0] && <img src={toWebP(allImages[0])} alt="Video preview" className="w-full h-full object-cover" />}
                   </button>
-                ))}
+                )}
+                {allImages.map((url, i) => {
+                  const index = hasVideo ? i + 1 : i;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedImage(index)}
+                      className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 ${
+                        selectedImage === index
+                          ? "border-primary ring-2 ring-primary/20"
+                          : "border-border/50 hover:border-border opacity-70 hover:opacity-100"
+                      }`}
+                      data-testid={`button-thumbnail-${i}`}
+                    >
+                      <img src={toWebP(url)} alt={`Vista ${i + 1}`} className="w-full h-full object-cover" />
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
