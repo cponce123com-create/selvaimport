@@ -4,7 +4,17 @@ import { useProducts } from "@/hooks/use-products";
 import { useCategories } from "@/hooks/use-categories";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Input } from "@/components/ui/input";
-import { Search, Truck, ShieldCheck, RefreshCw, Sparkles, Tag, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Search,
+  Truck,
+  ShieldCheck,
+  RefreshCw,
+  Sparkles,
+  Tag,
+  Star,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -20,40 +30,74 @@ interface BannerSlideData {
   buttonCategoryId: number | null;
   sortOrder: number;
   isActive: boolean;
-  product1?: { id: number; name: string; price: string; offerPrice?: string | null; isOffer?: boolean | null; imageUrl: string | null; images: string[] | null; description: string } | null;
-  product2?: { id: number; name: string; price: string; offerPrice?: string | null; isOffer?: boolean | null; imageUrl: string | null; images: string[] | null; description: string } | null;
+  product1?: {
+    id: number;
+    name: string;
+    price: string;
+    offerPrice?: string | null;
+    isOffer?: boolean | null;
+    imageUrl: string | null;
+    images: string[] | null;
+    description: string;
+  } | null;
+  product2?: {
+    id: number;
+    name: string;
+    price: string;
+    offerPrice?: string | null;
+    isOffer?: boolean | null;
+    imageUrl: string | null;
+    images: string[] | null;
+    description: string;
+  } | null;
   buttonCategory?: { id: number; name: string; slug: string } | null;
 }
 
-function BannerProductCard({ product }: { product: NonNullable<BannerSlideData["product1"]> }) {
+function BannerProductCard({
+  product,
+}: {
+  product: NonNullable<BannerSlideData["product1"]>;
+}) {
   const img = toWebP(product.images?.[0] || product.imageUrl);
   const pricing = getDisplayPrice(product);
+
   return (
     <Link href={`/product/${product.id}`} data-testid={`banner-product-${product.id}`}>
       <div className="bg-white rounded-xl border border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group cursor-pointer h-full">
         <div className="relative h-[220px] overflow-hidden bg-white p-3 flex items-center justify-center">
-  {img && (
-    <img
-      src={img}
-      alt={product.name}
-      className="max-w-full max-h-full object-contain p-2 group-hover:scale-110 transition-transform duration-300"
-    />
-  )}
+          {img && (
+            <img
+              src={img}
+              alt={product.name}
+              className="max-w-full max-h-full object-contain p-2 group-hover:scale-110 transition-transform duration-300"
+            />
+          )}
+
           {pricing.discount && (
             <span className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
               -{pricing.discount}%
             </span>
           )}
         </div>
+
         <div className="p-2.5 sm:p-3">
-          <h4 className="font-semibold text-xs sm:text-sm text-foreground line-clamp-2 leading-snug mb-1.5">{product.name}</h4>
+          <h4 className="font-semibold text-xs sm:text-sm text-foreground line-clamp-2 leading-snug mb-1.5">
+            {product.name}
+          </h4>
+
           {pricing.original ? (
             <div className="flex items-center gap-1.5">
-              <span className="line-through text-gray-400 text-[10px] sm:text-xs">S/ {pricing.original.toFixed(2)}</span>
-              <span className="font-bold text-red-600 text-sm sm:text-base">S/ {pricing.current.toFixed(2)}</span>
+              <span className="line-through text-gray-400 text-[10px] sm:text-xs">
+                S/ {pricing.original.toFixed(2)}
+              </span>
+              <span className="font-bold text-red-600 text-sm sm:text-base">
+                S/ {pricing.current.toFixed(2)}
+              </span>
             </div>
           ) : (
-            <span className="font-bold text-foreground text-sm sm:text-base">S/ {pricing.current.toFixed(2)}</span>
+            <span className="font-bold text-foreground text-sm sm:text-base">
+              S/ {pricing.current.toFixed(2)}
+            </span>
           )}
         </div>
       </div>
@@ -61,58 +105,34 @@ function BannerProductCard({ product }: { product: NonNullable<BannerSlideData["
   );
 }
 
-function getButtonLink(slide: BannerSlideData): { href: string; isCategoryLink: boolean } {
+function getButtonLink(slide: BannerSlideData): {
+  href: string;
+  isCategoryLink: boolean;
+} {
   if (slide.buttonCategoryId && slide.buttonCategory) {
-    return { href: `/?cat=${slide.buttonCategoryId}#catalogo`, isCategoryLink: true };
+    return {
+      href: `/?cat=${slide.buttonCategoryId}#catalogo`,
+      isCategoryLink: true,
+    };
   }
-  return { href: slide.buttonLink || "/#catalogo", isCategoryLink: false };
+
+  return {
+    href: slide.buttonLink || "/#catalogo",
+    isCategoryLink: false,
+  };
 }
 
-function HeroFallbackSlide({ scrollToSection }: { scrollToSection: (id: string) => void }) {
-  return (
-    <div className="w-full h-full relative">
-      <img
-        src={toWebP("https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070&auto=format&fit=crop")}
-        alt="Hero"
-        className="absolute inset-0 w-full h-full object-cover"
-        loading="lazy"
-      />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
-      <div className="relative h-full flex items-center max-w-7xl mx-auto px-6 lg:px-12">
-  <div className="max-w-2xl py-8">
-          <span className="inline-block bg-white/15 text-white px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[11px] sm:text-sm font-medium mb-3 sm:mb-5 backdrop-blur-sm border border-white/20">
-            SELVA IMPORT
-          </span>
-          <h1
-  className="..."
-  style={{ fontSize: "clamp(1.5rem, 4vw, 3.5rem)" }}
-  data-testid="text-hero-title"
->
-  Los mejores productos importados
-</h1>
-          <p
-            className="text-white/80 mb-4 sm:mb-7 max-w-md leading-relaxed"
-            style={{ fontSize: "clamp(0.75rem, 1.5vw, 1.125rem)" }}
-          >
-            Descubre nuestra coleccion de productos premium seleccionados para ti.
-          </p>
-          <a
-            href="#catalogo"
-            onClick={(e) => { e.preventDefault(); scrollToSection("catalogo"); }}
-            className="inline-block px-6 py-2.5 sm:px-8 sm:py-3.5 bg-white text-foreground font-semibold rounded-full hover:scale-105 transition-transform duration-300 shadow-xl text-sm sm:text-base"
-            data-testid="button-shop-collection"
-          >
-            Ver Catalogo
-          </a>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function BannerCTA({ slide, className }: { slide: BannerSlideData; className: string }) {
+function BannerCTA({
+  slide,
+  className,
+}: {
+  slide: BannerSlideData;
+  className: string;
+}) {
   if (!slide.buttonText) return null;
+
   const { href, isCategoryLink } = getButtonLink(slide);
+
   if (isCategoryLink) {
     return (
       <a href={href} className={className} data-testid="button-banner-cta">
@@ -120,6 +140,7 @@ function BannerCTA({ slide, className }: { slide: BannerSlideData; className: st
       </a>
     );
   }
+
   return (
     <Link href={href}>
       <span className={className} data-testid="button-banner-cta">
@@ -131,7 +152,9 @@ function BannerCTA({ slide, className }: { slide: BannerSlideData; className: st
 
 function DynamicBannerSlide({ slide }: { slide: BannerSlideData }) {
   const hasProducts = slide.product1 || slide.product2;
-  const productCards = [slide.product1, slide.product2].filter(Boolean) as NonNullable<BannerSlideData["product1"]>[];
+  const productCards = [slide.product1, slide.product2].filter(
+    Boolean
+  ) as NonNullable<BannerSlideData["product1"]>[];
 
   return (
     <div className="w-full h-full relative">
@@ -155,26 +178,31 @@ function DynamicBannerSlide({ slide }: { slide: BannerSlideData }) {
 
       <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="h-full flex flex-col lg:flex-row lg:items-center lg:justify-between">
-
           <div className="flex-1 flex items-end lg:items-center py-4 sm:py-6 lg:py-8">
             <div className="w-full max-w-xl">
               {slide.title && (
                 <h2
-                  className={`font-bold leading-[1.1] mb-1 sm:mb-2 ${slide.imageUrl ? "text-white drop-shadow-lg" : "text-foreground"}`}
+                  className={`font-bold leading-[1.1] mb-1 sm:mb-2 ${
+                    slide.imageUrl ? "text-white drop-shadow-lg" : "text-foreground"
+                  }`}
                   style={{ fontSize: "clamp(1.25rem, 3vw, 2.5rem)" }}
                   data-testid="text-banner-title"
                 >
                   {slide.title}
                 </h2>
               )}
+
               {slide.subtitle && (
                 <p
-                  className={`mb-3 sm:mb-4 ${slide.imageUrl ? "text-white/90 drop-shadow" : "text-muted-foreground"}`}
+                  className={`mb-3 sm:mb-4 ${
+                    slide.imageUrl ? "text-white/90 drop-shadow" : "text-muted-foreground"
+                  }`}
                   style={{ fontSize: "clamp(0.75rem, 1.3vw, 1rem)" }}
                 >
                   {slide.subtitle}
                 </p>
               )}
+
               <BannerCTA
                 slide={slide}
                 className={`inline-block px-5 py-2 sm:px-7 sm:py-3 font-semibold rounded-full hover:scale-105 transition-transform duration-300 shadow-lg text-sm sm:text-base cursor-pointer ${
@@ -220,24 +248,42 @@ export default function Home() {
 
   const { data: products, isLoading: productsLoading } = useProducts({
     search: search.length > 2 ? search : undefined,
-    categoryId: selectedCat
+    categoryId: selectedCat,
   });
 
   const { data: categories } = useCategories();
 
-  const { data: bannerSlides = [] } = useQuery<BannerSlideData[]>({
+  const { data: bannerSlides = [], isLoading: bannerLoading } = useQuery<
+    BannerSlideData[]
+  >({
     queryKey: ["/api/banner-slides"],
   });
 
-  const allProducts = products || [];
-  const offerProducts = useMemo(() => allProducts.filter((p: any) => p.isOffer), [allProducts]);
+  const allProducts = products ?? [];
+  const allCategories = categories ?? [];
+
+  const visibleProducts = allProducts.filter(
+    (p: any) => p.category?.slug !== "tacora"
+  );
+
+  const publicCategories = allCategories.filter(
+    (cat: any) => cat.slug !== "tacora"
+  );
+
+  const offerProducts = useMemo(
+    () => visibleProducts.filter((p: any) => p.isOffer),
+    [visibleProducts]
+  );
+
   const newProducts = useMemo(() => {
-    return [...allProducts].sort((a: any, b: any) => {
-      const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return db - da;
-    }).slice(0, 6);
-  }, [allProducts]);
+    return [...visibleProducts]
+      .sort((a: any, b: any) => {
+        const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return db - da;
+      })
+      .slice(0, 6);
+  }, [visibleProducts]);
 
   const hasDynamicSlides = bannerSlides.length > 0;
   const totalSlides = hasDynamicSlides ? bannerSlides.length : 1;
@@ -249,11 +295,11 @@ export default function Home() {
   }, [totalSlides, currentSlide]);
 
   const nextSlide = useCallback(() => {
-    setCurrentSlide(prev => (prev + 1) % totalSlides);
+    setCurrentSlide((prev) => (prev + 1) % totalSlides);
   }, [totalSlides]);
 
   const prevSlide = useCallback(() => {
-    setCurrentSlide(prev => (prev - 1 + totalSlides) % totalSlides);
+    setCurrentSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
   }, [totalSlides]);
 
   useEffect(() => {
@@ -288,13 +334,18 @@ export default function Home() {
   return (
     <AppLayout>
       <section
-  id="inicio"
-  className="relative overflow-hidden bg-gray-50 scroll-mt-24"
-  data-testid="banner-carousel"
->
-        <div className="w-full" style={{ aspectRatio: "16/7", minHeight: "300px", maxHeight: "620px" }}>
+        id="inicio"
+        className="relative overflow-hidden bg-gray-50 scroll-mt-24"
+        data-testid="banner-carousel"
+      >
+        <div
+          className="w-full relative"
+          style={{ aspectRatio: "16/7", minHeight: "300px", maxHeight: "620px" }}
+        >
           <AnimatePresence mode="wait">
-            {hasDynamicSlides ? (
+            {bannerLoading ? (
+              <div className="absolute inset-0 bg-white" />
+            ) : hasDynamicSlides ? (
               <motion.div
                 key={`slide-${bannerSlides[currentSlide]?.id}`}
                 initial={{ opacity: 0 }}
@@ -306,20 +357,11 @@ export default function Home() {
                 <DynamicBannerSlide slide={bannerSlides[currentSlide]} />
               </motion.div>
             ) : (
-              <motion.div
-                key="hero-fallback"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.4 }}
-                className="absolute inset-0"
-              >
-                <HeroFallbackSlide scrollToSection={scrollToSection} />
-              </motion.div>
+              <div className="absolute inset-0 bg-white" />
             )}
           </AnimatePresence>
 
-          {totalSlides > 1 && (
+          {totalSlides > 1 && !bannerLoading && hasDynamicSlides && (
             <>
               <button
                 onClick={prevSlide}
@@ -328,6 +370,7 @@ export default function Home() {
               >
                 <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
+
               <button
                 onClick={nextSlide}
                 className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/90 shadow-md text-foreground flex items-center justify-center hover:bg-white transition-colors active:scale-95"
@@ -336,13 +379,18 @@ export default function Home() {
                 <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
 
-              <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-1.5 sm:gap-2" data-testid="carousel-indicators">
+              <div
+                className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-1.5 sm:gap-2"
+                data-testid="carousel-indicators"
+              >
                 {Array.from({ length: totalSlides }).map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentSlide(i)}
                     className={`h-2 rounded-full transition-all duration-300 ${
-                      i === currentSlide ? "w-7 bg-primary shadow-sm" : "w-2 bg-gray-400/60 hover:bg-gray-500"
+                      i === currentSlide
+                        ? "w-7 bg-primary shadow-sm"
+                        : "w-2 bg-gray-400/60 hover:bg-gray-500"
                     }`}
                     data-testid={`carousel-dot-${i}`}
                   />
@@ -359,32 +407,49 @@ export default function Home() {
             <Truck className="w-8 h-8 sm:w-10 sm:h-10 text-primary flex-shrink-0" />
             <div>
               <p className="font-semibold text-sm">Envio Disponible</p>
-              <p className="text-xs text-muted-foreground">San Ramon, La Merced, Shalom</p>
+              <p className="text-xs text-muted-foreground">
+                San Ramon, La Merced, Shalom
+              </p>
             </div>
           </div>
+
           <div className="bg-primary/10 border border-primary/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 flex items-center gap-3 sm:gap-4">
             <ShieldCheck className="w-8 h-8 sm:w-10 sm:h-10 text-primary flex-shrink-0" />
             <div>
               <p className="font-semibold text-sm">Compra Segura</p>
-              <p className="text-xs text-muted-foreground">Proteccion en cada pedido</p>
+              <p className="text-xs text-muted-foreground">
+                Proteccion en cada pedido
+              </p>
             </div>
           </div>
+
           <div className="bg-primary/10 border border-primary/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 flex items-center gap-3 sm:gap-4">
             <RefreshCw className="w-8 h-8 sm:w-10 sm:h-10 text-primary flex-shrink-0" />
             <div>
               <p className="font-semibold text-sm">Novedades y Tendencias</p>
-              <p className="text-xs text-muted-foreground">Productos importados y virales</p>
+              <p className="text-xs text-muted-foreground">
+                Productos importados y virales
+              </p>
             </div>
           </div>
         </div>
       </section>
 
       {offerProducts.length > 0 && (
-        <section id="ofertas" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+        <section
+          id="ofertas"
+          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10"
+        >
           <div className="flex items-center gap-3 mb-6 sm:mb-8">
             <Tag className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground" data-testid="text-offers-title">Ofertas Destacadas</h2>
+            <h2
+              className="text-2xl sm:text-3xl font-bold text-foreground"
+              data-testid="text-offers-title"
+            >
+              Ofertas Destacadas
+            </h2>
           </div>
+
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {offerProducts.map((product: any) => (
               <motion.div
@@ -406,8 +471,14 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-3 mb-6 sm:mb-8">
               <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-              <h2 className="text-2xl sm:text-3xl font-bold text-foreground" data-testid="text-new-arrivals-title">Novedades</h2>
+              <h2
+                className="text-2xl sm:text-3xl font-bold text-foreground"
+                data-testid="text-new-arrivals-title"
+              >
+                Novedades
+              </h2>
             </div>
+
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
               {newProducts.map((product: any) => (
                 <motion.div
@@ -430,9 +501,16 @@ export default function Home() {
           <div>
             <div className="flex items-center gap-3 mb-2">
               <Star className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-              <h2 className="text-2xl sm:text-3xl font-bold text-foreground" data-testid="text-catalog-title">Todos los Productos</h2>
+              <h2
+                className="text-2xl sm:text-3xl font-bold text-foreground"
+                data-testid="text-catalog-title"
+              >
+                Todos los Productos
+              </h2>
             </div>
-            <p className="text-sm text-muted-foreground">Encuentra exactamente lo que buscas.</p>
+            <p className="text-sm text-muted-foreground">
+              Encuentra exactamente lo que buscas.
+            </p>
           </div>
 
           <div className="flex flex-col sm:flex-row w-full md:w-auto gap-3">
@@ -454,18 +532,23 @@ export default function Home() {
             onClick={() => setSelectedCat(undefined)}
             data-testid="button-category-all"
             className={`whitespace-nowrap px-3.5 py-2 rounded-full text-xs sm:text-sm font-medium transition-all flex-shrink-0 ${
-              !selectedCat ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground hover:bg-border'
+              !selectedCat
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-foreground hover:bg-border"
             }`}
           >
             Todos
           </button>
-          {categories?.map((cat: any) => (
+
+          {publicCategories.map((cat: any) => (
             <button
               key={cat.id}
               onClick={() => setSelectedCat(cat.id)}
               data-testid={`button-category-${cat.id}`}
               className={`whitespace-nowrap px-3.5 py-2 rounded-full text-xs sm:text-sm font-medium transition-all flex-shrink-0 ${
-                selectedCat === cat.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground hover:bg-border'
+                selectedCat === cat.id
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-foreground hover:bg-border"
               }`}
             >
               {cat.name}
@@ -475,7 +558,7 @@ export default function Home() {
 
         {productsLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-            {[1,2,3,4,5,6,7,8].map(i => (
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
               <div key={i} className="animate-pulse flex flex-col gap-3">
                 <div className="bg-muted rounded-2xl aspect-square w-full"></div>
                 <div className="h-4 bg-muted rounded w-3/4"></div>
@@ -483,14 +566,21 @@ export default function Home() {
               </div>
             ))}
           </div>
-        ) : allProducts.length === 0 ? (
+        ) : visibleProducts.length === 0 ? (
           <div className="text-center py-16 sm:py-24 bg-muted/30 rounded-3xl border border-dashed">
-            <h3 className="text-lg sm:text-xl font-semibold mb-2" data-testid="text-no-products">No se encontraron productos</h3>
-            <p className="text-sm text-muted-foreground">Intenta ajustar tu busqueda o filtros.</p>
+            <h3
+              className="text-lg sm:text-xl font-semibold mb-2"
+              data-testid="text-no-products"
+            >
+              No se encontraron productos
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Intenta ajustar tu busqueda o filtros.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-            {allProducts.map((product: any) => (
+            {visibleProducts.map((product: any) => (
               <motion.div
                 key={product.id}
                 initial={{ opacity: 0, y: 20 }}
