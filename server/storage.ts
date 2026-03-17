@@ -103,32 +103,30 @@ export class DatabaseStorage implements IStorage {
     return cat;
   }
 
-  async getProducts(categoryId?: number, search?: string): Promise<ProductWithCategory[]> {
-    const cats = await this.getCategories();
-    const tacoraCat = cats.find(c => c.slug === "tacora");
-    
-    let query = db.select().from(products);
-    const allProducts = await query;
-    let filtered = allProducts;
-    
-    if (categoryId) {
-      filtered = filtered.filter(p => p.categoryId === categoryId);
-    } else if (!search) {
-      // Si no se especifica categoría ni búsqueda, excluir TACORA (para el home)
-      if (tacoraCat) {
-        filtered = filtered.filter(p => p.categoryId !== tacoraCat.id);
-      }
-    }
-    
-    if (search) {
-      filtered = filtered.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.description.toLowerCase().includes(search.toLowerCase()));
-    }
+async getProducts(categoryId?: number, search?: string): Promise<ProductWithCategory[]> {
+  const cats = await this.getCategories();
 
-    return filtered.map(p => ({
-      ...p,
-      category: cats.find(c => c.id === p.categoryId)
-    }));
+  let query = db.select().from(products);
+  const allProducts = await query;
+  let filtered = allProducts;
+
+  if (categoryId) {
+    filtered = filtered.filter(p => p.categoryId === categoryId);
   }
+
+  if (search) {
+    filtered = filtered.filter(
+      p =>
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.description.toLowerCase().includes(search.toLowerCase())
+    );
+  }
+
+  return filtered.map(p => ({
+    ...p,
+    category: cats.find(c => c.id === p.categoryId)
+  }));
+}
 
   async getProduct(id: number): Promise<ProductWithCategory | undefined> {
     const [product] = await db.select().from(products).where(eq(products.id, id));
