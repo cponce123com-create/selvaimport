@@ -448,6 +448,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-muted-foreground/60" />
                   <span>Pasaje San Elias Mb Lote 14 - San Ramón</span>
                 </div>
+                <Link
+                  href="/test"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-full px-2.5 py-1 hover:bg-yellow-100 transition-colors w-fit mt-1"
+                  data-testid="link-footer-test"
+                >
+                  🧪 TEST
+                </Link>
               </div>
             </div>
           </div>
