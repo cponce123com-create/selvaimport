@@ -10,7 +10,7 @@
     --font-display: 'Outfit', sans-serif;
 
     /* Crisp, high-end monochrome palette with subtle warmth */
-    --background: 0 0% 100%;
+    --background: 220 14% 96%;  /* gris muy claro / blanco humo estilo marketplace */
     --foreground: 240 10% 3.9%;
     
     --card: 0 0% 100%;
