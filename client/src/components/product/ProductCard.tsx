@@ -67,10 +67,24 @@ export const ProductCard = memo(function ProductCard({ product, badge }: Product
   const pricing = getDisplayPrice(product);
   const formattedPrice = "S/ " + pricing.current.toFixed(2);
 
+  const isTacora = product.category?.slug === "tacora";
+  const outOfStock = product.inventory === 0;
+
   return (
     <Link href={`/product/${product.id}`} data-testid={`card-product-${product.id}`} className="group flex flex-col bg-card rounded-xl sm:rounded-2xl overflow-hidden border border-border/50 hover:shadow-xl hover:border-border transition-all duration-300">
       <div className="relative aspect-square bg-accent/50 overflow-hidden">
-        {pricing.discount ? (
+        {/* Etiqueta de stock agotado o vendido */}
+        {outOfStock ? (
+          isTacora ? (
+            <span className="absolute top-2 right-2 sm:top-3 sm:right-3 z-20 bg-gray-800/80 text-white text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:px-3 sm:py-1 rounded-full shadow-md tracking-widest backdrop-blur-sm border border-white/20">
+              VENDIDO
+            </span>
+          ) : (
+            <span className="absolute top-2 right-2 sm:top-3 sm:right-3 z-20 bg-red-600 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 sm:px-3 sm:py-1 rounded-full shadow-md">
+              SIN STOCK
+            </span>
+          )
+        ) : pricing.discount ? (
           <span className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10 bg-red-600 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 sm:px-3 sm:py-1 rounded-full shadow-md" data-testid={`badge-discount-${product.id}`}>
             -{pricing.discount}%
           </span>
@@ -93,6 +107,13 @@ export const ProductCard = memo(function ProductCard({ product, badge }: Product
           <div className="w-full h-full flex items-center justify-center text-muted-foreground/30 text-3xl sm:text-4xl font-bold bg-gradient-to-br from-accent to-muted">
             {product.name.charAt(0)}
           </div>
+        )}
+        {/* Overlay para productos sin stock */}
+        {outOfStock && isTacora && (
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px] z-10" />
+        )}
+        {outOfStock && !isTacora && (
+          <div className="absolute inset-0 bg-gray-200/40 z-10" />
         )}
 
         {hasMultipleImages && (
