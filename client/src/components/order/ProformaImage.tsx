@@ -17,6 +17,8 @@ interface ProformaData {
   orderId?: number;
   items: ProformaItem[];
   subtotal: number;
+  discount?: number;
+  appliedCouponCode?: string;
   shippingLabel: string;
   shippingCost: number;
   isShalom: boolean;
@@ -203,6 +205,12 @@ export function ProformaImage({ data, className }: { data: ProformaData; classNa
                 <span>Subtotal</span>
                 <span>S/ {data.subtotal.toFixed(2)}</span>
               </div>
+              {data.discount && data.discount > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: "13px", color: "#166534" }}>
+                  <span>Descuento {data.appliedCouponCode ? `(${data.appliedCouponCode})` : ""}</span>
+                  <span>-S/ {data.discount.toFixed(2)}</span>
+                </div>
+              )}
               <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: "13px", color: "#666" }}>
                 <span>Envío</span>
                 <span>{data.shippingCost === 0 ? "GRATIS" : data.isShalom ? "Por coordinar" : `S/ ${data.shippingCost.toFixed(2)}`}</span>
@@ -219,7 +227,7 @@ export function ProformaImage({ data, className }: { data: ProformaData; classNa
                 fontSize: "18px",
               }}>
                 <span>TOTAL</span>
-                <span>S/ {data.isShalom ? `${data.subtotal.toFixed(2)}+` : data.total.toFixed(2)}</span>
+                <span>S/ {data.isShalom ? `${(data.subtotal - (data.discount || 0)).toFixed(2)}+` : data.total.toFixed(2)}</span>
               </div>
               {data.isShalom && (
                 <div style={{ fontSize: "11px", color: "#d97706", textAlign: "right", marginTop: "4px" }}>
@@ -298,7 +306,7 @@ export function buildWhatsAppMessage(data: ProformaData): string {
       : `S/ ${data.shippingCost.toFixed(2)}`;
 
   const totalText = data.isShalom
-    ? `S/ ${data.subtotal.toFixed(2)} + envio Shalom`
+    ? `S/ ${(data.subtotal - (data.discount || 0)).toFixed(2)} + envio Shalom`
     : `S/ ${data.total.toFixed(2)}`;
 
   const message = [
@@ -316,6 +324,7 @@ export function buildWhatsAppMessage(data: ProformaData): string {
     "==============================",
     "RESUMEN:",
     `Subtotal: S/ ${data.subtotal.toFixed(2)}`,
+    data.discount && data.discount > 0 ? `Descuento: -S/ ${data.discount.toFixed(2)} ${data.appliedCouponCode ? `(${data.appliedCouponCode})` : ""}` : "",
     `Envio: ${data.shippingLabel} - ${shippingCostText}`,
     `TOTAL: ${totalText}`,
     "==============================",

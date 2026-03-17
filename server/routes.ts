@@ -223,14 +223,41 @@ export async function registerRoutes(
         };
       });
 
+      // Calcular descuento si hay cupón en la dirección
+      let finalTotal = total;
+      if (data.shippingAddress.includes("Cupón:")) {
+        const match = data.shippingAddress.match(/Cupón: ([A-Z0-9]+)/);
+        if (match && match[1]) {
+          const coupon = await storage.getCouponByCode(match[1]);
+          if (coupon && coupon.isActive) {
+            let discount = 0;
+            if (coupon.discountType === "percentage") {
+              discount = (total * Number(coupon.discountValue)) / 100;
+            } else {
+              discount = Number(coupon.discountValue);
+            }
+            finalTotal = Math.max(0, total - discount);
+          }
+        }
+      }
+
       const orderInfo = {
         shippingAddress: data.shippingAddress,
-        totalAmount: total.toString(),
+        totalAmount: finalTotal.toString(),
         status: "pagado"
       };
 
       const order = await storage.createOrder(req.user!.id, orderInfo as any, items);
       await storage.clearCart(req.user!.id);
+
+      // Si se usó un cupón, incrementar usos (buscamos en la dirección de envío el código)
+      if (data.shippingAddress.includes("Cupón:")) {
+        const match = data.shippingAddress.match(/Cupón: ([A-Z0-9]+)/);
+        if (match && match[1]) {
+          const coupon = await storage.getCouponByCode(match[1]);
+          if (coupon) await storage.incrementCouponUses(coupon.id);
+        }
+      }
       
       res.status(201).json(order);
     } catch (e: any) {
@@ -265,9 +292,28 @@ export async function registerRoutes(
         return { productId: item.productId, quantity: item.quantity, price: effectivePrice };
       });
 
+      // Calcular descuento si hay cupón en la dirección
+      let finalTotal = total;
+      if (data.shippingAddress.includes("Cupón:")) {
+        const match = data.shippingAddress.match(/Cupón: ([A-Z0-9]+)/);
+        if (match && match[1]) {
+          const coupon = await storage.getCouponByCode(match[1]);
+          if (coupon && coupon.isActive) {
+            let discount = 0;
+            if (coupon.discountType === "percentage") {
+              discount = (total * Number(coupon.discountValue)) / 100;
+            } else {
+              discount = Number(coupon.discountValue);
+            }
+            finalTotal = Math.max(0, total - discount);
+            await storage.incrementCouponUses(coupon.id);
+          }
+        }
+      }
+
       const order = await storage.createGuestOrder({
         shippingAddress: data.shippingAddress,
-        totalAmount: total.toString(),
+        totalAmount: finalTotal.toString(),
         guestName: data.guestName,
         guestPhone: data.guestPhone,
         guestAccessToken,
@@ -469,17 +515,23 @@ export async function registerRoutes(
   app.put(api.admin.coupons.update.path, requireAdmin, async (req, res) => {
     try {
       const data = api.admin.coupons.update.input.parse(req.body);
+      
+      if (data.discountType === "percentage" && data.discountValue && Number(data.discountValue) > 100) {
+        return res.status(400).json({ message: "El porcentaje no puede ser mayor a 100%" });
+      }
+
       const coupon = await storage.updateCoupon(Number(req.params.id), {
         code: data.code ? data.code.toUpperCase() : undefined,
         discountType: data.discountType,
         discountValue: data.discountValue,
         maxUses: data.maxUses !== undefined ? data.maxUses : undefined,
-        expiryDate: data.expiryDate ? new Date(data.expiryDate) : undefined,
+        expiryDate: data.expiryDate ? new Date(data.expiryDate) : (data.expiryDate === null ? null : undefined),
         isActive: data.isActive,
       } as any);
       res.json(coupon);
     } catch (e: any) {
-      res.status(400).json({ message: e.message });
+      const message = e.name === "ZodError" ? "Datos de cupón inválidos" : e.message;
+      res.status(400).json({ message });
     }
   });
 

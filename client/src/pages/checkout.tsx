@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { MessageCircle, Store, Truck, Package, QrCode, ShieldCheck, ArrowLeft, FileImage } from "lucide-react";
+import { MessageCircle, Store, Truck, Package, QrCode, ShieldCheck, ArrowLeft, FileImage, Ticket } from "lucide-react";
 import { toWebP, getDisplayPrice } from "@/lib/utils";
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -41,6 +41,7 @@ const checkoutSchema = z.object({
   customerPhone: z.string().min(6, "El telefono es obligatorio"),
   shippingAddress: z.string().min(5, "La direccion es obligatoria"),
   shippingOption: z.string().min(1, "Selecciona una opcion de envio"),
+  couponCode: z.string().optional(),
 });
 
 function useCreateGuestOrder() {
@@ -74,6 +75,8 @@ export default function Checkout() {
   const { toast } = useToast();
   const [showProforma, setShowProforma] = useState(false);
   const [, forceUpdate] = useState(0);
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   useEffect(() => {
     const handler = () => forceUpdate(n => n + 1);
@@ -83,8 +86,43 @@ export default function Checkout() {
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
-    defaultValues: { customerName: "", customerPhone: "", shippingAddress: "", shippingOption: "" },
+    defaultValues: { customerName: "", customerPhone: "", shippingAddress: "", shippingOption: "", couponCode: "" },
   });
+
+  const handleApplyCoupon = async () => {
+    const code = form.getValues("couponCode");
+    if (!code?.trim()) {
+      toast({ title: "Error", description: "Ingresa un código", variant: "destructive" });
+      return;
+    }
+
+    setValidatingCoupon(true);
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: code.toUpperCase().trim() }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Cupón inválido");
+      }
+
+      const coupon = await res.json();
+      setAppliedCoupon(coupon);
+      toast({ title: "¡Cupón aplicado!", description: `Descuento de ${coupon.discountType === "percentage" ? coupon.discountValue + "%" : "S/ " + coupon.discountValue}` });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    form.setValue("couponCode", "");
+  };
 
   const selectedShipping = form.watch("shippingOption");
   const customerName = form.watch("customerName");
@@ -102,10 +140,18 @@ export default function Checkout() {
     return cart.items.reduce((acc: number, item: any) => acc + (getDisplayPrice(item.product).current * item.quantity), 0);
   }, [cart]);
 
+  const discount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    if (appliedCoupon.discountType === "percentage") {
+      return (subtotal * Number(appliedCoupon.discountValue)) / 100;
+    }
+    return Number(appliedCoupon.discountValue);
+  }, [appliedCoupon, subtotal]);
+
   const shippingInfo = SHIPPING_OPTIONS.find(o => o.id === selectedShipping);
   const shippingCost = shippingInfo ? (shippingInfo.cost === -1 ? 0 : shippingInfo.cost) : 0;
   const isShalom = shippingInfo?.id === "shalom";
-  const total = subtotal + shippingCost;
+  const total = Math.max(0, subtotal - discount) + shippingCost;
   const submitting = isPending || guestPending;
 
   const proformaData = useMemo(() => {
@@ -117,6 +163,8 @@ export default function Checkout() {
         unitPrice: Number(item.product.price),
       })),
       subtotal,
+      discount,
+      appliedCouponCode: appliedCoupon?.code,
       shippingLabel: shippingInfo?.label || "Sin seleccionar",
       shippingCost: shippingInfo ? shippingInfo.cost : 0,
       isShalom,
@@ -126,7 +174,7 @@ export default function Checkout() {
       customerAddress: shippingAddress || "(sin completar)",
       date: new Date(),
     };
-  }, [cart, subtotal, total, shippingInfo, isShalom, customerName, customerPhone, shippingAddress]);
+  }, [cart, subtotal, discount, appliedCoupon, total, shippingInfo, isShalom, customerName, customerPhone, shippingAddress]);
 
   const whatsappMessage = useMemo(() => {
     if (!proformaData) return "";
@@ -140,7 +188,8 @@ export default function Checkout() {
   if (isLoading || !cart?.items?.length) return null;
 
   const onSubmit = (data: z.infer<typeof checkoutSchema>) => {
-    const fullAddress = `${data.customerName} | Tel: ${data.customerPhone} | ${data.shippingAddress} | Envio: ${shippingInfo?.label || ""}`;
+    const couponInfo = appliedCoupon ? ` | Cupón: ${appliedCoupon.code} (-S/ ${discount.toFixed(2)})` : "";
+    const fullAddress = `${data.customerName} | Tel: ${data.customerPhone} | ${data.shippingAddress} | Envio: ${shippingInfo?.label || ""}${couponInfo}`;
 
     if (user) {
       createOrder({ shippingAddress: fullAddress }, {
@@ -341,11 +390,48 @@ export default function Checkout() {
                     ))}
                   </ul>
 
+                  <div className="bg-primary/5 rounded-xl p-4 space-y-3 border border-primary/10">
+                    <div className="flex items-center gap-2">
+                      <Ticket className="w-4 h-4 text-primary" />
+                      <span className="font-semibold text-sm">¿Tienes un cupón?</span>
+                    </div>
+                    {appliedCoupon ? (
+                      <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 flex justify-between items-center">
+                        <div>
+                          <p className="font-mono font-bold text-sm text-green-700 dark:text-green-400">{appliedCoupon.code}</p>
+                          <p className="text-xs text-green-600">
+                            Descuento: {appliedCoupon.discountType === "percentage" ? appliedCoupon.discountValue + "%" : "S/ " + appliedCoupon.discountValue}
+                          </p>
+                        </div>
+                        <button type="button" onClick={handleRemoveCoupon} className="text-xs underline text-red-600 hover:opacity-70">Remover</button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <FormField control={form.control} name="couponCode" render={({ field }) => (
+                          <FormItem className="flex-1 space-y-0">
+                            <FormControl>
+                              <Input placeholder="Código" className="h-9 text-sm" {...field} onChange={(e) => field.onChange(e.target.value.toUpperCase())} />
+                            </FormControl>
+                          </FormItem>
+                        )} />
+                        <Button type="button" onClick={handleApplyCoupon} disabled={validatingCoupon} className="h-9 px-3 text-sm" variant="outline">
+                          {validatingCoupon ? "..." : "Aplicar"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="border-t pt-4 space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Subtotal</span>
                       <span>S/ {subtotal.toFixed(2)}</span>
                     </div>
+                    {discount > 0 && (
+                      <div className="flex justify-between text-green-600 font-medium">
+                        <span>Descuento</span>
+                        <span>-S/ {discount.toFixed(2)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Envio</span>
                       <span>
@@ -362,7 +448,7 @@ export default function Checkout() {
                     <div className="flex justify-between items-center pt-3 border-t font-bold text-lg">
                       <span>Total</span>
                       <span data-testid="text-checkout-total">
-                        {isShalom ? `S/ ${subtotal.toFixed(2)}+` : `S/ ${total.toFixed(2)}`}
+                        {isShalom ? `S/ ${(subtotal - discount).toFixed(2)}+` : `S/ ${total.toFixed(2)}`}
                       </span>
                     </div>
                     {isShalom && (

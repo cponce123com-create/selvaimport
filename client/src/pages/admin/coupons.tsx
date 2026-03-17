@@ -15,12 +15,18 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const formSchema = z.object({
-  code: z.string().min(1, "El código es obligatorio").toUpperCase(),
+  code: z.string().min(1, "El código es obligatorio").toUpperCase().trim(),
   discountType: z.enum(["percentage", "fixed"]),
-  discountValue: z.string().min(1, "El valor de descuento es obligatorio"),
-  maxUses: z.string().optional(),
+  discountValue: z.string().min(1, "El valor de descuento es obligatorio").refine(v => !isNaN(Number(v)) && Number(v) > 0, "Debe ser un número mayor a 0"),
+  maxUses: z.string().optional().refine(v => !v || (!isNaN(Number(v)) && Number(v) > 0), "Debe ser un número positivo"),
   expiryDate: z.string().optional(),
   isActive: z.boolean().default(true),
+}).refine(data => {
+  if (data.discountType === "percentage" && Number(data.discountValue) > 100) return false;
+  return true;
+}, {
+  message: "El porcentaje no puede ser mayor a 100%",
+  path: ["discountValue"]
 });
 
 export default function AdminCoupons() {
@@ -49,10 +55,13 @@ export default function AdminCoupons() {
           ...data,
           discountValue: data.discountValue,
           maxUses: data.maxUses ? parseInt(data.maxUses) : null,
-          expiryDate: data.expiryDate || null,
+          expiryDate: data.expiryDate ? new Date(data.expiryDate).toISOString() : null,
         }),
       });
-      if (!response.ok) throw new Error("Error al crear cupón");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Error al crear cupón");
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -80,10 +89,13 @@ export default function AdminCoupons() {
           ...data,
           discountValue: data.discountValue,
           maxUses: data.maxUses ? parseInt(data.maxUses) : null,
-          expiryDate: data.expiryDate || null,
+          expiryDate: data.expiryDate ? new Date(data.expiryDate).toISOString() : null,
         }),
       });
-      if (!response.ok) throw new Error("Error al actualizar cupón");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Error al actualizar cupón");
+      }
       return response.json();
     },
     onSuccess: () => {
