@@ -4,7 +4,7 @@ import { useProduct } from "@/hooks/use-products";
 import { useAddToCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, ArrowLeft, ShieldCheck, Truck, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { ShoppingCart, ArrowLeft, ShieldCheck, Truck, RefreshCw, ChevronLeft, ChevronRight, CheckCircle, Package, AlertCircle, Recycle } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { toWebP, getDisplayPrice } from "@/lib/utils";
@@ -229,20 +229,51 @@ export default function ProductDetail() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t pt-8">
-              <div className="flex flex-col items-center text-center gap-2 text-muted-foreground">
-                <Truck className="w-6 h-6" />
-                <span className="text-sm font-medium">Envio Gratis<br/>Compras +S/ 300</span>
+            {isTacora ? (
+              <div className="border-t pt-8">
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 sm:p-6">
+                  <div className="flex gap-3 sm:gap-4">
+                    <div className="flex-shrink-0">
+                      <AlertCircle className="w-6 h-6 sm:w-7 sm:h-7 text-amber-600 dark:text-amber-500 mt-0.5" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-amber-900 dark:text-amber-100 text-sm sm:text-base mb-2">
+                        Producto de Segunda Mano
+                      </h3>
+                      <p className="text-amber-800 dark:text-amber-200 text-xs sm:text-sm leading-relaxed">
+                        Este es un producto de segunda mano. No tiene cambios ni devoluciones. Por favor, revisa cuidadosamente el estado del producto al momento de la entrega. La aceptación del producto implica conformidad con su estado y funcionamiento.
+                      </p>
+                      <div className="flex items-center gap-2 mt-3 text-amber-700 dark:text-amber-300 text-xs sm:text-sm font-medium">
+                        <Recycle className="w-4 h-4" />
+                        <span>Revisar antes de aceptar</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex flex-col items-center text-center gap-2 text-muted-foreground">
-                <RefreshCw className="w-6 h-6" />
-                <span className="text-sm font-medium">Devoluciones<br/>30 Dias</span>
+            ) : (
+              <div className="border-t pt-8">
+                <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-2xl p-4 sm:p-6">
+                  <div className="flex gap-3 sm:gap-4">
+                    <div className="flex-shrink-0">
+                      <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400 mt-0.5" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-blue-900 dark:text-blue-100 text-sm sm:text-base mb-2">
+                        Verificación en la Entrega
+                      </h3>
+                      <p className="text-blue-800 dark:text-blue-200 text-xs sm:text-sm leading-relaxed">
+                        Por favor, revisa el producto al momento de la entrega. La aceptación del producto implica conformidad con su estado y funcionamiento.
+                      </p>
+                      <div className="flex items-center gap-2 mt-3 text-blue-700 dark:text-blue-300 text-xs sm:text-sm font-medium">
+                        <Package className="w-4 h-4" />
+                        <span>Inspecciona antes de aceptar</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex flex-col items-center text-center gap-2 text-muted-foreground">
-                <ShieldCheck className="w-6 h-6" />
-                <span className="text-sm font-medium">Compra<br/>Segura</span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
