@@ -176,6 +176,52 @@ export const api = {
       path: "/api/admin/customers" as const,
       responses: { 200: z.any(), 401: errorSchemas.unauthorized },
     },
+    coupons: {
+      list: {
+        method: "GET" as const,
+        path: "/api/admin/coupons" as const,
+        responses: { 200: z.array(z.any()), 401: errorSchemas.unauthorized },
+      },
+      create: {
+        method: "POST" as const,
+        path: "/api/admin/coupons" as const,
+        input: z.object({
+          code: z.string().min(1),
+          discountType: z.enum(["percentage", "fixed"]).default("percentage"),
+          discountValue: z.coerce.string(),
+          maxUses: z.coerce.number().optional().nullable(),
+          expiryDate: z.string().datetime().optional().nullable(),
+          isActive: z.boolean().default(true),
+        }),
+        responses: { 201: z.any(), 400: errorSchemas.validation, 401: errorSchemas.unauthorized },
+      },
+      update: {
+        method: "PUT" as const,
+        path: "/api/admin/coupons/:id" as const,
+        input: z.object({
+          code: z.string().min(1).optional(),
+          discountType: z.enum(["percentage", "fixed"]).optional(),
+          discountValue: z.coerce.string().optional(),
+          maxUses: z.coerce.number().optional().nullable(),
+          expiryDate: z.string().datetime().optional().nullable(),
+          isActive: z.boolean().optional(),
+        }),
+        responses: { 200: z.any(), 401: errorSchemas.unauthorized, 404: errorSchemas.notFound },
+      },
+      delete: {
+        method: "DELETE" as const,
+        path: "/api/admin/coupons/:id" as const,
+        responses: { 204: z.void(), 401: errorSchemas.unauthorized, 404: errorSchemas.notFound },
+      },
+    },
+  },
+  coupons: {
+    validate: {
+      method: "POST" as const,
+      path: "/api/coupons/validate" as const,
+      input: z.object({ code: z.string() }),
+      responses: { 200: z.any(), 400: errorSchemas.validation, 404: errorSchemas.notFound },
+    },
   },
 };
 

@@ -76,6 +76,19 @@ export const sitePages = pgTable("site_pages", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const coupons = pgTable("coupons", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  discountType: text("discount_type").notNull().default("percentage"), // "percentage" o "fixed"
+  discountValue: decimal("discount_value", { precision: 10, scale: 2 }).notNull(),
+  maxUses: integer("max_uses"), // null = sin límite
+  currentUses: integer("current_uses").default(0),
+  expiryDate: timestamp("expiry_date"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const bannerSlides = pgTable("banner_slides", {
   id: serial("id").primaryKey(),
   title: text("title"),
@@ -156,6 +169,7 @@ export const guestOrderSchema = z.object({
 });
 
 export const insertSitePageSchema = createInsertSchema(sitePages).omit({ id: true, updatedAt: true });
+export const insertCouponSchema = createInsertSchema(coupons).omit({ id: true, createdAt: true, updatedAt: true, currentUses: true });
 export const insertBannerSlideSchema = createInsertSchema(bannerSlides).omit({ id: true });
 
 export type User = typeof users.$inferSelect;
@@ -175,6 +189,9 @@ export type SitePage = typeof sitePages.$inferSelect;
 export type InsertSitePage = z.infer<typeof insertSitePageSchema>;
 export type BannerSlide = typeof bannerSlides.$inferSelect;
 export type InsertBannerSlide = z.infer<typeof insertBannerSlideSchema>;
+
+export type Coupon = typeof coupons.$inferSelect;
+export type InsertCoupon = z.infer<typeof insertCouponSchema>;
 
 export type BannerSlideWithProducts = BannerSlide & {
   product1?: Product | null;

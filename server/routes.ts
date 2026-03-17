@@ -439,6 +439,95 @@ export async function registerRoutes(
     }
   });
 
+  // Cupones - Admin endpoints
+  app.get(api.admin.coupons.list.path, requireAdmin, async (req, res) => {
+    try {
+      const coupons = await storage.getCoupons();
+      res.json(coupons);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  app.post(api.admin.coupons.create.path, requireAdmin, async (req, res) => {
+    try {
+      const data = api.admin.coupons.create.input.parse(req.body);
+      const coupon = await storage.createCoupon({
+        code: data.code.toUpperCase(),
+        discountType: data.discountType,
+        discountValue: data.discountValue,
+        maxUses: data.maxUses || null,
+        expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
+        isActive: data.isActive,
+      } as any);
+      res.status(201).json(coupon);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message });
+    }
+  });
+
+  app.put(api.admin.coupons.update.path, requireAdmin, async (req, res) => {
+    try {
+      const data = api.admin.coupons.update.input.parse(req.body);
+      const coupon = await storage.updateCoupon(Number(req.params.id), {
+        code: data.code ? data.code.toUpperCase() : undefined,
+        discountType: data.discountType,
+        discountValue: data.discountValue,
+        maxUses: data.maxUses !== undefined ? data.maxUses : undefined,
+        expiryDate: data.expiryDate ? new Date(data.expiryDate) : undefined,
+        isActive: data.isActive,
+      } as any);
+      res.json(coupon);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message });
+    }
+  });
+
+  app.delete(api.admin.coupons.delete.path, requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteCoupon(Number(req.params.id));
+      res.status(204).end();
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // Cupones - Public endpoint para validar
+  app.post(api.coupons.validate.path, async (req, res) => {
+    try {
+      const data = api.coupons.validate.input.parse(req.body);
+      const coupon = await storage.getCouponByCode(data.code);
+      
+      if (!coupon) {
+        return res.status(404).json({ message: "Cupón no encontrado" });
+      }
+
+      // Validar si el cupón está activo
+      if (!coupon.isActive) {
+        return res.status(400).json({ message: "Cupón no está activo" });
+      }
+
+      // Validar si el cupón ha expirado
+      if (coupon.expiryDate && new Date(coupon.expiryDate) < new Date()) {
+        return res.status(400).json({ message: "Cupón ha expirado" });
+      }
+
+      // Validar si se ha alcanzado el límite de usos
+      if (coupon.maxUses && coupon.currentUses >= coupon.maxUses) {
+        return res.status(400).json({ message: "Cupón ha alcanzado el límite de usos" });
+      }
+
+      res.json({
+        id: coupon.id,
+        code: coupon.code,
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue,
+      });
+    } catch (e: any) {
+      res.status(400).json({ message: e.message });
+    }
+  });
+
   seedDatabase().catch(console.error);
 
   return httpServer;

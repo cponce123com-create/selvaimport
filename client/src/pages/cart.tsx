@@ -2,23 +2,83 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useCart, useUpdateCartItem, useClearCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
-import { Trash2, ArrowRight, ShoppingBag } from "lucide-react";
+import { Trash2, ArrowRight, ShoppingBag, Ticket } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toWebP, getDisplayPrice } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Cart() {
   const { data: cart, isLoading } = useCart();
   const { data: user } = useAuth();
   const { mutate: updateQuantity } = useUpdateCartItem();
   const { mutate: clearCart } = useClearCart();
+  const { toast } = useToast();
   const [, forceUpdate] = useState(0);
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   useEffect(() => {
     const handler = () => forceUpdate(n => n + 1);
     window.addEventListener("guest-cart-update", handler);
     return () => window.removeEventListener("guest-cart-update", handler);
   }, []);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast({
+        title: "Error",
+        description: "Por favor ingresa un código de cupón",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setValidatingCoupon(true);
+    try {
+      const response = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode.toUpperCase() }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast({
+          title: "Cupón inválido",
+          description: error.message || "El cupón no es válido",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const coupon = await response.json();
+      setAppliedCoupon(coupon);
+      toast({
+        title: "¡Cupón aplicado!",
+        description: `Descuento de ${coupon.discountType === "percentage" ? coupon.discountValue + "%" : "S/ " + coupon.discountValue}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo validar el cupón",
+        variant: "destructive",
+      });
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode("");
+    toast({
+      title: "Cupón removido",
+      description: "El descuento ha sido cancelado",
+    });
+  };
 
   if (isLoading) return <AppLayout><div className="p-20 text-center">Cargando carrito...</div></AppLayout>;
 
@@ -38,10 +98,21 @@ export default function Cart() {
     </AppLayout>
   );
 
-  const total = items.reduce((acc: number, item: any) => {
+  const subtotal = items.reduce((acc: number, item: any) => {
     const p = getDisplayPrice(item.product);
     return acc + (p.current * item.quantity);
   }, 0);
+
+  let discount = 0;
+  if (appliedCoupon) {
+    if (appliedCoupon.discountType === "percentage") {
+      discount = (subtotal * Number(appliedCoupon.discountValue)) / 100;
+    } else {
+      discount = Number(appliedCoupon.discountValue);
+    }
+  }
+
+  const total = Math.max(0, subtotal - discount);
 
   return (
     <AppLayout>
@@ -110,18 +181,71 @@ export default function Cart() {
           </div>
 
           <div className="lg:col-span-1">
-            <div className="bg-primary text-primary-foreground rounded-3xl p-8 shadow-xl sticky top-24">
-              <h3 className="text-2xl font-bold mb-6">Resumen del Pedido</h3>
-              <div className="space-y-4 mb-8">
+            <div className="bg-primary text-primary-foreground rounded-3xl p-8 shadow-xl sticky top-24 space-y-6">
+              <h3 className="text-2xl font-bold">Resumen del Pedido</h3>
+              
+              {/* Sección de Cupón */}
+              <div className="bg-primary-foreground/10 rounded-xl p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Ticket className="w-4 h-4" />
+                  <span className="font-semibold text-sm">Código de Descuento</span>
+                </div>
+                {appliedCoupon ? (
+                  <div className="space-y-2">
+                    <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-3 flex justify-between items-center">
+                      <div>
+                        <p className="font-mono font-bold text-sm">{appliedCoupon.code}</p>
+                        <p className="text-xs text-primary-foreground/70">
+                          Descuento: {appliedCoupon.discountType === "percentage" ? appliedCoupon.discountValue + "%" : "S/ " + appliedCoupon.discountValue}
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleRemoveCoupon}
+                        className="text-xs underline hover:opacity-70 transition-opacity"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Ingresa tu cupón"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      onKeyPress={(e) => e.key === "Enter" && handleApplyCoupon()}
+                      className="bg-background text-foreground border-primary-foreground/20 placeholder:text-primary-foreground/50 text-sm h-9"
+                      disabled={validatingCoupon}
+                    />
+                    <Button
+                      onClick={handleApplyCoupon}
+                      disabled={validatingCoupon || !couponCode.trim()}
+                      className="bg-background text-foreground hover:bg-background/90 h-9 px-3 text-sm"
+                      size="sm"
+                    >
+                      {validatingCoupon ? "..." : "Aplicar"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Detalles del Total */}
+              <div className="space-y-4">
                 <div className="flex justify-between text-primary-foreground/80">
                   <span>Subtotal</span>
-                  <span>S/ {total.toFixed(2)}</span>
+                  <span>S/ {subtotal.toFixed(2)}</span>
                 </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-green-300">
+                    <span>Descuento</span>
+                    <span>-S/ {discount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-primary-foreground/80">
                   <span>Envio</span>
                   <span>Calculado al pagar</span>
                 </div>
-                <div className="border-t border-primary-foreground/20 pt-4 mt-4 flex justify-between items-end">
+                <div className="border-t border-primary-foreground/20 pt-4 flex justify-between items-end">
                   <span className="font-medium text-lg">Total Estimado</span>
                   <span className="text-3xl font-bold" data-testid="text-cart-total">S/ {total.toFixed(2)}</span>
                 </div>
