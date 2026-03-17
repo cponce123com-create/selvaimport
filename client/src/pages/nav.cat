@@ -216,7 +216,6 @@ function DynamicBannerSlide({ slide }: { slide: BannerSlideData }) {
 export default function Home() {
   const [search, setSearch] = useState("");
   const [selectedCat, setSelectedCat] = useState<number | undefined>();
-  const [currentSlide, setCurrentSlide] = useState(0);
 
   const { data: products, isLoading: productsLoading } = useProducts({
     search: search.length > 2 ? search : undefined,
@@ -225,14 +224,15 @@ export default function Home() {
 
   const { data: categories } = useCategories();
 
-  const { data: bannerSlides = [] } = useQuery<BannerSlideData[]>({
-    queryKey: ["/api/banner-slides"],
-  });
-
   const allProducts = products ?? [];
+  const allCategories = categories ?? [];
 
   const visibleProducts = allProducts.filter(
     (p: any) => p.category?.slug !== "tacora"
+  );
+
+  const publicCategories = allCategories.filter(
+    (cat: any) => cat.slug !== "tacora"
   );
 
   const offerProducts = useMemo(
@@ -249,6 +249,25 @@ export default function Home() {
       })
       .slice(0, 6);
   }, [visibleProducts]);
+
+  return (
+    <>
+      <div>
+        {publicCategories.map((category: any) => (
+          <button key={category.id}>
+            {category.name}
+          </button>
+        ))}
+      </div>
+
+      <div>
+        {visibleProducts.map((product: any) => (
+          <ProductCard key={product.id} product={product} />
+        ))}
+      </div>
+    </>
+  );
+}
   
   const hasDynamicSlides = bannerSlides.length > 0;
   const totalSlides = hasDynamicSlides ? bannerSlides.length : 1;
