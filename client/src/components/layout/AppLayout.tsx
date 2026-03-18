@@ -114,7 +114,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
 
-          {/* Navegación desktop: Inicio · Ofertas · Novedades · TACORA */}
+          {/* Navegación desktop: Inicio · Ofertas · Novedades · Tacora */}
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
             <button
               onClick={() => handleNavClick("inicio")}
@@ -153,7 +153,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               className="text-primary font-bold hover:text-primary/80 transition-colors"
               data-testid="link-tacora"
             >
-              TACORA
+              Tacora
             </Link>
           </nav>
 
@@ -249,7 +249,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      {/* ── MENÚ MÓVIL: Inicio · Ofertas · Novedades · TACORA (sin Quienes Somos) ── */}
+      {/* ── MENÚ MÓVIL: Inicio · Ofertas · Novedades · Tacora (sin Quienes Somos) ── */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-40 md:hidden" data-testid="mobile-menu-overlay">
           <div
@@ -300,7 +300,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 data-testid="mobile-link-tacora"
               >
                 <Grid3X3 className="w-5 h-5" />
-                TACORA
+                Tacora
               </button>
 
               <button
@@ -414,7 +414,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   href="/tacora"
                   className="hover:text-foreground transition-colors font-medium text-primary"
                 >
-                  TACORA
+                  Tacora
                 </Link>
               </div>
             </div>
