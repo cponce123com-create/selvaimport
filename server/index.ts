@@ -65,8 +65,13 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Inicializar tablas nuevas si no existen (home_rows, home_rectangles, etc.)
-  await initDatabase();
+  try {
+    // Inicializar tablas nuevas si no existen (home_rows, home_rectangles, etc.)
+    // Es CRÍTICO que esto ocurra ANTES de registerRoutes para que las columnas existan
+    await initDatabase();
+  } catch (err) {
+    console.error("Error durante la inicialización de la base de datos:", err);
+  }
 
   await registerRoutes(httpServer, app);
 
