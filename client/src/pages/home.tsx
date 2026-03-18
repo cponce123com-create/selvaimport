@@ -290,11 +290,11 @@ export default function Home() {
   const allCategories = categories ?? [];
 
   const visibleProducts = allProducts.filter(
-    (p: any) => p.category?.slug !== "tacora"
+    (p: any) => p.category?.slug !== "tacora" && p.category?.slug !== "selva-natural"
   );
 
   const publicCategories = allCategories.filter(
-    (cat: any) => cat.slug !== "tacora"
+    (cat: any) => cat.slug !== "tacora" && cat.slug !== "selva-natural"
   );
 
   const offerProducts = useMemo(

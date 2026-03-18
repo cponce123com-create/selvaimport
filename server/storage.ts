@@ -35,7 +35,7 @@ export interface IStorage {
   getCategories(): Promise<Category[]>;
   createCategory(category: InsertCategory): Promise<Category>;
 
-  getProducts(categoryId?: number, search?: string): Promise<ProductWithCategory[]>;
+  getProducts(categoryId?: number, search?: string, onlyShowOnHome?: boolean): Promise<ProductWithCategory[]>;
   getProduct(id: number): Promise<ProductWithCategory | undefined>;
   getProductBySlug(slug: string): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
@@ -159,9 +159,29 @@ export class DatabaseStorage implements IStorage {
     return cat;
   }
 
-  async getProducts(categoryId?: number, search?: string): Promise<ProductWithCategory[]> {
+  async getProducts(categoryId?: number, search?: string, onlyShowOnHome?: boolean): Promise<ProductWithCategory[]> {
+    const cats = await this.getCategories();
     const conditions = [];
-    if (categoryId) conditions.push(eq(products.categoryId, categoryId));
+
+    if (categoryId) {
+      conditions.push(eq(products.categoryId, categoryId));
+    } else if (onlyShowOnHome) {
+      const hiddenCategoryIds = cats
+        .filter(c => c.showOnHome === false)
+        .map(c => c.id);
+
+      if (hiddenCategoryIds.length > 0) {
+        // Excluir productos de categorías que no se muestran en el home
+        // Si categoryId es null (sin categoría), se muestra igual
+        conditions.push(
+          or(
+            isNull(products.categoryId),
+            sql`${products.categoryId} NOT IN (${sql.join(hiddenCategoryIds, sql`, `)})`
+          )
+        );
+      }
+    }
+
     if (search) {
       conditions.push(
         or(
@@ -177,7 +197,6 @@ export class DatabaseStorage implements IStorage {
     }
 
     const filteredProducts = await query.orderBy(desc(products.createdAt));
-    const cats = await this.getCategories();
 
     return filteredProducts.map((p) => ({
       ...p,
@@ -367,7 +386,7 @@ export class DatabaseStorage implements IStorage {
       ...order,
       items: items.map((i) => ({
         ...i,
-        product: allProducts.find((p) => p.id === i.productId)!,
+        product: (allProducts as Product[]).find((p) => p.id === i.productId)!,
       })),
     };
   }
@@ -432,7 +451,7 @@ export class DatabaseStorage implements IStorage {
       ...order,
       items: insertedItems.map((i) => ({
         ...i,
-        product: allProducts.find((p) => p.id === i.productId)!,
+        product: (allProducts as Product[]).find((p) => p.id === i.productId)!,
       })),
     };
   }

@@ -272,7 +272,9 @@ export async function registerRoutes(
   app.get(api.products.list.path, async (req, res) => {
     const categoryId = req.query.categoryId ? Number(req.query.categoryId) : undefined;
     const search = req.query.search as string | undefined;
-    const prods = await storage.getProducts(categoryId, search);
+    // Si no hay categoría específica ni búsqueda, solo mostramos los del home
+    const onlyShowOnHome = !categoryId && !search;
+    const prods = await storage.getProducts(categoryId, search, onlyShowOnHome);
     res.json(prods);
   });
 

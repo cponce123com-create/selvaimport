@@ -12,6 +12,7 @@ import {
   Home,
   Tag,
   Sparkles,
+  Leaf,
   Grid3X3,
   Headphones,
   MessageCircle,
@@ -138,6 +139,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             >
               Novedades
             </button>
+
+            <Link
+              href="/selva-natural"
+              className="text-green-600 font-bold hover:text-green-700 transition-colors"
+              data-testid="link-selva-natural"
+            >
+              Selva Natural
+            </Link>
 
             <Link
               href="/tacora"
@@ -277,11 +286,20 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </button>
 
               <button
+                onClick={() => handleMobileLink("/selva-natural")}
+                className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-sm font-bold text-green-600 hover:bg-accent transition-colors"
+                data-testid="mobile-link-selva-natural"
+              >
+                <Leaf className="w-5 h-5" />
+                Selva Natural
+              </button>
+
+              <button
                 onClick={() => handleMobileLink("/tacora")}
                 className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-sm font-bold text-primary hover:bg-accent transition-colors"
                 data-testid="mobile-link-tacora"
               >
-                <Tag className="w-5 h-5" />
+                <Grid3X3 className="w-5 h-5" />
                 TACORA
               </button>
 

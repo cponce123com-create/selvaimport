@@ -6,7 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Plus } from "lucide-react";
+import { Plus, Eye, EyeOff } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -16,6 +17,7 @@ const formSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
   slug: z.string().min(1, "El slug es obligatorio"),
   description: z.string().optional(),
+  showOnHome: z.boolean().default(true),
 });
 
 export default function AdminCategories() {
@@ -26,7 +28,7 @@ export default function AdminCategories() {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: "", slug: "", description: "" },
+    defaultValues: { name: "", slug: "", description: "", showOnHome: true },
   });
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
@@ -62,6 +64,17 @@ export default function AdminCategories() {
                 <FormField control={form.control} name="description" render={({field}) => (
                   <FormItem><FormLabel>Descripcion</FormLabel><FormControl><Input data-testid="input-category-description" {...field} /></FormControl><FormMessage/></FormItem>
                 )} />
+                <FormField control={form.control} name="showOnHome" render={({field}) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4 border rounded-md">
+                    <FormControl>
+                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Mostrar en el Home</FormLabel>
+                      <p className="text-xs text-muted-foreground">Si se desactiva, la categoría y sus productos no aparecerán en el inicio ni carruseles.</p>
+                    </div>
+                  </FormItem>
+                )} />
                 <Button type="submit" className="w-full" data-testid="button-save-category">Guardar</Button>
               </form>
             </Form>
@@ -76,20 +89,28 @@ export default function AdminCategories() {
               <TableHead>ID</TableHead>
               <TableHead>Nombre</TableHead>
               <TableHead>Slug</TableHead>
+              <TableHead>Home</TableHead>
               <TableHead>Descripcion</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={4} className="text-center py-8">Cargando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-8">Cargando...</TableCell></TableRow>
             ) : categories.length === 0 ? (
-              <TableRow><TableCell colSpan={4} className="text-center py-8">No se encontraron categorias</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-8">No se encontraron categorias</TableCell></TableRow>
             ) : (
               categories.map((c: any) => (
                 <TableRow key={c.id} data-testid={`row-category-${c.id}`}>
                   <TableCell className="font-mono text-muted-foreground">{c.id}</TableCell>
                   <TableCell className="font-medium">{c.name}</TableCell>
                   <TableCell>{c.slug}</TableCell>
+                  <TableCell>
+                    {c.showOnHome ? (
+                      <span className="flex items-center text-green-600 text-xs font-medium"><Eye className="w-3 h-3 mr-1" /> Visible</span>
+                    ) : (
+                      <span className="flex items-center text-amber-600 text-xs font-medium"><EyeOff className="w-3 h-3 mr-1" /> Oculta</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{c.description || '-'}</TableCell>
                 </TableRow>
               ))
