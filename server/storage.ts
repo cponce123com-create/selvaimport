@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, and, isNull, isNotNull, desc, ilike, or } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, desc, ilike, or, sql } from "drizzle-orm";
 import {
   users, categories, products, carts, cartItems, orders, orderItems, sitePages, bannerSlides, coupons,
   homeRows, homeRowItems, homeRectangles, homeRectangleItems,
@@ -19,6 +19,12 @@ import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 
 const PostgresSessionStore = connectPg(session);
+
+type OrderItemInput = {
+  productId: number;
+  quantity: number;
+  price: string;
+};
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -44,8 +50,41 @@ export interface IStorage {
 
   getOrders(userId?: number): Promise<OrderWithItems[]>;
   getOrder(id: number): Promise<OrderWithItems | undefined>;
-  createOrder(userId: number, orderInfo: InsertOrder & { totalAmount: string; status: string }, items: { productId: number; quantity: number; price: string }[]): Promise<OrderWithItems>;
-  createGuestOrder(orderInfo: { shippingAddress: string; totalAmount: string; guestName: string; guestPhone: string; guestAccessToken?: string }, items: { productId: number; quantity: number; price: string }[]): Promise<OrderWithItems>;
+
+  createOrder(
+    userId: number,
+    orderInfo: InsertOrder & { totalAmount: string; status: string },
+    items: OrderItemInput[]
+  ): Promise<OrderWithItems>;
+
+  createGuestOrder(
+    orderInfo: {
+      shippingAddress: string;
+      totalAmount: string;
+      guestName: string;
+      guestPhone: string;
+      guestAccessToken?: string;
+    },
+    items: OrderItemInput[]
+  ): Promise<OrderWithItems>;
+
+  createOrderWithStock(
+    userId: number,
+    orderInfo: InsertOrder & { totalAmount: string; status: string },
+    items: OrderItemInput[]
+  ): Promise<OrderWithItems>;
+
+  createGuestOrderWithStock(
+    orderInfo: {
+      shippingAddress: string;
+      totalAmount: string;
+      guestName: string;
+      guestPhone: string;
+      guestAccessToken?: string;
+    },
+    items: OrderItemInput[]
+  ): Promise<OrderWithItems>;
+
   updateOrderStatus(id: number, status: string): Promise<Order>;
 
   getSitePage(slug: string): Promise<SitePage | undefined>;
@@ -66,7 +105,7 @@ export interface IStorage {
   deleteCoupon(id: number): Promise<void>;
   incrementCouponUses(id: number): Promise<Coupon>;
 
-  // Home Rows (filas estilo Amazon)
+  // Home Rows
   getHomeRows(activeOnly?: boolean): Promise<(HomeRow & { items: (HomeRowItem & { product: ProductWithCategory })[] })[]>;
   getHomeRow(id: number): Promise<HomeRow | undefined>;
   createHomeRow(data: InsertHomeRow): Promise<HomeRow>;
@@ -74,7 +113,7 @@ export interface IStorage {
   deleteHomeRow(id: number): Promise<void>;
   setHomeRowItems(homeRowId: number, productIds: number[]): Promise<void>;
 
-  // Home Rectangles (sección de 4 rectángulos)
+  // Home Rectangles
   getHomeRectangles(): Promise<(HomeRectangle & { product?: ProductWithCategory | null; category?: Category | null; items?: (HomeRectangleItem & { product: ProductWithCategory })[] })[]>;
   upsertHomeRectangle(position: number, data: Partial<InsertHomeRectangle>): Promise<HomeRectangle>;
   setHomeRectangleItems(homeRectangleId: number, productIds: number[]): Promise<void>;
@@ -120,36 +159,40 @@ export class DatabaseStorage implements IStorage {
     return cat;
   }
 
-async getProducts(categoryId?: number, search?: string): Promise<ProductWithCategory[]> {
-  const conditions = [];
-  if (categoryId) conditions.push(eq(products.categoryId, categoryId));
-  if (search) {
-    conditions.push(
-      or(
-        ilike(products.name, `%${search}%`),
-        ilike(products.description, `%${search}%`)
-      )
-    );
-  }
+  async getProducts(categoryId?: number, search?: string): Promise<ProductWithCategory[]> {
+    const conditions = [];
+    if (categoryId) conditions.push(eq(products.categoryId, categoryId));
+    if (search) {
+      conditions.push(
+        or(
+          ilike(products.name, `%${search}%`),
+          ilike(products.description, `%${search}%`)
+        )
+      );
+    }
 
-  const query = db.select().from(products);
-  if (conditions.length > 0) {
-    query.where(and(...conditions));
-  }
-  
-  const filteredProducts = await query.orderBy(desc(products.createdAt));
-  const cats = await this.getCategories();
+    const query = db.select().from(products);
+    if (conditions.length > 0) {
+      query.where(and(...conditions));
+    }
 
-  return filteredProducts.map(p => ({
-    ...p,
-    category: cats.find(c => c.id === p.categoryId)
-  }));
-}
+    const filteredProducts = await query.orderBy(desc(products.createdAt));
+    const cats = await this.getCategories();
+
+    return filteredProducts.map((p) => ({
+      ...p,
+      category: cats.find((c) => c.id === p.categoryId),
+    }));
+  }
 
   async getProduct(id: number): Promise<ProductWithCategory | undefined> {
     const [product] = await db.select().from(products).where(eq(products.id, id));
     if (!product) return undefined;
-    const [category] = product.categoryId ? await db.select().from(categories).where(eq(categories.id, product.categoryId)) : [undefined];
+
+    const [category] = product.categoryId
+      ? await db.select().from(categories).where(eq(categories.id, product.categoryId))
+      : [undefined];
+
     return { ...product, category };
   }
 
@@ -185,42 +228,80 @@ async getProducts(categoryId?: number, search?: string): Promise<ProductWithCate
     const cItems = await db.select().from(cartItems).where(eq(cartItems.cartId, cart.id));
     const productsList = await db.select().from(products);
 
-    const itemsWithProduct = cItems.map(item => ({
-      ...item,
-      product: productsList.find(p => p.id === item.productId)!
-    })).filter(i => i.product);
+    const itemsWithProduct = cItems
+      .map((item) => ({
+        ...item,
+        product: productsList.find((p) => p.id === item.productId)!,
+      }))
+      .filter((i) => i.product);
 
     return { cart, items: itemsWithProduct };
+  }
+
+  private async ensureCartItemStock(productId: number, requestedQty: number): Promise<Product> {
+    const [product] = await db.select().from(products).where(eq(products.id, productId));
+
+    if (!product) {
+      throw new Error("Producto no encontrado");
+    }
+
+    if ((product.inventory ?? 0) < requestedQty) {
+      throw new Error(`Stock insuficiente para "${product.name}". Disponible: ${product.inventory}`);
+    }
+
+    return product;
   }
 
   async addCartItem(userId: number, item: InsertCartItem): Promise<CartItemWithProduct> {
     const cart = await this.getOrCreateCart(userId);
 
-    const [existing] = await db.select().from(cartItems).where(
-      and(eq(cartItems.cartId, cart.id), eq(cartItems.productId, item.productId))
-    );
+    const [existing] = await db
+      .select()
+      .from(cartItems)
+      .where(and(eq(cartItems.cartId, cart.id), eq(cartItems.productId, item.productId)));
+
+    const requestedQty = existing
+      ? existing.quantity + (item.quantity ?? 1)
+      : (item.quantity ?? 1);
+
+    const product = await this.ensureCartItemStock(item.productId, requestedQty);
 
     let finalItem: CartItem;
     if (existing) {
-      [finalItem] = await db.update(cartItems)
-        .set({ quantity: existing.quantity + (item.quantity ?? 1) })
+      [finalItem] = await db
+        .update(cartItems)
+        .set({ quantity: requestedQty })
         .where(eq(cartItems.id, existing.id))
         .returning();
     } else {
-      [finalItem] = await db.insert(cartItems).values({ ...item, cartId: cart.id }).returning();
+      [finalItem] = await db
+        .insert(cartItems)
+        .values({ ...item, cartId: cart.id })
+        .returning();
     }
 
-    const [product] = await db.select().from(products).where(eq(products.id, finalItem.productId));
     return { ...finalItem, product };
   }
 
   async updateCartItem(itemId: number, quantity: number): Promise<CartItemWithProduct> {
-    if (quantity === 0) {
+    if (quantity <= 0) {
       await this.removeCartItem(itemId);
       throw new Error("Item removed");
     }
-    const [updated] = await db.update(cartItems).set({ quantity }).where(eq(cartItems.id, itemId)).returning();
-    const [product] = await db.select().from(products).where(eq(products.id, updated.productId));
+
+    const [currentItem] = await db.select().from(cartItems).where(eq(cartItems.id, itemId));
+    if (!currentItem) {
+      throw new Error("Item no encontrado");
+    }
+
+    const product = await this.ensureCartItemStock(currentItem.productId, quantity);
+
+    const [updated] = await db
+      .update(cartItems)
+      .set({ quantity })
+      .where(eq(cartItems.id, itemId))
+      .returning();
+
     return { ...updated, product };
   }
 
@@ -245,29 +326,33 @@ async getProducts(categoryId?: number, search?: string): Promise<ProductWithCate
     const ordersList = await query;
     if (ordersList.length === 0) return [];
 
-    const orderIds = ordersList.map(o => o.id);
-    const items = await db.select().from(orderItems).where(or(...orderIds.map(id => eq(orderItems.orderId, id))));
-    
-    const productIds = Array.from(new Set(items.map(i => i.productId)));
-    const allProducts = productIds.length > 0 
-      ? await db.select().from(products).where(or(...productIds.map(id => eq(products.id, id))))
-      : [];
-    
-    const productMap = new Map(allProducts.map(p => [p.id, p]));
+    const orderIds = ordersList.map((o) => o.id);
+    const items = await db
+      .select()
+      .from(orderItems)
+      .where(or(...orderIds.map((id) => eq(orderItems.orderId, id))));
+
+    const productIds = Array.from(new Set(items.map((i) => i.productId)));
+    const allProducts =
+      productIds.length > 0
+        ? await db.select().from(products).where(or(...productIds.map((id) => eq(products.id, id))))
+        : [];
+
+    const productMap = new Map(allProducts.map((p) => [p.id, p]));
     const itemsByOrder = new Map<number, (OrderItem & { product: Product })[]>();
 
-    items.forEach(item => {
+    items.forEach((item) => {
       const orderId = item.orderId;
       if (!itemsByOrder.has(orderId)) itemsByOrder.set(orderId, []);
       itemsByOrder.get(orderId)!.push({
         ...item,
-        product: productMap.get(item.productId)!
+        product: productMap.get(item.productId)!,
       });
     });
 
-    return ordersList.map(o => ({
+    return ordersList.map((o) => ({
       ...o,
-      items: itemsByOrder.get(o.id) || []
+      items: itemsByOrder.get(o.id) || [],
     }));
   }
 
@@ -280,62 +365,169 @@ async getProducts(categoryId?: number, search?: string): Promise<ProductWithCate
 
     return {
       ...order,
-      items: items.map(i => ({
+      items: items.map((i) => ({
         ...i,
-        product: allProducts.find(p => p.id === i.productId)!
-      }))
+        product: allProducts.find((p) => p.id === i.productId)!,
+      })),
     };
   }
 
-  async createOrder(userId: number, orderInfo: InsertOrder & { totalAmount: string; status: string }, items: { productId: number; quantity: number; price: string }[]): Promise<OrderWithItems> {
-    const [order] = await db.insert(orders).values({ ...orderInfo, userId }).returning();
+  private async validateAndDiscountInventory(
+    tx: any,
+    items: OrderItemInput[]
+  ): Promise<Product[]> {
+    const validatedProducts: Product[] = [];
 
-    const orderItemsToInsert = items.map(i => ({
-      orderId: order.id,
-      productId: i.productId,
-      quantity: i.quantity,
-      price: i.price,
-    }));
+    for (const item of items) {
+      const [product] = await tx
+        .select()
+        .from(products)
+        .where(eq(products.id, item.productId));
 
-    const insertedItems = await db.insert(orderItems).values(orderItemsToInsert).returning();
-    const allProducts = await db.select().from(products);
+      if (!product) {
+        throw new Error(`Producto no encontrado: ${item.productId}`);
+      }
+
+      if ((product.inventory ?? 0) < item.quantity) {
+        throw new Error(
+          `Stock insuficiente para "${product.name}". Disponible: ${product.inventory}, solicitado: ${item.quantity}`
+        );
+      }
+
+      const updatedRows = await tx
+        .update(products)
+        .set({
+          inventory: sql`${products.inventory} - ${item.quantity}`,
+        })
+        .where(
+          and(
+            eq(products.id, item.productId),
+            sql`${products.inventory} >= ${item.quantity}`
+          )
+        )
+        .returning();
+
+      if (!updatedRows.length) {
+        throw new Error(`No se pudo reservar stock para "${product.name}"`);
+      }
+
+      validatedProducts.push(updatedRows[0]);
+    }
+
+    return validatedProducts;
+  }
+
+  private async buildOrderResponse(
+    tx: any,
+    order: Order,
+    insertedItems: OrderItem[]
+  ): Promise<OrderWithItems> {
+    const productIds = Array.from(new Set(insertedItems.map((i) => i.productId)));
+    const allProducts =
+      productIds.length > 0
+        ? await tx.select().from(products).where(or(...productIds.map((id) => eq(products.id, id))))
+        : [];
 
     return {
       ...order,
-      items: insertedItems.map(i => ({
+      items: insertedItems.map((i) => ({
         ...i,
-        product: allProducts.find(p => p.id === i.productId)!
-      }))
+        product: allProducts.find((p) => p.id === i.productId)!,
+      })),
     };
   }
 
-  async createGuestOrder(orderInfo: { shippingAddress: string; totalAmount: string; guestName: string; guestPhone: string; guestAccessToken?: string }, items: { productId: number; quantity: number; price: string }[]): Promise<OrderWithItems> {
-    const [order] = await db.insert(orders).values({
-      shippingAddress: orderInfo.shippingAddress,
-      totalAmount: orderInfo.totalAmount,
-      guestName: orderInfo.guestName,
-      guestPhone: orderInfo.guestPhone,
-      guestAccessToken: orderInfo.guestAccessToken,
-      status: "pagado",
-    }).returning();
+  async createOrderWithStock(
+    userId: number,
+    orderInfo: InsertOrder & { totalAmount: string; status: string },
+    items: OrderItemInput[]
+  ): Promise<OrderWithItems> {
+    return await db.transaction(async (tx) => {
+      await this.validateAndDiscountInventory(tx, items);
 
-    const orderItemsToInsert = items.map(i => ({
-      orderId: order.id,
-      productId: i.productId,
-      quantity: i.quantity,
-      price: i.price,
-    }));
+      const [order] = await tx
+        .insert(orders)
+        .values({ ...orderInfo, userId })
+        .returning();
 
-    const insertedItems = await db.insert(orderItems).values(orderItemsToInsert).returning();
-    const allProducts = await db.select().from(products);
+      const orderItemsToInsert = items.map((i) => ({
+        orderId: order.id,
+        productId: i.productId,
+        quantity: i.quantity,
+        price: i.price,
+      }));
 
-    return {
-      ...order,
-      items: insertedItems.map(i => ({
-        ...i,
-        product: allProducts.find(p => p.id === i.productId)!
-      }))
-    };
+      const insertedItems = await tx
+        .insert(orderItems)
+        .values(orderItemsToInsert)
+        .returning();
+
+      return await this.buildOrderResponse(tx, order, insertedItems);
+    });
+  }
+
+  async createGuestOrderWithStock(
+    orderInfo: {
+      shippingAddress: string;
+      totalAmount: string;
+      guestName: string;
+      guestPhone: string;
+      guestAccessToken?: string;
+    },
+    items: OrderItemInput[]
+  ): Promise<OrderWithItems> {
+    return await db.transaction(async (tx) => {
+      await this.validateAndDiscountInventory(tx, items);
+
+      const [order] = await tx
+        .insert(orders)
+        .values({
+          shippingAddress: orderInfo.shippingAddress,
+          totalAmount: orderInfo.totalAmount,
+          guestName: orderInfo.guestName,
+          guestPhone: orderInfo.guestPhone,
+          guestAccessToken: orderInfo.guestAccessToken,
+          status: "pagado",
+        })
+        .returning();
+
+      const orderItemsToInsert = items.map((i) => ({
+        orderId: order.id,
+        productId: i.productId,
+        quantity: i.quantity,
+        price: i.price,
+      }));
+
+      const insertedItems = await tx
+        .insert(orderItems)
+        .values(orderItemsToInsert)
+        .returning();
+
+      return await this.buildOrderResponse(tx, order, insertedItems);
+    });
+  }
+
+  // Compatibilidad con tu código actual
+  async createOrder(
+    userId: number,
+    orderInfo: InsertOrder & { totalAmount: string; status: string },
+    items: OrderItemInput[]
+  ): Promise<OrderWithItems> {
+    return this.createOrderWithStock(userId, orderInfo, items);
+  }
+
+  // Compatibilidad con tu código actual
+  async createGuestOrder(
+    orderInfo: {
+      shippingAddress: string;
+      totalAmount: string;
+      guestName: string;
+      guestPhone: string;
+      guestAccessToken?: string;
+    },
+    items: OrderItemInput[]
+  ): Promise<OrderWithItems> {
+    return this.createGuestOrderWithStock(orderInfo, items);
   }
 
   async updateOrderStatus(id: number, status: string): Promise<Order> {
@@ -355,10 +547,22 @@ async getProducts(categoryId?: number, search?: string): Promise<ProductWithCate
   async upsertSitePage(slug: string, data: Partial<InsertSitePage>): Promise<SitePage> {
     const existing = await this.getSitePage(slug);
     if (existing) {
-      const [updated] = await db.update(sitePages).set({ ...data, updatedAt: new Date() }).where(eq(sitePages.slug, slug)).returning();
+      const [updated] = await db
+        .update(sitePages)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(sitePages.slug, slug))
+        .returning();
       return updated;
     } else {
-      const [created] = await db.insert(sitePages).values({ slug, title: data.title || slug, content: data.content || "", imageUrl: data.imageUrl }).returning();
+      const [created] = await db
+        .insert(sitePages)
+        .values({
+          slug,
+          title: data.title || slug,
+          content: data.content || "",
+          imageUrl: data.imageUrl,
+        })
+        .returning();
       return created;
     }
   }
@@ -377,30 +581,30 @@ async getProducts(categoryId?: number, search?: string): Promise<ProductWithCate
 
     const productIds = new Set<number>();
     const categoryIds = new Set<number>();
-    
-    slides.forEach(s => {
+
+    slides.forEach((s) => {
       if (s.productId1) productIds.add(s.productId1);
       if (s.productId2) productIds.add(s.productId2);
       if (s.buttonCategoryId) categoryIds.add(s.buttonCategoryId);
     });
 
     const [allProducts, allCategories] = await Promise.all([
-      productIds.size > 0 
-        ? db.select().from(products).where(or(...Array.from(productIds).map(id => eq(products.id, id))))
+      productIds.size > 0
+        ? db.select().from(products).where(or(...Array.from(productIds).map((id) => eq(products.id, id))))
         : Promise.resolve([]),
       categoryIds.size > 0
-        ? db.select().from(categories).where(or(...Array.from(categoryIds).map(id => eq(categories.id, id))))
-        : Promise.resolve([])
+        ? db.select().from(categories).where(or(...Array.from(categoryIds).map((id) => eq(categories.id, id))))
+        : Promise.resolve([]),
     ]);
 
-    const productMap = new Map(allProducts.map(p => [p.id, p]));
-    const categoryMap = new Map(allCategories.map(c => [c.id, c]));
+    const productMap = new Map(allProducts.map((p) => [p.id, p]));
+    const categoryMap = new Map(allCategories.map((c) => [c.id, c]));
 
-    return slides.map(slide => ({
+    return slides.map((slide) => ({
       ...slide,
       product1: slide.productId1 ? productMap.get(slide.productId1) || null : null,
       product2: slide.productId2 ? productMap.get(slide.productId2) || null : null,
-      buttonCategory: slide.buttonCategoryId ? categoryMap.get(slide.buttonCategoryId) || null : null
+      buttonCategory: slide.buttonCategoryId ? categoryMap.get(slide.buttonCategoryId) || null : null,
     }));
   }
 
@@ -438,18 +642,25 @@ async getProducts(categoryId?: number, search?: string): Promise<ProductWithCate
   }
 
   async createCoupon(coupon: InsertCoupon): Promise<Coupon> {
-    const [created] = await db.insert(coupons).values({
-      ...coupon,
-      code: coupon.code.toUpperCase(),
-    }).returning();
+    const [created] = await db
+      .insert(coupons)
+      .values({
+        ...coupon,
+        code: coupon.code.toUpperCase(),
+      })
+      .returning();
     return created;
   }
 
   async updateCoupon(id: number, data: Partial<InsertCoupon>): Promise<Coupon> {
-    const [updated] = await db.update(coupons).set({
-      ...data,
-      code: data.code ? data.code.toUpperCase() : undefined,
-    }).where(eq(coupons.id, id)).returning();
+    const [updated] = await db
+      .update(coupons)
+      .set({
+        ...data,
+        code: data.code ? data.code.toUpperCase() : undefined,
+      })
+      .where(eq(coupons.id, id))
+      .returning();
     return updated;
   }
 
@@ -460,13 +671,18 @@ async getProducts(categoryId?: number, search?: string): Promise<ProductWithCate
   async incrementCouponUses(id: number): Promise<Coupon> {
     const coupon = await this.getCoupon(id);
     if (!coupon) throw new Error("Cupón no encontrado");
-    const [updated] = await db.update(coupons).set({
-      currentUses: (coupon.currentUses || 0) + 1,
-    }).where(eq(coupons.id, id)).returning();
+
+    const [updated] = await db
+      .update(coupons)
+      .set({
+        currentUses: (coupon.currentUses || 0) + 1,
+      })
+      .where(eq(coupons.id, id))
+      .returning();
+
     return updated;
   }
 
-  // ---- Home Rows (filas estilo Amazon) ----
   async getHomeRows(activeOnly = false): Promise<(HomeRow & { items: (HomeRowItem & { product: ProductWithCategory })[] })[]> {
     const rows = activeOnly
       ? await db.select().from(homeRows).where(eq(homeRows.isActive, true)).orderBy(homeRows.sortOrder)
@@ -474,24 +690,29 @@ async getProducts(categoryId?: number, search?: string): Promise<ProductWithCate
 
     if (rows.length === 0) return [];
 
-    const rowIds = rows.map(r => r.id);
-    const items = await db.select().from(homeRowItems)
-      .where(or(...rowIds.map(id => eq(homeRowItems.homeRowId, id))))
+    const rowIds = rows.map((r) => r.id);
+    const items = await db
+      .select()
+      .from(homeRowItems)
+      .where(or(...rowIds.map((id) => eq(homeRowItems.homeRowId, id))))
       .orderBy(homeRowItems.sortOrder);
 
-    const productIds = Array.from(new Set(items.map(i => i.productId)));
+    const productIds = Array.from(new Set(items.map((i) => i.productId)));
     const allProducts = productIds.length > 0
-      ? await db.select().from(products).where(or(...productIds.map(id => eq(products.id, id))))
+      ? await db.select().from(products).where(or(...productIds.map((id) => eq(products.id, id))))
       : [];
-    const allCats = await this.getCategories();
-    const productMap = new Map(allProducts.map(p => [p.id, { ...p, category: allCats.find(c => c.id === p.categoryId) }]));
 
-    return rows.map(row => ({
+    const allCats = await this.getCategories();
+    const productMap = new Map(
+      allProducts.map((p) => [p.id, { ...p, category: allCats.find((c) => c.id === p.categoryId) }])
+    );
+
+    return rows.map((row) => ({
       ...row,
       items: items
-        .filter(i => i.homeRowId === row.id)
-        .map(i => ({ ...i, product: productMap.get(i.productId)! }))
-        .filter(i => i.product)
+        .filter((i) => i.homeRowId === row.id)
+        .map((i) => ({ ...i, product: productMap.get(i.productId)! }))
+        .filter((i) => i.product),
     }));
   }
 
@@ -517,65 +738,91 @@ async getProducts(categoryId?: number, search?: string): Promise<ProductWithCate
 
   async setHomeRowItems(homeRowId: number, productIds: number[]): Promise<void> {
     await db.delete(homeRowItems).where(eq(homeRowItems.homeRowId, homeRowId));
+
     if (productIds.length > 0) {
       await db.insert(homeRowItems).values(
-        productIds.map((productId, idx) => ({ homeRowId, productId, sortOrder: idx }))
+        productIds.map((productId, idx) => ({
+          homeRowId,
+          productId,
+          sortOrder: idx,
+        }))
       );
     }
   }
 
-  // ---- Home Rectangles (sección de 4 rectángulos) ----
   async getHomeRectangles(): Promise<(HomeRectangle & { product?: ProductWithCategory | null; category?: Category | null; items?: (HomeRectangleItem & { product: ProductWithCategory })[] })[]> {
     const rects = await db.select().from(homeRectangles).orderBy(homeRectangles.position);
     if (rects.length === 0) return [];
 
     const productIds = new Set<number>();
     const categoryIds = new Set<number>();
-    rects.forEach(r => {
+
+    rects.forEach((r) => {
       if (r.productId) productIds.add(r.productId);
       if (r.categoryId) categoryIds.add(r.categoryId);
     });
 
-    const rectIds = rects.map(r => r.id);
+    const rectIds = rects.map((r) => r.id);
     const allItems = rectIds.length > 0
-      ? await db.select().from(homeRectangleItems).where(or(...rectIds.map(id => eq(homeRectangleItems.homeRectangleId, id)))).orderBy(homeRectangleItems.sortOrder)
+      ? await db
+          .select()
+          .from(homeRectangleItems)
+          .where(or(...rectIds.map((id) => eq(homeRectangleItems.homeRectangleId, id))))
+          .orderBy(homeRectangleItems.sortOrder)
       : [];
-    allItems.forEach(i => productIds.add(i.productId));
+
+    allItems.forEach((i) => productIds.add(i.productId));
 
     const allCats = await this.getCategories();
     const allProds = productIds.size > 0
-      ? await db.select().from(products).where(or(...Array.from(productIds).map(id => eq(products.id, id))))
+      ? await db.select().from(products).where(or(...Array.from(productIds).map((id) => eq(products.id, id))))
       : [];
-    const productMap = new Map(allProds.map(p => [p.id, { ...p, category: allCats.find(c => c.id === p.categoryId) }]));
-    const categoryMap = new Map(allCats.map(c => [c.id, c]));
 
-    return rects.map(rect => ({
+    const productMap = new Map(
+      allProds.map((p) => [p.id, { ...p, category: allCats.find((c) => c.id === p.categoryId) }])
+    );
+    const categoryMap = new Map(allCats.map((c) => [c.id, c]));
+
+    return rects.map((rect) => ({
       ...rect,
       product: rect.productId ? productMap.get(rect.productId) || null : null,
       category: rect.categoryId ? categoryMap.get(rect.categoryId) || null : null,
       items: allItems
-        .filter(i => i.homeRectangleId === rect.id)
-        .map(i => ({ ...i, product: productMap.get(i.productId)! }))
-        .filter(i => i.product)
+        .filter((i) => i.homeRectangleId === rect.id)
+        .map((i) => ({ ...i, product: productMap.get(i.productId)! }))
+        .filter((i) => i.product),
     }));
   }
 
   async upsertHomeRectangle(position: number, data: Partial<InsertHomeRectangle>): Promise<HomeRectangle> {
     const [existing] = await db.select().from(homeRectangles).where(eq(homeRectangles.position, position));
+
     if (existing) {
-      const [updated] = await db.update(homeRectangles).set(data).where(eq(homeRectangles.id, existing.id)).returning();
+      const [updated] = await db
+        .update(homeRectangles)
+        .set(data)
+        .where(eq(homeRectangles.id, existing.id))
+        .returning();
       return updated;
     } else {
-      const [created] = await db.insert(homeRectangles).values({ ...data, position } as any).returning();
+      const [created] = await db
+        .insert(homeRectangles)
+        .values({ ...data, position } as any)
+        .returning();
       return created;
     }
   }
 
   async setHomeRectangleItems(homeRectangleId: number, productIds: number[]): Promise<void> {
     await db.delete(homeRectangleItems).where(eq(homeRectangleItems.homeRectangleId, homeRectangleId));
+
     if (productIds.length > 0) {
       await db.insert(homeRectangleItems).values(
-        productIds.map((productId, idx) => ({ homeRectangleId, productId, sortOrder: idx }))
+        productIds.map((productId, idx) => ({
+          homeRectangleId,
+          productId,
+          sortOrder: idx,
+        }))
       );
     }
   }
