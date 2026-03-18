@@ -189,9 +189,9 @@ export default function ProductDetail() {
               )}
             </div>
 
-            <p className="text-muted-foreground text-sm sm:text-lg mb-6 sm:mb-10 leading-relaxed text-balance">
-              {product.description}
-            </p>
+            <p className="text-muted-foreground text-sm sm:text-lg mb-6 sm:mb-10 leading-relaxed whitespace-pre-line">
+  {product.description}
+</p>
 
             <div className="space-y-4 sm:space-y-6 bg-card border rounded-2xl p-4 sm:p-6 shadow-sm mb-6 sm:mb-10">
               <div className="flex items-center gap-4">
