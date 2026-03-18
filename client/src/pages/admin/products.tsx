@@ -32,7 +32,7 @@ function generateSlug(name: string) {
 }
 
 export default function AdminProducts() {
-  const { data: products = [], isLoading } = useProducts();
+  const { data: products = [], isLoading } = useProducts({ admin: true });
   const { data: categories = [] } = useCategories();
   const { mutate: createProduct } = useCreateProduct();
   const { mutate: updateProduct } = useUpdateProduct();

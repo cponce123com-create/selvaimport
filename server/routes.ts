@@ -272,8 +272,17 @@ export async function registerRoutes(
   app.get(api.products.list.path, async (req, res) => {
     const categoryId = req.query.categoryId ? Number(req.query.categoryId) : undefined;
     const search = req.query.search as string | undefined;
-    // Si no hay categoría específica ni búsqueda, solo mostramos los del home
-    const onlyShowOnHome = !categoryId && !search;
+    
+    // En el panel de administración queremos ver TODOS los productos siempre.
+    // Determinamos si es una petición del admin por el parámetro admin=true o
+    // si el usuario está autenticado como admin.
+    const isAdminQuery = req.query.admin === "true";
+    const isAdminSession = req.isAuthenticated() && req.user.role === "admin";
+    const isAdmin = isAdminQuery || isAdminSession;
+    
+    // Si no hay categoría específica ni búsqueda, y NO es admin, solo mostramos los del home
+    const onlyShowOnHome = !categoryId && !search && !isAdmin;
+    
     const prods = await storage.getProducts(categoryId, search, onlyShowOnHome);
     res.json(prods);
   });

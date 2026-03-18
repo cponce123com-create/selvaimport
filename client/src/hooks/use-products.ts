@@ -2,13 +2,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { z } from "zod";
 
-export function useProducts(params?: { search?: string; categoryId?: number }) {
+export function useProducts(params?: { search?: string; categoryId?: number; admin?: boolean }) {
   return useQuery({
     queryKey: [api.products.list.path, params],
     queryFn: async () => {
       const url = new URL(api.products.list.path, window.location.origin);
       if (params?.search) url.searchParams.set("search", params.search);
       if (params?.categoryId) url.searchParams.set("categoryId", params.categoryId.toString());
+      if (params?.admin) url.searchParams.set("admin", "true");
       
       const res = await fetch(url.toString(), { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch products");
