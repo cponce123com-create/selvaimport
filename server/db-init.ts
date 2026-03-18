@@ -7,6 +7,8 @@
 import { pool } from "./db";
 
 const CREATE_TABLES_SQL = `
+  ALTER TABLE categories ADD COLUMN IF NOT EXISTS show_on_home BOOLEAN NOT NULL DEFAULT true;
+
 -- Filas estilo Amazon del home
 CREATE TABLE IF NOT EXISTS home_rows (
   id SERIAL PRIMARY KEY,
@@ -54,7 +56,7 @@ export async function initDatabase(): Promise<void> {
   const client = await pool.connect();
   try {
     await client.query(CREATE_TABLES_SQL);
-    console.log("[db-init] Tablas de home verificadas/creadas correctamente.");
+    console.log("[db-init] Tablas y columnas verificadas/creadas correctamente.");
   } catch (err: any) {
     console.error("[db-init] Error al inicializar tablas:", err.message);
     // No lanzamos el error para no bloquear el arranque del servidor
