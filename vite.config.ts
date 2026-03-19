@@ -24,6 +24,45 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    // Dividir el bundle en chunks más pequeños para carga más rápida
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // React core — se cachea entre versiones
+          'react-vendor': ['react', 'react-dom'],
+          // React Query — librería grande pero estable
+          'query-vendor': ['@tanstack/react-query'],
+          // Radix UI — muchos componentes, chunk separado
+          'radix-vendor': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-select',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-toast',
+            '@radix-ui/react-accordion',
+            '@radix-ui/react-avatar',
+          ],
+          // Editor Tiptap — muy pesado, solo se usa en admin
+          'tiptap-vendor': [
+            '@tiptap/react',
+            '@tiptap/starter-kit',
+            '@tiptap/extension-image',
+            '@tiptap/extension-link',
+            '@tiptap/extension-placeholder',
+            '@tiptap/extension-text-align',
+            '@tiptap/extension-underline',
+          ],
+          // Framer Motion — animaciones
+          'motion-vendor': ['framer-motion'],
+          // Charts — solo se usa en dashboard admin
+          'charts-vendor': ['recharts'],
+          // Utilidades
+          'utils-vendor': ['date-fns', 'zod', 'clsx', 'tailwind-merge'],
+        },
+      },
+    },
+    // Aumentar el límite de advertencia a 600kb (chunks grandes de vendor son normales)
+    chunkSizeWarningLimit: 600,
   },
   server: {
     fs: {
