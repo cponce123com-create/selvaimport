@@ -141,11 +141,11 @@ async function applyCouponToTotal(total: number, shippingAddress: string) {
 
 export async function registerRoutes(
   httpServer: Server,
+  app: Express
+): Promise<Server> {
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
-  app: Express
-): Promise<Server> {
   setupAuth(app);
 
   const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
