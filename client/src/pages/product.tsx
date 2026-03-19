@@ -4,11 +4,56 @@ import { useProduct } from "@/hooks/use-products";
 import { useAddToCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, ArrowLeft, ShieldCheck, Truck, RefreshCw, ChevronLeft, ChevronRight, CheckCircle, Package, AlertCircle, Recycle } from "lucide-react";
-import { useState } from "react";
+import { ShoppingCart, ArrowLeft, ChevronLeft, ChevronRight, CheckCircle, Package, AlertCircle, Recycle } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { toWebP, getDisplayPrice } from "@/lib/utils";
 import { useLocation } from "wouter";
+
+// Actualiza los meta tags del documento para Open Graph (WhatsApp, Facebook, etc.)
+function updateMetaTags(title: string, description: string, image: string, url: string) {
+  document.title = title;
+
+  const setMeta = (property: string, content: string, isName = false) => {
+    const selector = isName ? `meta[name="${property}"]` : `meta[property="${property}"]`;
+    let el = document.querySelector(selector) as HTMLMetaElement;
+    if (!el) {
+      el = document.createElement("meta");
+      if (isName) el.setAttribute("name", property);
+      else el.setAttribute("property", property);
+      document.head.appendChild(el);
+    }
+    el.setAttribute("content", content);
+  };
+
+  // Open Graph — WhatsApp y Facebook
+  setMeta("og:title", title);
+  setMeta("og:description", description);
+  setMeta("og:image", image);
+  setMeta("og:url", url);
+  setMeta("og:type", "product");
+  setMeta("og:site_name", "Selva Import");
+
+  // Twitter Card
+  setMeta("twitter:card", "summary_large_image", true);
+  setMeta("twitter:title", title, true);
+  setMeta("twitter:description", description, true);
+  setMeta("twitter:image", image, true);
+
+  // Description general
+  setMeta("description", description, true);
+}
+
+function resetMetaTags() {
+  document.title = "Selva Import - Tu tienda de confianza";
+  const defaultDesc = "Tienda online en San Ramón. Tecnología, moda, hogar y más. Envíos a La Merced y coordinación por WhatsApp.";
+  const el = document.querySelector('meta[name="description"]') as HTMLMetaElement;
+  if (el) el.setAttribute("content", defaultDesc);
+  // Remover og tags
+  ["og:title", "og:description", "og:image", "og:url", "og:type"].forEach(prop => {
+    document.querySelector(`meta[property="${prop}"]`)?.remove();
+  });
+}
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -19,6 +64,25 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [, setLocation] = useLocation();
+
+  // Actualizar meta tags cuando el producto carga
+  useEffect(() => {
+    if (!product) return;
+
+    const pricing = getDisplayPrice(product);
+    const price = "S/ " + pricing.current.toFixed(2);
+    const image = product.images?.[0] || product.imageUrl || "";
+    const url = `${window.location.origin}/product/${product.id}`;
+    const title = `${product.name} - ${price} | Selva Import`;
+    const description = product.description
+      ? `${product.description.slice(0, 120)}... Precio: ${price}`
+      : `${product.name} disponible en Selva Import. Precio: ${price}. Envíos a San Ramón y La Merced.`;
+
+    updateMetaTags(title, description, image, url);
+
+    // Restaurar al salir de la página
+    return () => resetMetaTags();
+  }, [product]);
 
   if (isLoading) return (
     <AppLayout>
@@ -190,8 +254,8 @@ export default function ProductDetail() {
             </div>
 
             <p className="text-muted-foreground text-sm sm:text-lg mb-6 sm:mb-10 leading-relaxed whitespace-pre-line">
-  {product.description}
-</p>
+              {product.description}
+            </p>
 
             <div className="space-y-4 sm:space-y-6 bg-card border rounded-2xl p-4 sm:p-6 shadow-sm mb-6 sm:mb-10">
               <div className="flex items-center gap-4">
