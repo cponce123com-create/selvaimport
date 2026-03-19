@@ -8,6 +8,13 @@ import { z } from "zod";
 import { v2 as cloudinary } from "cloudinary";
 import multer from "multer";
 
+// Health check — usado por UptimeRobot / cron-job.org para
+// mantener el servidor de Render Free Tier despierto (evita cold starts)
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
