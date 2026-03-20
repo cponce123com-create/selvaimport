@@ -29,15 +29,18 @@ const statusLabels: Record<string, string> = {
   cancelado: "Cancelado",
 };
 
-function useGuestOrder(id: number, token: string | null) {
+function useGuestOrder(id: number, isGuest: boolean) {
   return useQuery({
-    queryKey: ["/api/orders/guest", id, token],
+    queryKey: ["/api/orders/guest", id],
     queryFn: async () => {
-      const res = await fetch(`/api/orders/guest/${id}?token=${token}`);
+      // El token viaja automáticamente en la cookie httpOnly, sin exponerlo en la URL
+      const res = await fetch(`/api/orders/guest/${id}`, {
+        credentials: "include",
+      });
       if (!res.ok) return null;
       return await res.json();
     },
-    enabled: !!id && !!token,
+    enabled: !!id && isGuest,
   });
 }
 
@@ -45,9 +48,8 @@ export default function Receipt() {
   const { id } = useParams();
   const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
   const isGuest = searchParams.get("guest") === "1";
-  const guestToken = searchParams.get("token");
   const authOrder = useOrder(Number(id));
-  const guestOrder = useGuestOrder(isGuest ? Number(id) : 0, guestToken);
+  const guestOrder = useGuestOrder(isGuest ? Number(id) : 0, isGuest);
 
   const order = isGuest ? guestOrder.data : authOrder.data;
   const isLoading = isGuest ? guestOrder.isLoading : authOrder.isLoading;
