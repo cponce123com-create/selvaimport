@@ -1063,15 +1063,9 @@ ${productEntries}
       res.setHeader("Content-Type", "application/xml");
       res.setHeader("Cache-Control", "public, max-age=3600");
       res.send(xml);
-    } catch (e: any) {
+} catch (e: any) {
       res.status(500).json({ message: "Error generando sitemap" });
     }
-  });
-```
-
-Pégalo en `server/routes.ts` justo antes de esta línea que está al final del archivo:
-```
-  seedDatabase().catch(console.error);
   });
 
   seedDatabase().catch(console.error);
