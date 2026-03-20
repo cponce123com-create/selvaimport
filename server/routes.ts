@@ -8,7 +8,7 @@ import { z } from "zod";
 import { v2 as cloudinary } from "cloudinary";
 import multer from "multer";
 import { authLimiter, guestOrderLimiter, generalApiLimiter } from "./rateLimiter";
-import { sendTelegramMessage, buildOrderMessage } from "./telegram";
+import { sendTelegramMessage, buildOrderMessage, buildStatusMessage, sendTelegramToPhone } from "./telegram";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -464,7 +464,7 @@ export async function registerRoutes(
         await storage.incrementCouponUses(coupon.id);
       }
 
-      // ── Notificación Telegram ──
+      // ── Notificación Telegram nuevo pedido ──
       storage.getUser(req.user!.id).then((user) => {
         sendTelegramMessage(
           buildOrderMessage({
@@ -477,6 +477,14 @@ export async function registerRoutes(
         );
       }).catch(console.error);
 
+      // ── Alerta de stock bajo ──
+      storage.checkLowStock(5).then((lowItems) => {
+        if (lowItems.length > 0) {
+          const lines = lowItems.map(p => `  • ${p.name}: <b>${p.inventory} unidades</b>`).join("\n");
+          sendTelegramMessage(`⚠️ <b>STOCK BAJO</b>\n\nLos siguientes productos tienen poco stock:\n${lines}`);
+        }
+      }).catch(console.error);
+
       res.status(201).json(order);
     } catch (e: any) {
       res.status(400).json({ message: e.message });
@@ -487,6 +495,28 @@ export async function registerRoutes(
     try {
       const data = api.orders.updateStatus.input.parse(req.body);
       const order = await storage.updateOrderStatus(Number(req.params.id), data.status);
+
+      // ── Notificar al admin del cambio de estado ──
+      const statusEmojis: Record<string, string> = {
+        pagado: "✅", enviado: "🚚", entregado: "🎉", cancelado: "❌", pendiente: "⏳",
+      };
+      const emoji = statusEmojis[data.status] ?? "🔄";
+      sendTelegramMessage(
+        `${emoji} <b>Pedido #${order.id}</b> → <b>${data.status.toUpperCase()}</b>\n💰 S/ ${Number(order.totalAmount).toFixed(2)}`
+      ).catch(console.error);
+
+      // ── Notificar al cliente invitado si dejó su teléfono ──
+      if (order.guestPhone) {
+        const msg = buildStatusMessage({
+          id: order.id,
+          status: data.status,
+          totalAmount: order.totalAmount as string,
+          guestName: order.guestName,
+          guestPhone: order.guestPhone,
+        });
+        sendTelegramToPhone(order.guestPhone, msg).catch(console.error);
+      }
+
       res.json(order);
     } catch (e: any) {
       res.status(400).json({ message: e.message });
@@ -568,7 +598,7 @@ export async function registerRoutes(
         await storage.incrementCouponUses(coupon.id);
       }
 
-      // ── Notificación Telegram ──
+      // ── Notificación Telegram nuevo pedido ──
       sendTelegramMessage(
         buildOrderMessage({
           id: order.id,
@@ -579,17 +609,15 @@ export async function registerRoutes(
         })
       ).catch(console.error);
 
-      // ── Guardar token en cookie httpOnly (no en la URL) ──
-      res.cookie(`guest_order_${order.id}`, order.guestAccessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
-      });
+      // ── Alerta de stock bajo ──
+      storage.checkLowStock(5).then((lowItems: any[]) => {
+        if (lowItems.length > 0) {
+          const lines = lowItems.map((p: any) => `  • ${p.name}: <b>${p.inventory} unidades</b>`).join("\n");
+          sendTelegramMessage(`⚠️ <b>STOCK BAJO</b>\n\nLos siguientes productos tienen poco stock:\n${lines}`);
+        }
+      }).catch(console.error);
 
-      // No devolver el token en el JSON para no exponerlo
-      const { guestAccessToken: _token, ...orderPublic } = order as any;
-      res.status(201).json(orderPublic);
+      res.status(201).json(order);
     } catch (e: any) {
       res.status(400).json({ message: e.message });
     }
@@ -688,15 +716,13 @@ export async function registerRoutes(
   });
 
   app.get("/api/orders/guest/:id", async (req, res) => {
-    // ── Leer token desde cookie httpOnly (no desde la URL) ──
-    const orderId = Number(req.params.id);
-    const token = req.cookies?.[`guest_order_${orderId}`];
+    const token = req.query.token as string;
 
     if (!token) {
       return res.status(401).json({ message: "Token de acceso requerido" });
     }
 
-    const order = await storage.getOrder(orderId);
+    const order = await storage.getOrder(Number(req.params.id));
 
     if (!order) {
       return res.status(404).json({ message: "Pedido no encontrado" });
