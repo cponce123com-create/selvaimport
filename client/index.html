@@ -8,15 +8,19 @@
     <title>Selva Import - Tu tienda de confianza</title>
     <meta name="description" content="Tienda online en San Ramón. Tecnología, moda, hogar y más. Envíos a La Merced y coordinación por WhatsApp." />
 
+    <!-- PWA -->
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Selva Import" />
+    <link rel="apple-touch-icon" href="/parrot_favicon_180.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/parrot_favicon_192.png" />
+
     <!-- Favicon -->
     <link rel="icon" type="image/jpeg" href="/logo-selva-import.jpg" />
 
-    <!--
-      OPTIMIZACIÓN LCP:
-      Precargar la imagen del banner principal para que el navegador
-      la descargue antes de parsear el JS.
-      IMPORTANTE: Cambia la URL por la imagen real de tu primer banner.
-    -->
+    <!-- Preload imagen banner -->
     <link
       rel="preload"
       as="image"
@@ -24,20 +28,11 @@
       fetchpriority="high"
     />
 
-    <!--
-      DNS PREFETCH para Cloudinary:
-      El navegador resuelve el dominio de Cloudinary antes de que
-      las imágenes de productos sean solicitadas.
-      IMPORTANTE: Reemplaza "tu-cloud-name" con tu CLOUDINARY_CLOUD_NAME real.
-    -->
+    <!-- DNS prefetch Cloudinary -->
     <link rel="dns-prefetch" href="https://res.cloudinary.com" />
     <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />
 
-    <!--
-      Google Identity Services se carga de forma diferida (defer).
-      Antes estaba bloqueando el renderizado inicial.
-      El atributo "defer" hace que cargue después del HTML, sin bloquear el LCP.
-    -->
+    <!-- Google Identity Services -->
     <script
       src="https://accounts.google.com/gsi/client"
       defer
