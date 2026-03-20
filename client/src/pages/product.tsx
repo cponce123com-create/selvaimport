@@ -1,6 +1,6 @@
 import { useParams, Link } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { useProduct, useProducts } from "@/hooks/use-products";
+import { useProduct, useProductBySlug, useProducts } from "@/hooks/use-products";
 import { useAddToCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -87,8 +87,8 @@ function resetMetaTags() {
 }
 
 export default function ProductDetail() {
-  const { id } = useParams();
-  const { data: product, isLoading } = useProduct(Number(id));
+  const { slug } = useParams();
+  const { data: product, isLoading } = useProductBySlug(slug || "");
   const { mutate: addToCart, isPending } = useAddToCart();
   const { data: user } = useAuth();
   const { toast } = useToast();
@@ -104,7 +104,7 @@ export default function ProductDetail() {
     const pricing = getDisplayPrice(product);
     const price = "S/ " + pricing.current.toFixed(2);
     const image = toWebP(product.images?.[0] || product.imageUrl, 800) || "";
-    const url = `${window.location.origin}/product/${product.id}`;
+    const url = `${window.location.origin}/product/${product.slug}`;
     const title = `${product.name} - ${price} | Selva Import`;
     const description = product.description
       ? `${product.description.slice(0, 120)}... Precio: ${price}`
@@ -228,7 +228,7 @@ export default function ProductDetail() {
   };
 
   const handleShare = () => {
-    const url = window.location.href;
+    const url = `${window.location.origin}/product/${product.slug}`;
     const text = `¡Mira este producto en Selva Import! ${product.name} - S/ ${pricing.current.toFixed(2)}`;
     if (navigator.share) {
       navigator.share({ title: product.name, text, url }).catch(() => {});
