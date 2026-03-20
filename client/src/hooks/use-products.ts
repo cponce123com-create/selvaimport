@@ -32,6 +32,19 @@ export function useProduct(id: number) {
   });
 }
 
+export function useProductBySlug(slug: string) {
+  return useQuery({
+    queryKey: ["/api/products/slug", slug],
+    queryFn: async () => {
+      const res = await fetch(`/api/products/slug/${encodeURIComponent(slug)}`, { credentials: "include" });
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error("Failed to fetch product");
+      return res.json();
+    },
+    enabled: !!slug,
+  });
+}
+
 export function useCreateProduct() {
   const queryClient = useQueryClient();
   return useMutation({
