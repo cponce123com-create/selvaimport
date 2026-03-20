@@ -3,8 +3,6 @@
 // Servicio de notificaciones por Telegram
 // =====================================================
 
-const TELEGRAM_API = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`;
-
 export async function sendTelegramMessage(text: string): Promise<void> {
   const chatId = process.env.TELEGRAM_CHAT_ID;
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -18,21 +16,42 @@ export async function sendTelegramMessage(text: string): Promise<void> {
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        parse_mode: "HTML",
-      }),
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML" }),
     });
-
     if (!res.ok) {
-      const err = await res.text();
-      console.error("❌ Error enviando notificación a Telegram:", err);
+      console.error("❌ Error enviando notificación a Telegram:", await res.text());
     } else {
       console.log("✅ Notificación Telegram enviada correctamente");
     }
   } catch (e) {
     console.error("❌ Error de conexión con Telegram:", e);
+  }
+}
+
+// Envía mensaje a un cliente por su número de teléfono
+// Solo funciona si el cliente inició conversación con el bot con /start
+export async function sendTelegramToPhone(phone: string, text: string): Promise<boolean> {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) return false;
+
+  const normalized = phone.replace(/[^0-9]/g, "");
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: normalized, text, parse_mode: "HTML" }),
+    });
+    if (res.ok) {
+      console.log(`✅ Notificación enviada al cliente ${normalized}`);
+      return true;
+    } else {
+      console.log(`ℹ️  Cliente ${normalized} no ha iniciado el bot de Telegram`);
+      return false;
+    }
+  } catch (e) {
+    console.error("❌ Error enviando a cliente:", e);
+    return false;
   }
 }
 
@@ -44,20 +63,13 @@ export function buildOrderMessage(order: {
   totalAmount: string;
 }): string {
   const nombre = order.guestName ?? "Cliente registrado";
-  const contactoLabel = order.guestPhone?.includes("@")
-    ? "📧 <b>Email:</b>"
-    : "📱 <b>Teléfono:</b>";
-  const telefonoLinea = order.guestPhone
-    ? `${contactoLabel} ${order.guestPhone}\n`
-    : "";
+  const contactoLabel = order.guestPhone?.includes("@") ? "📧 <b>Email:</b>" : "📱 <b>Teléfono:</b>";
+  const telefonoLinea = order.guestPhone ? `${contactoLabel} ${order.guestPhone}\n` : "";
 
   const ahora = new Date().toLocaleString("es-PE", {
     timeZone: "America/Lima",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
   });
 
   return `🛒 <b>¡NUEVO PEDIDO #${order.id}!</b>
@@ -71,4 +83,51 @@ ${order.shippingAddress}
 ⏰ <b>Fecha:</b> ${ahora}
 
 👉 Revisa el panel de administración para ver el detalle completo.`.trim();
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  pagado: "✅ Pago confirmado",
+  enviado: "🚚 Tu pedido está en camino",
+  entregado: "🎉 Pedido entregado",
+  cancelado: "❌ Pedido cancelado",
+  pendiente: "⏳ Pendiente de confirmación",
+  paid: "✅ Pago confirmado",
+  shipped: "🚚 Tu pedido está en camino",
+  delivered: "🎉 Pedido entregado",
+  cancelled: "❌ Pedido cancelado",
+};
+
+const STATUS_DETAIL: Record<string, string> = {
+  pagado: "Recibimos tu pago. Estamos preparando tu pedido.",
+  enviado: "Tu pedido salió de nuestro local y está en camino hacia ti.",
+  entregado: "¡Tu pedido fue entregado! Gracias por comprar en Selva Import.",
+  cancelado: "Tu pedido fue cancelado. Si tienes dudas contáctanos por WhatsApp.",
+  paid: "Recibimos tu pago. Estamos preparando tu pedido.",
+  shipped: "Tu pedido salió de nuestro local y está en camino hacia ti.",
+  delivered: "¡Tu pedido fue entregado! Gracias por comprar en Selva Import.",
+  cancelled: "Tu pedido fue cancelado. Si tienes dudas contáctanos por WhatsApp.",
+};
+
+export function buildStatusMessage(order: {
+  id: number;
+  status: string;
+  totalAmount: string;
+  guestName?: string | null;
+  guestPhone?: string | null;
+}): string {
+  const nombre = order.guestName ?? "Cliente";
+  const statusLabel = STATUS_LABELS[order.status] ?? `Estado: ${order.status}`;
+  const statusDetail = STATUS_DETAIL[order.status] ?? "";
+  const whatsapp = process.env.VITE_WHATSAPP_NUMBER || "51998130656";
+
+  return `${statusLabel}
+
+Hola <b>${nombre}</b>, te informamos sobre tu pedido en <b>Selva Import</b>:
+
+📦 <b>Pedido #${order.id}</b>
+💰 <b>Total:</b> S/ ${Number(order.totalAmount).toFixed(2)}
+
+${statusDetail}
+
+¿Tienes dudas? Escríbenos por WhatsApp: wa.me/${whatsapp}`.trim();
 }
