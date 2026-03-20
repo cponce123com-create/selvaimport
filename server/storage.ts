@@ -41,6 +41,7 @@ export interface IStorage {
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product>;
   deleteProduct(id: number): Promise<void>;
+  checkLowStock(threshold?: number): Promise<{ id: number; name: string; inventory: number }[]>;
 
   getCart(userId: number): Promise<{ cart: Cart; items: CartItemWithProduct[] }>;
   addCartItem(userId: number, item: InsertCartItem): Promise<CartItemWithProduct>;
@@ -131,20 +132,6 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  // ── Caché en memoria ──
-  private _productsCache: ProductWithCategory[] | null = null;
-  private _productsCacheAt: number = 0;
-  private readonly PRODUCTS_TTL = 60_000; // 60 segundos
-
-  private _categoriesCache: Category[] | null = null;
-  private _categoriesCacheAt: number = 0;
-  private readonly CATEGORIES_TTL = 120_000; // 2 minutos
-
-  invalidateProductsCache() {
-    this._productsCache = null;
-    this._categoriesCache = null;
-  }
-
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
@@ -165,14 +152,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCategories(): Promise<Category[]> {
-    const now = Date.now();
-    if (this._categoriesCache && now - this._categoriesCacheAt < this.CATEGORIES_TTL) {
-      return this._categoriesCache;
-    }
-    const result = await db.select().from(categories);
-    this._categoriesCache = result;
-    this._categoriesCacheAt = now;
-    return result;
+    return await db.select().from(categories);
   }
 
   async createCategory(category: InsertCategory): Promise<Category> {
@@ -181,13 +161,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProducts(categoryId?: number, search?: string, onlyShowOnHome?: boolean): Promise<ProductWithCategory[]> {
-    // Usar caché solo cuando la consulta es la de home (sin filtros)
-    const now = Date.now();
-    const useCache = !categoryId && !search && !onlyShowOnHome;
-    if (useCache && this._productsCache && now - this._productsCacheAt < this.PRODUCTS_TTL) {
-      return this._productsCache;
-    }
-
     const cats = await this.getCategories();
     const conditions = [];
 
@@ -226,17 +199,10 @@ export class DatabaseStorage implements IStorage {
 
     const filteredProducts = await query.orderBy(desc(products.createdAt));
 
-    const result = filteredProducts.map((p) => ({
+    return filteredProducts.map((p) => ({
       ...p,
       category: cats.find((c) => c.id === p.categoryId),
     }));
-
-    if (useCache) {
-      this._productsCache = result;
-      this._productsCacheAt = now;
-    }
-
-    return result;
   }
 
   async getProduct(id: number): Promise<ProductWithCategory | undefined> {
@@ -257,19 +223,27 @@ export class DatabaseStorage implements IStorage {
 
   async createProduct(product: InsertProduct): Promise<Product> {
     const [p] = await db.insert(products).values(product).returning();
-    this.invalidateProductsCache();
     return p;
   }
 
   async updateProduct(id: number, productUpdate: Partial<InsertProduct>): Promise<Product> {
     const [p] = await db.update(products).set(productUpdate).where(eq(products.id, id)).returning();
-    this.invalidateProductsCache();
     return p;
   }
 
   async deleteProduct(id: number): Promise<void> {
     await db.delete(products).where(eq(products.id, id));
-    this.invalidateProductsCache();
+  }
+
+  async checkLowStock(threshold: number = 5): Promise<{ id: number; name: string; inventory: number }[]> {
+    return await db
+      .select({ id: products.id, name: products.name, inventory: products.inventory })
+      .from(products)
+      .where(and(
+        sql`${products.inventory} <= ${threshold}`,
+        sql`${products.inventory} > 0`,
+        eq(products.isVisible, true)
+      ));
   }
 
   private async getOrCreateCart(userId: number): Promise<Cart> {
