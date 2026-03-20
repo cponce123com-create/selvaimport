@@ -300,6 +300,19 @@ export async function registerRoutes(
     res.json(product);
   });
 
+  // ── Buscar producto por slug (para URLs amigables) ──
+  app.get("/api/products/slug/:slug", async (req, res) => {
+    const product = await storage.getProductBySlug(req.params.slug);
+    if (!product) {
+      return res.status(404).json({ message: "Producto no encontrado" });
+    }
+    // Enriquecer con categoría igual que getProduct
+    const category = product.categoryId
+      ? (await storage.getCategories()).find((c) => c.id === product.categoryId)
+      : undefined;
+    res.json({ ...product, category });
+  });
+
   app.post(api.products.create.path, requireAdmin, async (req, res) => {
     try {
       const data = api.products.create.input.parse(req.body);
