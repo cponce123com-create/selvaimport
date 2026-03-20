@@ -39,7 +39,7 @@ function Router() {
       <Switch>
         {/* ── Rutas públicas ── */}
         <Route path="/" component={Home} />
-        <Route path="/product/:id" component={ProductDetail} />
+        <Route path="/product/:slug" component={ProductDetail} />
         <Route path="/cart" component={Cart} />
         <Route path="/checkout" component={Checkout} />
         <Route path="/orders" component={Orders} />
