@@ -579,7 +579,17 @@ export async function registerRoutes(
         })
       ).catch(console.error);
 
-      res.status(201).json(order);
+      // ── Guardar token en cookie httpOnly (no en la URL) ──
+      res.cookie(`guest_order_${order.id}`, order.guestAccessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
+      });
+
+      // No devolver el token en el JSON para no exponerlo
+      const { guestAccessToken: _token, ...orderPublic } = order as any;
+      res.status(201).json(orderPublic);
     } catch (e: any) {
       res.status(400).json({ message: e.message });
     }
@@ -678,13 +688,15 @@ export async function registerRoutes(
   });
 
   app.get("/api/orders/guest/:id", async (req, res) => {
-    const token = req.query.token as string;
+    // ── Leer token desde cookie httpOnly (no desde la URL) ──
+    const orderId = Number(req.params.id);
+    const token = req.cookies?.[`guest_order_${orderId}`];
 
     if (!token) {
       return res.status(401).json({ message: "Token de acceso requerido" });
     }
 
-    const order = await storage.getOrder(Number(req.params.id));
+    const order = await storage.getOrder(orderId);
 
     if (!order) {
       return res.status(404).json({ message: "Pedido no encontrado" });
