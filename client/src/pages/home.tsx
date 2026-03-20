@@ -267,7 +267,7 @@ export default function Home() {
   const [showPopup, setShowPopup] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const COUPON_CODE = "LUPITA20";
+  const COUPON_CODE = "BIENVENIDO10";
   const POPUP_KEY = "selva_welcome_popup_shown";
 
   // Mostrar popup solo si el visitante no lo ha visto antes
