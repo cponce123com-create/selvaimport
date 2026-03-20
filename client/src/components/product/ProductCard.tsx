@@ -71,7 +71,7 @@ export const ProductCard = memo(function ProductCard({ product, badge }: Product
   const outOfStock = product.inventory === 0;
 
   return (
-    <Link href={`/product/${product.id}`} data-testid={`card-product-${product.id}`} className="group flex flex-col bg-card rounded-xl sm:rounded-2xl overflow-hidden border border-border/50 hover:shadow-xl hover:border-border transition-all duration-300">
+    <Link href={`/product/${product.slug}`} data-testid={`card-product-${product.id}`} className="group flex flex-col bg-card rounded-xl sm:rounded-2xl overflow-hidden border border-border/50 hover:shadow-xl hover:border-border transition-all duration-300">
       <div className="relative aspect-square bg-accent/50 overflow-hidden">
         {/* Etiqueta de stock agotado o vendido */}
         {outOfStock ? (
