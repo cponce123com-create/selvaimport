@@ -1,7 +1,6 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import compression from "compression";
-import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
@@ -12,16 +11,6 @@ const app = express();
 const httpServer = createServer(app);
 
 app.use(compression());
-
-// ── Cabeceras de seguridad HTTP ──
-app.use(
-  helmet({
-    contentSecurityPolicy: false, // Desactivado para no romper el frontend React/Vite
-    crossOriginEmbedderPolicy: false,
-  })
-);
-
-// ── Cookie parser (necesario para leer cookies httpOnly del token de invitado) ──
 app.use(cookieParser());
 
 declare module "http" {
