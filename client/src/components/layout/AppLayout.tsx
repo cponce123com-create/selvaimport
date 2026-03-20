@@ -29,7 +29,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useCallback, useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect, useRef, useMemo } from "react";
+import { useProducts } from "@/hooks/use-products";
+import { toWebP } from "@/lib/utils";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { data: user, isLoading: authLoading } = useAuth();
@@ -41,6 +43,33 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [searchValue, setSearchValue] = useState("");
   const [location, setLocation] = useLocation();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const desktopSearchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Debounce: espera 300ms después de que el usuario deje de escribir
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchValue.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchValue]);
+
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        desktopSearchRef.current && !desktopSearchRef.current.contains(target) &&
+        mobileSearchRef.current && !mobileSearchRef.current.contains(target)
+      ) {
+        setSearchFocused(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const handler = () => forceUpdate((n) => n + 1);
@@ -70,6 +99,26 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       setTimeout(() => searchInputRef.current?.focus(), 50);
     }
   }, [searchOpen]);
+
+  // Búsqueda en tiempo real — solo dispara cuando hay 2+ caracteres
+  const { data: searchResults } = useProducts(
+    debouncedSearch.length >= 2 ? { search: debouncedSearch } : undefined
+  );
+
+  const topResults = useMemo(() => {
+    if (!searchResults || debouncedSearch.length < 2) return [];
+    return searchResults.filter((p) => p.isVisible).slice(0, 5);
+  }, [searchResults, debouncedSearch]);
+
+  const showDropdown = searchFocused && debouncedSearch.length >= 2;
+
+  const handleSelectResult = useCallback((productId: number) => {
+    setSearchValue("");
+    setDebouncedSearch("");
+    setSearchFocused(false);
+    setSearchOpen(false);
+    setLocation(`/product/${productId}`);
+  }, [setLocation]);
 
   const cartItemCount =
     cart?.items?.reduce((acc: number, item: any) => acc + item.quantity, 0) || 0;
@@ -151,18 +200,68 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
 
-          {/* Buscador desktop — expandible */}
-          <div className="hidden md:flex flex-1 max-w-md mx-4">
+          {/* Buscador desktop con resultados en tiempo real */}
+          <div className="hidden md:flex flex-1 max-w-md mx-4 relative" ref={desktopSearchRef}>
             <form onSubmit={handleSearch} className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <Input
                 placeholder="Buscar productos..."
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
+                onFocus={() => setSearchFocused(true)}
                 className="pl-9 pr-4 rounded-full bg-muted/50 border-transparent focus:border-primary focus:bg-background h-9 text-sm"
                 data-testid="input-navbar-search"
               />
             </form>
+            {/* Dropdown de resultados desktop */}
+            {showDropdown && (
+              <div className="absolute top-full mt-2 left-0 right-0 bg-background border rounded-2xl shadow-xl z-50 overflow-hidden">
+                {topResults.length === 0 ? (
+                  <div className="px-4 py-6 text-sm text-muted-foreground text-center">
+                    Sin resultados para &quot;{debouncedSearch}&quot;
+                  </div>
+                ) : (
+                  <>
+                    <ul>
+                      {topResults.map((product) => (
+                        <li key={product.id}>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectResult(product.id)}
+                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent transition-colors text-left"
+                          >
+                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                              {(product.images?.[0] || product.imageUrl) && (
+                                <img
+                                  src={toWebP(product.images?.[0] || product.imageUrl, 80)}
+                                  className="w-full h-full object-cover"
+                                  alt={product.name}
+                                />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{product.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                S/ {product.offerPrice && Number(product.offerPrice) > 0 ? Number(product.offerPrice).toFixed(2) : Number(product.price).toFixed(2)}
+                              </p>
+                            </div>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    {searchResults && searchResults.filter(p => p.isVisible).length > 5 && (
+                      <button
+                        type="button"
+                        onClick={(e) => { handleSearch(e as any); }}
+                        className="w-full px-4 py-3 text-sm text-primary font-medium hover:bg-accent transition-colors border-t text-center"
+                      >
+                        Ver todos los resultados para &quot;{debouncedSearch}&quot;
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Navegación desktop */}
@@ -310,20 +409,72 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </nav>
         </div>
 
-        {/* Buscador móvil expandible — aparece debajo del header */}
+        {/* Buscador móvil expandible con resultados en tiempo real */}
         {searchOpen && (
-          <div className="md:hidden border-t px-4 py-3 bg-background">
-            <form onSubmit={handleSearch} className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              <Input
-                ref={searchInputRef}
-                placeholder="Buscar productos..."
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                className="pl-9 pr-4 rounded-full bg-muted/50 border-transparent focus:border-primary focus:bg-background h-10"
-                data-testid="input-mobile-search"
-              />
-            </form>
+          <div className="md:hidden border-t bg-background" ref={mobileSearchRef}>
+            <div className="px-4 py-3">
+              <form onSubmit={handleSearch} className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  ref={searchInputRef}
+                  placeholder="Buscar productos..."
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  onFocus={() => setSearchFocused(true)}
+                  className="pl-9 pr-4 rounded-full bg-muted/50 border-transparent focus:border-primary focus:bg-background h-10"
+                  data-testid="input-mobile-search"
+                />
+              </form>
+            </div>
+            {/* Dropdown móvil */}
+            {showDropdown && (
+              <div className="border-t">
+                {topResults.length === 0 ? (
+                  <div className="px-4 py-6 text-sm text-muted-foreground text-center">
+                    Sin resultados para &quot;{debouncedSearch}&quot;
+                  </div>
+                ) : (
+                  <>
+                    <ul>
+                      {topResults.map((product) => (
+                        <li key={product.id}>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectResult(product.id)}
+                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent transition-colors text-left"
+                          >
+                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                              {(product.images?.[0] || product.imageUrl) && (
+                                <img
+                                  src={toWebP(product.images?.[0] || product.imageUrl, 80)}
+                                  className="w-full h-full object-cover"
+                                  alt={product.name}
+                                />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{product.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                S/ {product.offerPrice && Number(product.offerPrice) > 0 ? Number(product.offerPrice).toFixed(2) : Number(product.price).toFixed(2)}
+                              </p>
+                            </div>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    {searchResults && searchResults.filter(p => p.isVisible).length > 5 && (
+                      <button
+                        type="button"
+                        onClick={(e) => { handleSearch(e as any); }}
+                        className="w-full px-4 py-3 text-sm text-primary font-medium hover:bg-accent transition-colors border-t text-center"
+                      >
+                        Ver todos los resultados
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
       </header>
