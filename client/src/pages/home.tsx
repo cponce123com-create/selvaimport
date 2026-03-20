@@ -15,6 +15,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { X, Gift, Copy, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { toWebP, getDisplayPrice } from "@/lib/utils";
@@ -262,6 +264,38 @@ function DynamicBannerSlide({ slide, priority }: { slide: BannerSlideData, prior
 
 export default function Home() {
   const [search, setSearch] = useState("");
+  const [showPopup, setShowPopup] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const COUPON_CODE = "LUPITA20";
+  const POPUP_KEY = "selva_welcome_popup_shown";
+
+  // Mostrar popup solo si el visitante no lo ha visto antes
+  useEffect(() => {
+    const alreadySeen = localStorage.getItem(POPUP_KEY);
+    if (!alreadySeen) {
+      const timer = setTimeout(() => setShowPopup(true), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const handleClosePopup = () => {
+    setShowPopup(false);
+    localStorage.setItem(POPUP_KEY, "1");
+  };
+
+  const handleCopyCoupon = () => {
+    navigator.clipboard.writeText(COUPON_CODE).catch(() => {
+      const el = document.createElement("textarea");
+      el.value = COUPON_CODE;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+    });
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
   const [selectedCat, setSelectedCat] = useState<number | undefined>();
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -627,6 +661,94 @@ export default function Home() {
           </div>
         )}
       </div>
+      {/* ── Pop-up de bienvenida ── */}
+      <AnimatePresence>
+        {showPopup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={handleClosePopup}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.85, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.85, y: 30 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className="bg-card border rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header con gradiente */}
+              <div className="bg-gradient-to-br from-primary to-primary/70 p-6 text-primary-foreground text-center relative">
+                <button
+                  onClick={handleClosePopup}
+                  className="absolute top-3 right-3 p-1.5 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+                  aria-label="Cerrar"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Gift className="w-7 h-7" />
+                </div>
+                <h2 className="text-xl font-bold mb-1">¡Bienvenido a Selva Import!</h2>
+                <p className="text-sm text-primary-foreground/80">
+                  Te regalamos un descuento en tu primer pedido
+                </p>
+              </div>
+
+              {/* Cuerpo */}
+              <div className="p-6 text-center space-y-4">
+                <p className="text-muted-foreground text-sm">
+                  Usa este cupón al finalizar tu compra y obtén <span className="font-semibold text-foreground">S/ 20 de descuento</span> en tu pedido.
+                </p>
+
+                {/* Código del cupón */}
+                <div className="bg-muted rounded-2xl p-4 space-y-2">
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest">Tu cupón de bienvenida</p>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="font-mono text-2xl font-bold tracking-wider text-primary">
+                      {COUPON_CODE}
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyCoupon}
+                    className="w-full gap-2 mt-1"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-4 h-4 text-green-600" />
+                        <span className="text-green-600">¡Copiado!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        Copiar código
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                <Button
+                  className="w-full rounded-xl"
+                  onClick={handleClosePopup}
+                >
+                  ¡Empezar a comprar!
+                </Button>
+
+                <button
+                  onClick={handleClosePopup}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  No gracias, continuar sin descuento
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </AppLayout>
   );
 }
