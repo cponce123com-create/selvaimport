@@ -42,7 +42,7 @@ function RectSingleProduct({ rect }: { rect: HomeRectangleData }) {
       <div className="px-3 pt-3 pb-1.5">
         <h3 className="font-bold text-xs sm:text-sm text-gray-900 line-clamp-2 leading-snug">{rect.title}</h3>
       </div>
-      <Link href={`/product/${product.id}`} className="flex-1 block overflow-hidden">
+      <Link href={`/product/${product.slug}`} className="flex-1 block overflow-hidden">
         <div className="relative w-full h-full min-h-[120px] sm:min-h-[140px]">
           {img ? (
             <img
@@ -66,7 +66,7 @@ function RectSingleProduct({ rect }: { rect: HomeRectangleData }) {
         </div>
       </Link>
       <div className="px-3 py-2">
-        <Link href={`/product/${product.id}`}>
+        <Link href={`/product/${product.slug}`}>
           <span className="text-[11px] text-blue-600 hover:underline font-medium flex items-center gap-0.5">
             Ver producto <ChevronRight className="w-3 h-3" />
           </span>
@@ -91,7 +91,7 @@ function RectMultiProduct({ rect }: { rect: HomeRectangleData }) {
           const img = product.images?.[0] || product.imageUrl;
           const outOfStock = product.inventory === 0;
           return (
-            <Link key={product.id} href={`/product/${product.id}`}>
+            <Link key={product.id} href={`/product/${product.slug}`}>
               <div className="relative aspect-square overflow-hidden rounded-md bg-gray-50 group">
                 {img ? (
                   <img
@@ -146,7 +146,7 @@ function RectCategory({ rect }: { rect: HomeRectangleData }) {
         {items.slice(0, 4).map(({ product }) => {
           const img = product.images?.[0] || product.imageUrl;
           return (
-            <Link key={product.id} href={`/product/${product.id}`}>
+            <Link key={product.id} href={`/product/${product.slug}`}>
               <div className="relative aspect-square overflow-hidden rounded-md bg-gray-50 group">
                 {img ? (
                   <img
