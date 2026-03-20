@@ -1,31 +1,29 @@
 # Dependencias
-node_modules/
+node_modules
+.pnp
+.pnp.js
 
 # Build
-dist/
+dist
+build
+server/public
 
-# Variables de entorno — NUNCA subir al repo
+# ============================================
+# SEGURIDAD: NUNCA subir al repositorio
+# ============================================
 .env
 .env.local
+.env.*.local
 .env.production
+
+# Vite
+vite.config.ts.*
+
+# Sistema
+.DS_Store
+*.tar.gz
+Thumbs.db
 
 # Logs
 *.log
 npm-debug.log*
-
-# Sistema operativo
-.DS_Store
-Thumbs.db
-
-# Editor
-.vscode/
-.idea/
-*.swp
-
-# Replit (no necesario en el repo)
-.replit
-replit.nix
-
-# Archivos temporales
-*.tmp
-*.temp
