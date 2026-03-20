@@ -998,6 +998,80 @@ export async function registerRoutes(
     } catch (e: any) {
       res.status(500).json({ message: e.message });
     }
+    // ── Sitemap XML — ayuda a Google a descubrir todos los productos ──
+  app.get("/sitemap.xml", async (_req, res) => {
+    try {
+      const SITE_URL = process.env.SITE_URL || "https://selvaimport.onrender.com";
+
+      const [products, categories] = await Promise.all([
+        storage.getProducts(),
+        storage.getCategories(),
+      ]);
+
+      const visibleProducts = products.filter((p) => p.isVisible);
+
+      const staticPages = [
+        { url: "/", priority: "1.0", changefreq: "daily" },
+        { url: "/tacora", priority: "0.8", changefreq: "weekly" },
+        { url: "/selva-natural", priority: "0.8", changefreq: "weekly" },
+        { url: "/page/terminos", priority: "0.3", changefreq: "monthly" },
+        { url: "/page/privacidad", priority: "0.3", changefreq: "monthly" },
+        { url: "/page/envios", priority: "0.5", changefreq: "monthly" },
+        { url: "/page/quienes-somos", priority: "0.6", changefreq: "monthly" },
+      ];
+
+      const productEntries = visibleProducts
+        .map((p) => {
+          const lastmod = p.createdAt
+            ? new Date(p.createdAt).toISOString().split("T")[0]
+            : new Date().toISOString().split("T")[0];
+          return `
+  <url>
+    <loc>${SITE_URL}/product/${p.id}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>`;
+        })
+        .join("");
+
+      const categoryEntries = categories
+        .map((c) => `
+  <url>
+    <loc>${SITE_URL}/?cat=${c.id}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>`)
+        .join("");
+
+      const staticEntries = staticPages
+        .map((p) => `
+  <url>
+    <loc>${SITE_URL}${p.url}</loc>
+    <changefreq>${p.changefreq}</changefreq>
+    <priority>${p.priority}</priority>
+  </url>`)
+        .join("");
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${staticEntries}
+${categoryEntries}
+${productEntries}
+</urlset>`;
+
+      res.setHeader("Content-Type", "application/xml");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.send(xml);
+    } catch (e: any) {
+      res.status(500).json({ message: "Error generando sitemap" });
+    }
+  });
+```
+
+Pégalo en `server/routes.ts` justo antes de esta línea que está al final del archivo:
+```
+  seedDatabase().catch(console.error);
   });
 
   seedDatabase().catch(console.error);
