@@ -700,7 +700,7 @@ export default function Home() {
               {/* Cuerpo */}
               <div className="p-6 text-center space-y-4">
                 <p className="text-muted-foreground text-sm">
-                  Usa este cupón al finalizar tu compra y obtén <span className="font-semibold text-foreground">S/ 20 de descuento</span> en tu pedido.
+                  Usa este cupón al finalizar tu compra y obtén <span className="font-semibold text-foreground">S/ 10 de descuento</span> en tu pedido.
                 </p>
 
                 {/* Código del cupón */}
