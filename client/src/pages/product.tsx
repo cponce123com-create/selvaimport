@@ -5,7 +5,7 @@ import { useAddToCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product/ProductCard";
-import { ShoppingCart, ArrowLeft, ChevronLeft, ChevronRight, CheckCircle, Package, AlertCircle, Recycle, MessageCircle } from "lucide-react";
+import { ShoppingCart, ArrowLeft, ChevronLeft, ChevronRight, CheckCircle, Package, AlertCircle, Recycle, MessageCircle, ZoomIn, Share2, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { toWebP, getDisplayPrice } from "@/lib/utils";
@@ -95,6 +95,7 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [, setLocation] = useLocation();
+  const [zoomOpen, setZoomOpen] = useState(false);
 
   // Actualizar meta tags y JSON-LD cuando el producto carga
   useEffect(() => {
@@ -207,6 +208,17 @@ export default function ProductDetail() {
     setSelectedImage(prev => (prev === totalMediaCount - 1 ? 0 : prev + 1));
   };
 
+  const handleShare = () => {
+    const url = window.location.href;
+    const text = `¡Mira este producto en Selva Import! ${product.name} - S/ ${pricing.current.toFixed(2)}`;
+    if (navigator.share) {
+      navigator.share({ title: product.name, text, url }).catch(() => {});
+    } else {
+      const waUrl = `https://wa.me/?text=${encodeURIComponent(text + "\n" + url)}`;
+      window.open(waUrl, "_blank", "noopener,noreferrer");
+    }
+  };
+
   return (
     <AppLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
@@ -229,12 +241,32 @@ export default function ProductDetail() {
                 <img
                   src={toWebP(allImages[hasVideo ? selectedImage - 1 : selectedImage] || allImages[0])}
                   alt={product.name}
-                  className="w-full h-full object-cover transition-opacity duration-300"
+                  className="w-full h-full object-cover transition-opacity duration-300 cursor-zoom-in"
                   data-testid="img-product-main"
+                  onClick={() => setZoomOpen(true)}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-muted-foreground/30 text-8xl font-bold">
                   {product.name.charAt(0)}
+                </div>
+              )}
+              {/* Botones zoom y compartir */}
+              {allImages.length > 0 && !(hasVideo && selectedImage === 0) && (
+                <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => setZoomOpen(true)}
+                    className="bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
+                    aria-label="Ampliar imagen"
+                  >
+                    <ZoomIn className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={handleShare}
+                    className="bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
+                    aria-label="Compartir producto"
+                  >
+                    <Share2 className="w-4 h-4" />
+                  </button>
                 </div>
               )}
               {totalMediaCount > 1 && (
@@ -358,21 +390,34 @@ export default function ProductDetail() {
                 </p>
               )}
 
-              <a
-                href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola, tengo una pregunta sobre el producto: *${product.name}*`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                data-testid="button-whatsapp-consult"
-              >
+              <div className="grid grid-cols-2 gap-3">
+                <a
+                  href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola, tengo una pregunta sobre el producto: *${product.name}*`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid="button-whatsapp-consult"
+                  className="col-span-1"
+                >
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="w-full py-5 sm:py-6 text-base rounded-xl border-[#25D366] text-[#25D366] hover:bg-[#25D366]/10 min-h-[48px] gap-2"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    Consultar
+                  </Button>
+                </a>
                 <Button
                   variant="outline"
                   size="lg"
-                  className="w-full py-5 sm:py-6 text-base rounded-xl border-[#25D366] text-[#25D366] hover:bg-[#25D366]/10 min-h-[48px] gap-3"
+                  onClick={handleShare}
+                  className="col-span-1 py-5 sm:py-6 text-base rounded-xl min-h-[48px] gap-2"
+                  data-testid="button-share-product"
                 >
-                  <MessageCircle className="w-5 h-5" />
-                  Consultar por WhatsApp
+                  <Share2 className="w-5 h-5" />
+                  Compartir
                 </Button>
-              </a>
+              </div>
             </div>
 
             {isTacora ? (
@@ -423,6 +468,28 @@ export default function ProductDetail() {
           </div>
         </div>
       </div>
+
+      {/* ── Modal de zoom de imagen ── */}
+      {zoomOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setZoomOpen(false)}
+        >
+          <button
+            className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white rounded-full p-2 transition-colors"
+            onClick={() => setZoomOpen(false)}
+            aria-label="Cerrar zoom"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={toWebP(allImages[hasVideo ? selectedImage - 1 : selectedImage] || allImages[0], 1200)}
+            alt={product.name}
+            className="max-w-full max-h-[90vh] object-contain rounded-xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       {/* ── Productos relacionados ── */}
       <RelatedProducts
