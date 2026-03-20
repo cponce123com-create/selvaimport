@@ -5,11 +5,13 @@ import { useAddToCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product/ProductCard";
-import { ShoppingCart, ArrowLeft, ChevronLeft, ChevronRight, CheckCircle, Package, AlertCircle, Recycle } from "lucide-react";
+import { ShoppingCart, ArrowLeft, ChevronLeft, ChevronRight, CheckCircle, Package, AlertCircle, Recycle, MessageCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { toWebP, getDisplayPrice } from "@/lib/utils";
 import { useLocation } from "wouter";
+
+const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || "51998130656";
 
 // Actualiza los meta tags del documento para Open Graph (WhatsApp, Facebook, etc.)
 function updateMetaTags(title: string, description: string, image: string, url: string) {
@@ -355,6 +357,22 @@ export default function ProductDetail() {
                   Solo quedan {product.inventory} en stock
                 </p>
               )}
+
+              <a
+                href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola, tengo una pregunta sobre el producto: *${product.name}*`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="button-whatsapp-consult"
+              >
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full py-5 sm:py-6 text-base rounded-xl border-[#25D366] text-[#25D366] hover:bg-[#25D366]/10 min-h-[48px] gap-3"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  Consultar por WhatsApp
+                </Button>
+              </a>
             </div>
 
             {isTacora ? (
