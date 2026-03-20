@@ -20,7 +20,7 @@ const MAX_IMAGES = 5;
 
 const formSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
-  description: z.string().min(1, "La descripcion es obligatoria"),
+  description: z.string().min(30, "La descripcion debe tener al menos 30 caracteres"),
   price: z.string().min(1, "El precio es obligatorio"),
   offerPrice: z.string().optional(),
   inventory: z.coerce.number().min(0, "El inventario no puede ser negativo"),
@@ -205,7 +205,26 @@ export default function AdminProducts() {
                   <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input data-testid="input-product-name" {...field} /></FormControl><FormMessage/></FormItem>
                 )} />
                 <FormField control={form.control} name="description" render={({field}) => (
-                  <FormItem><FormLabel>Descripcion</FormLabel><FormControl><Textarea data-testid="input-product-description" {...field} /></FormControl><FormMessage/></FormItem>
+                  <FormItem>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Descripcion</FormLabel>
+                      <span className={`text-xs font-mono ${field.value?.length >= 150 ? "text-green-600" : "text-amber-500"}`}>
+                        {field.value?.length || 0} / 150 min
+                      </span>
+                    </div>
+                    <FormControl>
+                      <Textarea
+                        data-testid="input-product-description"
+                        placeholder="Ej: Auriculares inalámbricos con cancelación de ruido activa, batería de 30 horas, sonido Hi-Fi y micrófono incorporado. Ideales para trabajo, viajes y música. Compatible con iOS y Android. Disponible en San Ramón con envío a La Merced."
+                        className="min-h-[100px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      <span className="font-medium">Consejo SEO:</span> Incluye características clave, materiales, compatibilidad y para qué sirve. Mínimo 150 caracteres para posicionar mejor en Google.
+                    </p>
+                    <FormMessage/>
+                  </FormItem>
                 )} />
                 <div className="grid grid-cols-3 gap-4">
                   <FormField control={form.control} name="price" render={({field}) => (
