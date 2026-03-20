@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import compression from "compression";
+import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -10,6 +12,17 @@ const app = express();
 const httpServer = createServer(app);
 
 app.use(compression());
+
+// ── Cabeceras de seguridad HTTP ──
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // Desactivado para no romper el frontend React/Vite
+    crossOriginEmbedderPolicy: false,
+  })
+);
+
+// ── Cookie parser (necesario para leer cookies httpOnly del token de invitado) ──
+app.use(cookieParser());
 
 declare module "http" {
   interface IncomingMessage {
@@ -66,8 +79,6 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    // Inicializar tablas nuevas si no existen (home_rows, home_rectangles, etc.)
-    // Es CRÍTICO que esto ocurra ANTES de registerRoutes para que las columnas existan
     await initDatabase();
   } catch (err) {
     console.error("Error durante la inicialización de la base de datos:", err);
@@ -88,9 +99,6 @@ app.use((req, res, next) => {
     return res.status(status).json({ message });
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
   } else {
