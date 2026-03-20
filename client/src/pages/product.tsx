@@ -112,6 +112,24 @@ export default function ProductDetail() {
 
     updateMetaTags(title, description, image, url);
 
+    // JSON-LD Schema.org BreadcrumbList — Google lo muestra en resultados de búsqueda
+    const breadcrumbScript = document.getElementById("breadcrumb-jsonld") || (() => {
+      const s = document.createElement("script");
+      s.id = "breadcrumb-jsonld";
+      s.type = "application/ld+json";
+      document.head.appendChild(s);
+      return s;
+    })();
+    breadcrumbScript.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Inicio", "item": window.location.origin },
+        ...(product.category ? [{ "@type": "ListItem", "position": 2, "name": product.category.name, "item": `${window.location.origin}/?cat=${product.category.id}` }] : []),
+        { "@type": "ListItem", "position": product.category ? 3 : 2, "name": product.name, "item": url },
+      ]
+    });
+
     // JSON-LD Schema.org Product — Google lo usa para mostrar precio y disponibilidad
     injectJsonLd({
       "@context": "https://schema.org",
@@ -148,6 +166,7 @@ export default function ProductDetail() {
     return () => {
       resetMetaTags();
       removeJsonLd();
+      document.getElementById("breadcrumb-jsonld")?.remove();
     };
   }, [product]);
 
@@ -222,9 +241,32 @@ export default function ProductDetail() {
   return (
     <AppLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-        <Link href={isTacora ? "/tacora" : "/"} className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground mb-8 transition-colors" data-testid="link-back-catalog">
+        <Link href={isTacora ? "/tacora" : "/"} className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground mb-4 transition-colors" data-testid="link-back-catalog">
           <ArrowLeft className="w-4 h-4 mr-2" /> {isTacora ? "Volver a TACORA" : "Volver al catalogo"}
         </Link>
+
+        {/* Breadcrumbs — navegación y SEO */}
+        <nav aria-label="Breadcrumb" className="mb-6">
+          <ol className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
+            <li>
+              <Link href="/" className="hover:text-foreground transition-colors">Inicio</Link>
+            </li>
+            {product.category && (
+              <>
+                <li aria-hidden="true" className="opacity-40">/</li>
+                <li>
+                  <Link href={`/?cat=${product.category.id}`} className="hover:text-foreground transition-colors">
+                    {product.category.name}
+                  </Link>
+                </li>
+              </>
+            )}
+            <li aria-hidden="true" className="opacity-40">/</li>
+            <li className="text-foreground font-medium truncate max-w-[200px]" aria-current="page">
+              {product.name}
+            </li>
+          </ol>
+        </nav>
 
         <div className="grid md:grid-cols-2 gap-10 lg:gap-16 items-start">
           <div className="sticky top-24 space-y-3">
