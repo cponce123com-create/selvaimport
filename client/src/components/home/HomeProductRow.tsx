@@ -23,7 +23,7 @@ function ProductThumbCard({ product }: { product: ProductThumb }) {
   const outOfStock = product.inventory === 0;
 
   return (
-    <Link href={`/product/${product.id}`}>
+    <Link href={`/product/${product.slug}`}>
       <div className="flex-shrink-0 w-[100px] sm:w-[120px] md:w-[130px] group cursor-pointer">
         {/* Imagen cuadrada compacta */}
         <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-white border border-gray-100 shadow-sm group-hover:shadow-md group-hover:border-gray-200 transition-all duration-200">
