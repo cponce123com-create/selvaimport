@@ -112,12 +112,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const showDropdown = searchFocused && debouncedSearch.length >= 2;
 
-  const handleSelectResult = useCallback((productId: number) => {
+  const handleSelectResult = useCallback((slug: string) => {
     setSearchValue("");
     setDebouncedSearch("");
     setSearchFocused(false);
     setSearchOpen(false);
-    setLocation(`/product/${productId}`);
+    setLocation(`/product/${slug}`);
   }, [setLocation]);
 
   const cartItemCount =
@@ -227,7 +227,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         <li key={product.id}>
                           <button
                             type="button"
-                            onClick={() => handleSelectResult(product.id)}
+                            onClick={() => handleSelectResult(product.slug)}
                             className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent transition-colors text-left"
                           >
                             <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted flex-shrink-0">
@@ -440,7 +440,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         <li key={product.id}>
                           <button
                             type="button"
-                            onClick={() => handleSelectResult(product.id)}
+                            onClick={() => handleSelectResult(product.slug)}
                             className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent transition-colors text-left"
                           >
                             <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted flex-shrink-0">
