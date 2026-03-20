@@ -46,11 +46,29 @@ const CREATE_TABLES_SQL = [
     sort_order INTEGER NOT NULL DEFAULT 0
   )`,
 
-  // Índices
+  // Índices existentes para home
   sql`CREATE INDEX IF NOT EXISTS idx_home_row_items_row_id ON home_row_items(home_row_id)`,
   sql`CREATE INDEX IF NOT EXISTS idx_home_row_items_product_id ON home_row_items(product_id)`,
   sql`CREATE INDEX IF NOT EXISTS idx_home_rectangle_items_rect_id ON home_rectangle_items(home_rectangle_id)`,
-  sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_home_rectangles_position ON home_rectangles(position)`
+  sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_home_rectangles_position ON home_rectangles(position)`,
+
+  // ── Índices nuevos para pedidos, carrito y productos ──
+  // Acelera: listar pedidos de un usuario, panel admin de pedidos
+  sql`CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id)`,
+  // Acelera: ordenar pedidos por fecha (más reciente primero)
+  sql`CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at DESC)`,
+  // Acelera: obtener items de un pedido
+  sql`CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id)`,
+  // Acelera: buscar qué pedidos tienen un producto específico
+  sql`CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id)`,
+  // Acelera: obtener el carrito de un usuario
+  sql`CREATE INDEX IF NOT EXISTS idx_carts_user_id ON carts(user_id)`,
+  // Acelera: obtener items de un carrito
+  sql`CREATE INDEX IF NOT EXISTS idx_cart_items_cart_id ON cart_items(cart_id)`,
+  // Acelera: filtrar productos por categoría
+  sql`CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id)`,
+  // Acelera: listar solo productos visibles (el caso más frecuente)
+  sql`CREATE INDEX IF NOT EXISTS idx_products_is_visible ON products(is_visible)`,
 ];
 
 export async function initDatabase(): Promise<void> {
