@@ -6,6 +6,8 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
+import { authLimiter } from "./rateLimiter";
+import { z } from "zod";
 
 declare global {
   namespace Express {
@@ -14,6 +16,21 @@ declare global {
 }
 
 const scryptAsync = promisify(scrypt);
+
+// ── Esquema de validación para el registro ──
+const registerSchema = z.object({
+  email: z
+    .string()
+    .email({ message: "El correo no es válido" }),
+  name: z
+    .string()
+    .min(2, { message: "El nombre debe tener al menos 2 caracteres" })
+    .max(80, { message: "El nombre es demasiado largo" }),
+  password: z
+    .string()
+    .min(8, { message: "La contraseña debe tener al menos 8 caracteres" })
+    .max(100, { message: "La contraseña es demasiado larga" }),
+});
 
 export async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
@@ -76,16 +93,27 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/auth/register", async (req, res, next) => {
+  // ── Registro con validación y rate limiting ──
+  app.post("/api/auth/register", authLimiter, async (req, res, next) => {
     try {
-      const existingUser = await storage.getUserByEmail(req.body.email);
+      // Validar los datos de entrada
+      const parsed = registerSchema.safeParse(req.body);
+      if (!parsed.success) {
+        const firstError = parsed.error.errors[0];
+        return res.status(400).json({ message: firstError.message });
+      }
+
+      const { email, name, password } = parsed.data;
+
+      const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
         return res.status(400).json({ message: "Este correo ya esta registrado" });
       }
 
-      const hashedPassword = await hashPassword(req.body.password);
+      const hashedPassword = await hashPassword(password);
       const user = await storage.createUser({
-        ...req.body,
+        email,
+        name,
         password: hashedPassword,
       });
 
@@ -98,7 +126,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/auth/login", (req, res, next) => {
+  app.post("/api/auth/login", authLimiter, (req, res, next) => {
     passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) return next(err);
       if (!user) {
