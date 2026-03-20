@@ -215,7 +215,7 @@ export default function Checkout() {
         onSuccess: (order) => {
           toast({ title: "Pedido registrado con exito" });
           window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-          setLocation(`/order/${order.id}?guest=1&token=${order.guestAccessToken}`);
+          setLocation(`/order/${order.id}?guest=1`);
         },
         onError: (err) => {
           toast({ title: "Error al registrar pedido", description: err.message, variant: "destructive" });
