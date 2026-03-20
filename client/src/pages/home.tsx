@@ -66,7 +66,7 @@ function BannerProductCard({
   const pricing = getDisplayPrice(product);
 
   return (
-    <Link href={`/product/${product.id}`} data-testid={`banner-product-${product.id}`}>
+    <Link href={`/product/${product.slug}`} data-testid={`banner-product-${product.id}`}>
       <div className="bg-white rounded-xl border border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group cursor-pointer h-full">
         <div className="relative h-[220px] overflow-hidden bg-white p-3 flex items-center justify-center">
           {img && (
