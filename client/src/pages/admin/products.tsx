@@ -18,9 +18,53 @@ import { useToast } from "@/hooks/use-toast";
 
 const MAX_IMAGES = 5;
 
+// Comprime una imagen antes de subirla al servidor
+// Reduce el tamaño manteniendo calidad aceptable (máx 1200px, calidad 85%)
+async function compressImage(file: File, maxWidth = 1200, quality = 0.85): Promise<File> {
+  // Solo comprimir imágenes (no videos ni otros)
+  if (!file.type.startsWith("image/")) return file;
+  // Si pesa menos de 300KB no vale la pena comprimir
+  if (file.size < 300 * 1024) return file;
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement("canvas");
+      let { width, height } = img;
+
+      // Escalar si es más ancha que maxWidth
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob || blob.size >= file.size) {
+            resolve(file); // Si la compresión no ayuda, usar original
+          } else {
+            resolve(new File([blob], file.name, { type: "image/jpeg", lastModified: Date.now() }));
+          }
+        },
+        "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
 const formSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
-  description: z.string().min(30, "La descripcion debe tener al menos 30 caracteres"),
+  description: z.string().min(1, "La descripcion es obligatoria"),
   price: z.string().min(1, "El precio es obligatorio"),
   offerPrice: z.string().optional(),
   inventory: z.coerce.number().min(0, "El inventario no puede ser negativo"),
@@ -95,10 +139,16 @@ export default function AdminProducts() {
       return;
     }
     const filesToUpload = Array.from(files).slice(0, remaining);
-    setUploading(true);
+    setUploading(true); // Incluye tiempo de compresión
     try {
       const uploaded: string[] = [];
-      for (const file of filesToUpload) {
+      for (const rawFile of filesToUpload) {
+        const file = await compressImage(rawFile);
+        const originalKB = Math.round(rawFile.size / 1024);
+        const compressedKB = Math.round(file.size / 1024);
+        if (compressedKB < originalKB) {
+          console.log(`🗜️ Imagen comprimida: ${originalKB}KB → ${compressedKB}KB`);
+        }
         const formData = new FormData();
         formData.append("file", file);
         const res = await fetch("/api/upload", { method: "POST", body: formData, credentials: "include" });
@@ -205,26 +255,7 @@ export default function AdminProducts() {
                   <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input data-testid="input-product-name" {...field} /></FormControl><FormMessage/></FormItem>
                 )} />
                 <FormField control={form.control} name="description" render={({field}) => (
-                  <FormItem>
-                    <div className="flex items-center justify-between">
-                      <FormLabel>Descripcion</FormLabel>
-                      <span className={`text-xs font-mono ${field.value?.length >= 150 ? "text-green-600" : "text-amber-500"}`}>
-                        {field.value?.length || 0} / 150 min
-                      </span>
-                    </div>
-                    <FormControl>
-                      <Textarea
-                        data-testid="input-product-description"
-                        placeholder="Ej: Auriculares inalámbricos con cancelación de ruido activa, batería de 30 horas, sonido Hi-Fi y micrófono incorporado. Ideales para trabajo, viajes y música. Compatible con iOS y Android. Disponible en San Ramón con envío a La Merced."
-                        className="min-h-[100px] resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      <span className="font-medium">Consejo SEO:</span> Incluye características clave, materiales, compatibilidad y para qué sirve. Mínimo 150 caracteres para posicionar mejor en Google.
-                    </p>
-                    <FormMessage/>
-                  </FormItem>
+                  <FormItem><FormLabel>Descripcion</FormLabel><FormControl><Textarea data-testid="input-product-description" {...field} /></FormControl><FormMessage/></FormItem>
                 )} />
                 <div className="grid grid-cols-3 gap-4">
                   <FormField control={form.control} name="price" render={({field}) => (
