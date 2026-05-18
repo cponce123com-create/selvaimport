@@ -201,28 +201,27 @@ export class DatabaseStorage implements IStorage {
       );
     }
 
+    // Siempre mostrar solo productos visibles en la tienda pública
+    conditions.push(eq(products.isVisible, true));
+
     const withPagination = page !== undefined && limit !== undefined;
     const effectivePage = page ?? 1;
     const effectiveLimit = limit ?? 0;
+
+    const whereClause = and(...conditions);
 
     // Count total matching products
     const [{ count }] = await db
       .select({ count: sql<number>`count(*)` })
       .from(products)
-      .where(conditions.length > 0 ? and(...conditions) : undefined);
+      .where(whereClause);
 
     const total = Number(count);
 
-    const query = db.select().from(products);
-    if (conditions.length > 0) {
-      query.where(and(...conditions));
-    }
-
-    if (withPagination) {
-      query.limit(effectiveLimit).offset((effectivePage - 1) * effectiveLimit);
-    }
-
-    const filteredProducts = await query.orderBy(desc(products.createdAt));
+    // Drizzle queries son inmutables — construir en una sola cadena
+    const filteredProducts = await (withPagination
+      ? db.select().from(products).where(whereClause).orderBy(desc(products.createdAt)).limit(effectiveLimit).offset((effectivePage - 1) * effectiveLimit)
+      : db.select().from(products).where(whereClause).orderBy(desc(products.createdAt)));
 
     const result = {
       products: filteredProducts.map((p) => ({
