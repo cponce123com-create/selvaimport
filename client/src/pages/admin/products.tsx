@@ -1,6 +1,7 @@
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from "@/hooks/use-products";
 import { useCategories } from "@/hooks/use-categories";
+import { useSuppliers } from "@/hooks/use-suppliers";
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -67,6 +68,7 @@ const formSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
   description: z.string().min(1, "La descripcion es obligatoria"),
   price: z.string().min(1, "El precio es obligatorio"),
+  purchasePrice: z.string().optional(),
   offerPrice: z.string().optional(),
   inventory: z.coerce.number().min(0, "El inventario no puede ser negativo"),
   categoryId: z.coerce.number().optional(),
@@ -79,6 +81,7 @@ function generateSlug(name: string) {
 export default function AdminProducts() {
   const { data: products = [], isLoading } = useProducts({ admin: true });
   const { data: categories = [] } = useCategories();
+  const { data: suppliers = [] } = useSuppliers();
   const { mutate: createProduct } = useCreateProduct();
   const { mutate: updateProduct } = useUpdateProduct();
   const { mutate: deleteProduct } = useDeleteProduct();
@@ -91,6 +94,8 @@ export default function AdminProducts() {
   const [videoPublicId, setVideoPublicId] = useState<string | null>(null);
   const [isOffer, setIsOffer] = useState(false);
   const [barcode, setBarcode] = useState("");
+  const [purchasePrice, setPurchasePrice] = useState("");
+  const [supplierId, setSupplierId] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -106,6 +111,7 @@ export default function AdminProducts() {
     form.reset({
       name: p.name, description: p.description,
       price: Number(p.price).toString(),
+      purchasePrice: p.purchasePrice ? Number(p.purchasePrice).toString() : "",
       offerPrice: p.offerPrice ? Number(p.offerPrice).toString() : "",
       inventory: p.inventory,
       categoryId: p.categoryId,
@@ -120,19 +126,23 @@ export default function AdminProducts() {
     setVideoUrl(p.videoUrl || null);
     setVideoPublicId(p.videoPublicId || null);
     setIsOffer(!!p.isOffer);
+    setPurchasePrice(p.purchasePrice || "");
+    setSupplierId(p.supplierId || null);
     setBarcode(p.barcode || "");
     setIsOpen(true);
   };
-
-  const openNew = () => {
-    setEditingId(null);
-    form.reset({ name: "", description: "", price: "", offerPrice: "", inventory: 0 });
-    setImages([]);
-    setVideoUrl(null);
-    setVideoPublicId(null);
-    setIsOffer(false);
-    setIsOpen(true);
-  };
+const openNew = () => {
+  setEditingId(null);
+  form.reset({ name: "", description: "", price: "", offerPrice: "", inventory: 0 });
+  setImages([]);
+  setVideoUrl(null);
+  setVideoPublicId(null);
+  setIsOffer(false);
+  setBarcode("");
+  setPurchasePrice("");
+  setSupplierId(null);
+  setIsOpen(true);
+};
 
   const handleUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -216,6 +226,8 @@ export default function AdminProducts() {
       isOffer: isOffer,
       offerPrice: isOffer && data.offerPrice && Number(data.offerPrice) > 0 ? data.offerPrice : null,
       barcode: barcode || null,
+      purchasePrice: purchasePrice || null,
+      supplierId: supplierId || null,
     };
 
     if (editingId) {
@@ -261,9 +273,12 @@ export default function AdminProducts() {
                 <FormField control={form.control} name="description" render={({field}) => (
                   <FormItem><FormLabel>Descripcion</FormLabel><FormControl><Textarea data-testid="input-product-description" {...field} /></FormControl><FormMessage/></FormItem>
                 )} />
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-4 gap-4">
                   <FormField control={form.control} name="price" render={({field}) => (
                     <FormItem><FormLabel>Precio (S/)</FormLabel><FormControl><Input type="number" step="0.01" data-testid="input-product-price" {...field} /></FormControl><FormMessage/></FormItem>
+                  )} />
+                  <FormField control={form.control} name="purchasePrice" render={({field}) => (
+                    <FormItem><FormLabel>Precio Compra (S/)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="Ej: 50.00" data-testid="input-product-purchase-price" {...field} /></FormControl><FormMessage/></FormItem>
                   )} />
                   <FormField control={form.control} name="inventory" render={({field}) => (
                     <FormItem><FormLabel>Inventario</FormLabel><FormControl><Input type="number" data-testid="input-product-inventory" {...field} /></FormControl><FormMessage/></FormItem>
@@ -283,6 +298,21 @@ export default function AdminProducts() {
                       <FormMessage/>
                     </FormItem>
                   )} />
+                </div>
+
+                {/* ── Proveedor ── */}
+                <div className="space-y-2">
+                  <FormLabel>Proveedor</FormLabel>
+                  <Select onValueChange={(v) => setSupplierId(Number(v))} value={supplierId?.toString() || ""}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-product-supplier"><SelectValue placeholder="Sin proveedor..." /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {suppliers.map((s: any) => (
+                        <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-3 p-4 rounded-lg border border-border bg-muted/30">
@@ -444,17 +474,18 @@ export default function AdminProducts() {
             <TableRow>
               <TableHead>Producto</TableHead>
               <TableHead>Precio</TableHead>
+              <TableHead>Precio Compra</TableHead>
               <TableHead>Inventario</TableHead>
-              <TableHead>Imagenes</TableHead>
+              <TableHead>Proveedor</TableHead>
               <TableHead>Categoria</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8">Cargando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8">Cargando...</TableCell></TableRow>
             ) : products.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8">No se encontraron productos</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8">No se encontraron productos</TableCell></TableRow>
             ) : (
               products.map((p: any) => (
                 <TableRow key={p.id} data-testid={`row-product-${p.id}`}>
@@ -487,11 +518,16 @@ export default function AdminProducts() {
                       <span>S/ {Number(p.price).toFixed(2)}</span>
                     )}
                   </TableCell>
+                  <TableCell>
+                    {p.purchasePrice ? (
+                      <span className="text-muted-foreground">S/ {Number(p.purchasePrice).toFixed(2)}</span>
+                    ) : (
+                      <span className="text-muted-foreground/50">-</span>
+                    )}
+                  </TableCell>
                   <TableCell>{p.inventory}</TableCell>
                   <TableCell>
-                    <span className="text-sm text-muted-foreground">
-                      {(p.images?.length || (p.imageUrl ? 1 : 0))} / {MAX_IMAGES}
-                    </span>
+                    <span className="text-sm">{p.supplier?.name || '-'}</span>
                   </TableCell>
                   <TableCell>{p.category?.name || '-'}</TableCell>
                   <TableCell className="text-right space-x-2">

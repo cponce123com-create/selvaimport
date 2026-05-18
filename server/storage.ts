@@ -2,11 +2,12 @@ import { getCached, setCache, invalidateCache } from "./cache";
 import { db } from "./db";
 import { eq, and, isNull, isNotNull, desc, ilike, or, sql } from "drizzle-orm";
 import {
-  users, categories, products, carts, cartItems, orders, orderItems, sitePages, bannerSlides, coupons,
+  users, categories, suppliers, products, carts, cartItems, orders, orderItems, sitePages, bannerSlides, coupons,
   homeRows, homeRowItems, homeRectangles, homeRectangleItems,
   type User, type InsertUser,
   type Category, type InsertCategory,
   type Product, type InsertProduct, type ProductWithCategory,
+  type Supplier, type InsertSupplier,
   type Cart, type CartItem, type InsertCartItem, type CartItemWithProduct,
   type Order, type InsertOrder, type OrderItem, type OrderWithItems,
   type SitePage, type InsertSitePage,
@@ -120,6 +121,12 @@ export interface IStorage {
   upsertHomeRectangle(position: number, data: Partial<InsertHomeRectangle>): Promise<HomeRectangle>;
   setHomeRectangleItems(homeRectangleId: number, productIds: number[]): Promise<void>;
 
+  getSuppliers(): Promise<Supplier[]>;
+  getSupplier(id: number): Promise<Supplier | undefined>;
+  createSupplier(data: InsertSupplier): Promise<Supplier>;
+  updateSupplier(id: number, data: Partial<InsertSupplier>): Promise<Supplier>;
+  deleteSupplier(id: number): Promise<void>;
+
   sessionStore: session.Store;
 }
 
@@ -170,7 +177,10 @@ export class DatabaseStorage implements IStorage {
     const cacheKey = `products:${categoryId || ''}:${search || ''}:${onlyShowOnHome || ''}:${page || ''}:${limit || ''}`;
     const cached = getCached<{ products: ProductWithCategory[]; total: number; page: number; totalPages: number }>(cacheKey);
     if (cached) return cached;
-    const cats = await this.getCategories();
+    const [cats, allSuppliers] = await Promise.all([
+      this.getCategories(),
+      this.getSuppliers(),
+    ]);
     const conditions = [];
 
     if (categoryId) {
@@ -227,6 +237,7 @@ export class DatabaseStorage implements IStorage {
       products: filteredProducts.map((p) => ({
         ...p,
         category: cats.find((c) => c.id === p.categoryId),
+        supplier: allSuppliers.find((s) => s.id === p.supplierId) || null,
       })),
       total,
       page: effectivePage,
@@ -244,7 +255,11 @@ export class DatabaseStorage implements IStorage {
       ? await db.select().from(categories).where(eq(categories.id, product.categoryId))
       : [undefined];
 
-    return { ...product, category };
+    const [supplier] = product.supplierId
+      ? await db.select().from(suppliers).where(eq(suppliers.id, product.supplierId))
+      : [undefined];
+
+    return { ...product, category, supplier: supplier || null };
   }
 
   async getProductBySlug(slug: string): Promise<Product | undefined> {
@@ -919,6 +934,31 @@ export class DatabaseStorage implements IStorage {
         }))
       );
     }
+  }
+
+  async getSuppliers(): Promise<Supplier[]> {
+    return await db.select().from(suppliers).orderBy(desc(suppliers.createdAt));
+  }
+
+  async getSupplier(id: number): Promise<Supplier | undefined> {
+    const [supplier] = await db.select().from(suppliers).where(eq(suppliers.id, id));
+    return supplier;
+  }
+
+  async createSupplier(data: InsertSupplier): Promise<Supplier> {
+    const [supplier] = await db.insert(suppliers).values(data).returning();
+    return supplier;
+  }
+
+  async updateSupplier(id: number, data: Partial<InsertSupplier>): Promise<Supplier> {
+    const [supplier] = await db.update(suppliers).set(data).where(eq(suppliers.id, id)).returning();
+    return supplier;
+  }
+
+  async deleteSupplier(id: number): Promise<void> {
+    // Set supplier_id to null on all products that reference this supplier
+    await db.update(products).set({ supplierId: null }).where(eq(products.supplierId, id));
+    await db.delete(suppliers).where(eq(suppliers.id, id));
   }
 }
 

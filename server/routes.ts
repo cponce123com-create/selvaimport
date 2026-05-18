@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, hashPassword } from "./auth";
 import { OAuth2Client } from "google-auth-library";
 import { api } from "@shared/routes";
-import { InsertProduct } from "@shared/schema";
+import { InsertProduct, Supplier, InsertSupplier } from "@shared/schema";
 import { z } from "zod";
 import { v2 as cloudinary } from "cloudinary";
 import multer from "multer";
@@ -340,11 +340,18 @@ export async function registerRoutes(
     if (!product) {
       return res.status(404).json({ message: "Producto no encontrado" });
     }
-    // Enriquecer con categoría igual que getProduct
+    // Enriquecer con categoría y proveedor
+    const [categories, allSuppliers] = await Promise.all([
+      storage.getCategories(),
+      storage.getSuppliers(),
+    ]);
     const category = product.categoryId
-      ? (await storage.getCategories()).find((c) => c.id === product.categoryId)
+      ? categories.find((c) => c.id === product.categoryId)
       : undefined;
-    res.json({ ...product, category });
+    const supplier = product.supplierId
+      ? allSuppliers.find((s) => s.id === product.supplierId)
+      : null;
+    res.json({ ...product, category, supplier });
   });
 
   app.post(api.products.create.path, requireAdmin, async (req, res) => {
@@ -1281,6 +1288,69 @@ Sitemap: ${SITE_URL}/sitemap.xml`;
     res.setHeader("Content-Type", "text/plain");
     res.setHeader("Cache-Control", "public, max-age=86400");
     res.send(robotsTxt);
+  });
+
+  // ── Suppliers ──
+  app.get("/api/suppliers", async (_req, res) => {
+    try {
+      const suppliers = await storage.getSuppliers();
+      res.json(suppliers);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  app.post("/api/admin/suppliers", requireAdmin, async (req, res) => {
+    try {
+      const schema = z.object({
+        name: z.string().min(1, "El nombre es requerido"),
+        contact: z.string().nullable().optional(),
+        phone: z.string().nullable().optional(),
+        email: z.string().nullable().optional(),
+        notes: z.string().nullable().optional(),
+      });
+      const data = schema.parse(req.body);
+      const supplier = await storage.createSupplier(data);
+      res.status(201).json(supplier);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message });
+    }
+  });
+
+  app.put("/api/admin/suppliers/:id", requireAdmin, async (req, res) => {
+    try {
+      const supplierId = Number(req.params.id);
+      const existing = await storage.getSupplier(supplierId);
+      if (!existing) {
+        return res.status(404).json({ message: "Proveedor no encontrado" });
+      }
+      const schema = z.object({
+        name: z.string().min(1).optional(),
+        contact: z.string().nullable().optional(),
+        phone: z.string().nullable().optional(),
+        email: z.string().nullable().optional(),
+        notes: z.string().nullable().optional(),
+      });
+      const data = schema.parse(req.body);
+      const supplier = await storage.updateSupplier(supplierId, data);
+      res.json(supplier);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message });
+    }
+  });
+
+  app.delete("/api/admin/suppliers/:id", requireAdmin, async (req, res) => {
+    try {
+      const supplierId = Number(req.params.id);
+      const existing = await storage.getSupplier(supplierId);
+      if (!existing) {
+        return res.status(404).json({ message: "Proveedor no encontrado" });
+      }
+      await storage.deleteSupplier(supplierId);
+      res.status(204).end();
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
   });
 
   seedDatabase().catch(console.error);

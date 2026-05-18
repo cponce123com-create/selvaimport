@@ -20,13 +20,25 @@ export const categories = pgTable("categories", {
   showOnHome: boolean("show_on_home").notNull().default(true),
 });
 
+export const suppliers = pgTable("suppliers", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  contact: text("contact"),
+  phone: text("phone"),
+  email: text("email"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   categoryId: integer("category_id").references(() => categories.id),
+  supplierId: integer("supplier_id").references(() => suppliers.id),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   description: text("description").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  purchasePrice: decimal("purchase_price", { precision: 10, scale: 2 }),
   offerPrice: decimal("offer_price", { precision: 10, scale: 2 }),
   inventory: integer("inventory").notNull().default(0),
   barcode: text("barcode"),
@@ -152,6 +164,10 @@ export const productsRelations = relations(products, ({ one }) => ({
     fields: [products.categoryId],
     references: [categories.id],
   }),
+  supplier: one(suppliers, {
+    fields: [products.supplierId],
+    references: [suppliers.id],
+  }),
 }));
 
 export const orderItemsRelations = relations(orderItems, ({ one }) => ({
@@ -198,6 +214,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, role: true });
 export const insertCategorySchema = createInsertSchema(categories).omit({ id: true });
+export const insertSupplierSchema = createInsertSchema(suppliers).omit({ id: true, createdAt: true });
 export const insertProductSchema = createInsertSchema(products).omit({ id: true, createdAt: true });
 export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, createdAt: true, status: true, totalAmount: true, userId: true });
 export const insertCartItemSchema = createInsertSchema(cartItems).omit({ id: true, cartId: true });
@@ -220,6 +237,8 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = z.infer<typeof insertCategorySchema>;
+export type Supplier = typeof suppliers.$inferSelect;
+export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
 export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Order = typeof orders.$inferSelect;
@@ -255,6 +274,6 @@ export type BannerSlideWithProducts = BannerSlide & {
   buttonCategory?: Category | null;
 };
 
-export type ProductWithCategory = Product & { category?: Category };
+export type ProductWithCategory = Product & { category?: Category; supplier?: Supplier | null };
 export type CartItemWithProduct = CartItem & { product: Product };
 export type OrderWithItems = Order & { items: (OrderItem & { product: Product })[] };
