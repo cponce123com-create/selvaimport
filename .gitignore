@@ -19,6 +19,9 @@ server/public
 # Vite
 vite.config.ts.*
 
+# IDX (Google Cloud Workstations)
+.idx/
+
 # Sistema
 .DS_Store
 *.tar.gz

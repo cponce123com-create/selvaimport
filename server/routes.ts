@@ -305,8 +305,16 @@ export async function registerRoutes(
 
     const onlyShowOnHome = !categoryId && !search && !isAdmin;
 
-    const page = Math.max(1, Number(req.query.page) || 1);
-    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+    const hasPaginationParams = req.query.page !== undefined || req.query.limit !== undefined;
+
+    // Para admin sin paginación explícita → devolver TODOS los productos
+    // Para el resto → paginación por defecto (page=1, limit=20)
+    const page = isAdmin && !hasPaginationParams
+      ? undefined
+      : Math.max(1, Number(req.query.page) || 1);
+    const limit = isAdmin && !hasPaginationParams
+      ? undefined
+      : Math.min(100, Math.max(1, Number(req.query.limit) || 20));
 
     const result = await storage.getProducts(
       categoryId,
