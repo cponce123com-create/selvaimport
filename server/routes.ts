@@ -1468,5 +1468,3 @@ async function seedCoupons() {
 
   console.log(`[seed] Cupón ${COUPON_CODE} creado (10% de descuento)`);
 }
-nto)`);
-}
