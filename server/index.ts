@@ -101,8 +101,12 @@ app.use((req, res, next) => {
 (async () => {
   try {
     await initDatabase();
+    // Verificar conexión a la BD
+    const { pool } = await import("./db");
+    await pool.query("SELECT 1");
+    console.log("[DB] Conexión a la base de datos exitosa ✓");
   } catch (err) {
-    console.error("Error durante la inicialización de la base de datos:", err);
+    console.error("[DB] ERROR al conectar con la base de datos:", err);
   }
 
   await registerRoutes(httpServer, app);
