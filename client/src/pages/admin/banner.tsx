@@ -39,7 +39,7 @@ export default function AdminBanner() {
     queryKey: ["/api/admin/banner-slides"],
   });
 
-  const { data: products = [] } = useProducts();
+  const { data: products = [] } = useProducts({ admin: true });
   const { data: categories = [] } = useCategories();
 
   const createMutation = useMutation({

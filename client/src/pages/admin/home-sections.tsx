@@ -134,7 +134,7 @@ function HomeRowsSection() {
   const { data: rows = [], isLoading } = useQuery<HomeRow[]>({
     queryKey: ["/api/admin/home-rows"],
   });
-  const { data: products = [] } = useProducts();
+  const { data: products = [] } = useProducts({ admin: true });
   const { data: categories = [] } = useCategories();
 
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -421,7 +421,7 @@ function HomeRectanglesAdmin() {
   const { data: rects = [] } = useQuery<HomeRectangle[]>({
     queryKey: ["/api/home-rectangles"],
   });
-  const { data: products = [] } = useProducts();
+  const { data: products = [] } = useProducts({ admin: true });
   const { data: categories = [] } = useCategories();
 
   const [editingPos, setEditingPos] = useState<number | null>(null);
