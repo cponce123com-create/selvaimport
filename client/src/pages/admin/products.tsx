@@ -74,6 +74,34 @@ const formSchema = z.object({
   categoryId: z.coerce.number().optional(),
 });
 
+// Botón separado para abrir la cámara directamente (solo funciona sin "multiple")
+// En móvil abre la cámara, en desktop abre el selector de archivos
+function CameraUploadButton({ uploading, onCapture }: { uploading: boolean; onCapture: (files: FileList | null) => void }) {
+  const cameraRef = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => cameraRef.current?.click()}
+        disabled={uploading}
+        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors mt-1.5 disabled:opacity-50"
+        data-testid="button-camera-capture"
+      >
+        <Upload className="w-3.5 h-3.5" />
+        Tomar foto con cámara
+      </button>
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => onCapture(e.target.files)}
+      />
+    </>
+  );
+}
+
 function generateSlug(name: string) {
   return name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
 }
@@ -404,6 +432,7 @@ const openNew = () => {
                         </button>
                       )}
                     </div>
+                    {/* Input para galería (múltiples archivos) */}
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -412,6 +441,11 @@ const openNew = () => {
                       className="hidden"
                       onChange={(e) => handleUpload(e.target.files)}
                       data-testid="input-file-upload"
+                    />
+                    {/* Input para cámara (foto única, sin multiple para que capture funcione) */}
+                    <CameraUploadButton
+                      uploading={uploading}
+                      onCapture={(files) => handleUpload(files)}
                     />
                     <p className="text-xs text-muted-foreground mt-2">
                       Maximo {MAX_IMAGES} imagenes. Formatos: JPG, PNG, WebP.
