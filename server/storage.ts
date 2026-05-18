@@ -1,3 +1,4 @@
+import { getCached, setCache, invalidateCache } from "./cache";
 import { db } from "./db";
 import { eq, and, isNull, isNotNull, desc, ilike, or, sql } from "drizzle-orm";
 import {
@@ -35,7 +36,7 @@ export interface IStorage {
   getCategories(): Promise<Category[]>;
   createCategory(category: InsertCategory): Promise<Category>;
 
-  getProducts(categoryId?: number, search?: string, onlyShowOnHome?: boolean): Promise<ProductWithCategory[]>;
+  getProducts(categoryId?: number, search?: string, onlyShowOnHome?: boolean, page?: number, limit?: number): Promise<{ products: ProductWithCategory[]; total: number; page: number; totalPages: number }>;
   getProduct(id: number): Promise<ProductWithCategory | undefined>;
   getProductBySlug(slug: string): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
@@ -152,15 +153,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCategories(): Promise<Category[]> {
-    return await db.select().from(categories);
+    const cached = getCached<Category[]>('categories');
+    if (cached) return cached;
+    const result = await db.select().from(categories);
+    setCache('categories', result, 120000);
+    return result;
   }
 
   async createCategory(category: InsertCategory): Promise<Category> {
     const [cat] = await db.insert(categories).values(category).returning();
+    invalidateCache('categories');
     return cat;
   }
 
-  async getProducts(categoryId?: number, search?: string, onlyShowOnHome?: boolean): Promise<ProductWithCategory[]> {
+  async getProducts(categoryId?: number, search?: string, onlyShowOnHome?: boolean, page?: number, limit?: number): Promise<{ products: ProductWithCategory[]; total: number; page: number; totalPages: number }> {
+    const cacheKey = `products:${categoryId || ''}:${search || ''}:${onlyShowOnHome || ''}:${page || ''}:${limit || ''}`;
+    const cached = getCached<{ products: ProductWithCategory[]; total: number; page: number; totalPages: number }>(cacheKey);
+    if (cached) return cached;
     const cats = await this.getCategories();
     const conditions = [];
 
@@ -192,17 +201,40 @@ export class DatabaseStorage implements IStorage {
       );
     }
 
+    const withPagination = page !== undefined && limit !== undefined;
+    const effectivePage = page ?? 1;
+    const effectiveLimit = limit ?? 0;
+
+    // Count total matching products
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(products)
+      .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+    const total = Number(count);
+
     const query = db.select().from(products);
     if (conditions.length > 0) {
       query.where(and(...conditions));
     }
 
+    if (withPagination) {
+      query.limit(effectiveLimit).offset((effectivePage - 1) * effectiveLimit);
+    }
+
     const filteredProducts = await query.orderBy(desc(products.createdAt));
 
-    return filteredProducts.map((p) => ({
-      ...p,
-      category: cats.find((c) => c.id === p.categoryId),
-    }));
+    const result = {
+      products: filteredProducts.map((p) => ({
+        ...p,
+        category: cats.find((c) => c.id === p.categoryId),
+      })),
+      total,
+      page: effectivePage,
+      totalPages: withPagination ? Math.max(1, Math.ceil(total / effectiveLimit)) : 1,
+    };
+    setCache(cacheKey, result, 60000);
+    return result;
   }
 
   async getProduct(id: number): Promise<ProductWithCategory | undefined> {
@@ -233,6 +265,8 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProduct(id: number): Promise<void> {
     await db.delete(products).where(eq(products.id, id));
+    invalidateCache('products');
+    invalidateCache('categories');
   }
 
   async checkLowStock(threshold: number = 5): Promise<{ id: number; name: string; inventory: number }[]> {
@@ -507,7 +541,7 @@ export class DatabaseStorage implements IStorage {
     },
     items: OrderItemInput[]
   ): Promise<OrderWithItems> {
-    return await db.transaction(async (tx) => {
+    const orderResult = await db.transaction(async (tx) => {
       await this.validateAndDiscountInventory(tx, items);
 
       const [order] = await tx
@@ -536,6 +570,8 @@ export class DatabaseStorage implements IStorage {
 
       return await this.buildOrderResponse(tx, order, insertedItems);
     });
+    invalidateCache('products');
+    return orderResult;
   }
 
   // Compatibilidad con tu código actual
@@ -866,6 +902,19 @@ export class DatabaseStorage implements IStorage {
 
     if (productIds.length > 0) {
       await db.insert(homeRectangleItems).values(
+        productIds.map((productId, idx) => ({
+          homeRectangleId,
+          productId,
+          sortOrder: idx,
+        }))
+      );
+    }
+  }
+}
+
+export const storage = new DatabaseStorage();
+storage = new DatabaseStorage();
+s).values(
         productIds.map((productId, idx) => ({
           homeRectangleId,
           productId,

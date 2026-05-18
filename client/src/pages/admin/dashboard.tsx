@@ -1,6 +1,7 @@
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { useOrders } from "@/hooks/use-orders";
 import { useProducts } from "@/hooks/use-products";
+import { useDashboardMetrics } from "@/hooks/use-dashboard";
 import { Link } from "wouter";
 import {
   DollarSign,
@@ -38,6 +39,7 @@ const STATUS_LABEL: Record<string, { label: string; color: string }> = {
 export default function AdminDashboard() {
   const { data: orders = [] } = useOrders();
   const { data: products = [] } = useProducts({ admin: true });
+  const { data: metrics } = useDashboardMetrics();
 
   // ── Métricas principales ──────────────────────────────────────────────────
   // Excluir pedidos cancelados de todas las métricas
@@ -138,6 +140,47 @@ export default function AdminDashboard() {
         <h1 className="text-3xl font-bold" data-testid="text-dashboard-title">Vista General</h1>
         <p className="text-muted-foreground mt-1">Resumen actualizado de Selva Import.</p>
       </div>
+
+      {/* ── Métricas del dashboard (server-side) ── */}
+      {metrics && (
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 mb-6">
+          <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border border-green-200 dark:border-green-800 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-green-700 dark:text-green-300">Ventas Hoy</span>
+              <DollarSign className="w-4 h-4 text-green-600" />
+            </div>
+            <div className="text-2xl font-bold text-green-800 dark:text-green-200">
+              S/ {metrics.salesToday.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Pedidos Pendientes</span>
+              <Clock className="w-4 h-4 text-amber-600" />
+            </div>
+            <div className="text-2xl font-bold text-amber-800 dark:text-amber-200">{metrics.pendingOrders}</div>
+          </div>
+
+          <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 border border-red-200 dark:border-red-800 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-red-700 dark:text-red-300">Stock Bajo</span>
+              <Package className="w-4 h-4 text-red-600" />
+            </div>
+            <div className="text-2xl font-bold text-red-800 dark:text-red-200">{metrics.lowStockItems}</div>
+          </div>
+
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border border-blue-200 dark:border-blue-800 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Ingresos del Mes</span>
+              <TrendingUp className="w-4 h-4 text-blue-600" />
+            </div>
+            <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
+              S/ {metrics.monthlyRevenue.toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Alertas ── */}
       {(outOfStockProducts.length > 0 || pendingOrders > 0) && (

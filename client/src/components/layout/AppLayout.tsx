@@ -149,15 +149,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     [setLocation]
   );
 
-  const handleSearch = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-      const q = searchValue.trim();
+  const executeSearch = useCallback(
+    (q: string) => {
       if (!q) return;
-
       setSearchOpen(false);
 
-      // Si ya está en la home, emite un evento para que el catálogo filtre
       if (location === "/") {
         window.dispatchEvent(new CustomEvent("navbar-search", { detail: q }));
         setTimeout(() => {
@@ -165,13 +161,20 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
         }, 100);
       } else {
-        // Si está en otra página, va a la home con el parámetro
         setLocation(`/?search=${encodeURIComponent(q)}#catalogo`);
       }
 
       setSearchValue("");
     },
-    [searchValue, location, setLocation]
+    [location, setLocation]
+  );
+
+  const handleSearch = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      executeSearch(searchValue.trim());
+    },
+    [searchValue, executeSearch]
   );
 
   return (
@@ -252,7 +255,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     {searchResults && searchResults.filter(p => p.isVisible).length > 5 && (
                       <button
                         type="button"
-                        onClick={(e) => { handleSearch(e as any); }}
+                        onClick={() => executeSearch(debouncedSearch)}
                         className="w-full px-4 py-3 text-sm text-primary font-medium hover:bg-accent transition-colors border-t text-center"
                       >
                         Ver todos los resultados para &quot;{debouncedSearch}&quot;
@@ -465,7 +468,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     {searchResults && searchResults.filter(p => p.isVisible).length > 5 && (
                       <button
                         type="button"
-                        onClick={(e) => { handleSearch(e as any); }}
+                        onClick={() => executeSearch(debouncedSearch)}
                         className="w-full px-4 py-3 text-sm text-primary font-medium hover:bg-accent transition-colors border-t text-center"
                       >
                         Ver todos los resultados

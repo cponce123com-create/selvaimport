@@ -27,6 +27,13 @@ export default function Login() {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!clientId) return;
 
+    // Lazy load Google Identity Services
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+
     const handleGoogleResponse = (response: any) => {
       googleLogin(response.credential, {
         onSuccess: (user) => {
@@ -58,7 +65,10 @@ export default function Login() {
       }
     }, 100);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      script.remove();
+    };
   }, [googleLogin, setLocation, toast]);
 
   const form = useForm<z.infer<typeof schema>>({
@@ -151,6 +161,13 @@ export default function Login() {
 
           <p className="text-center mt-6 text-sm text-muted-foreground">
             No tienes cuenta? <Link href="/register" className="text-primary font-semibold hover:underline" data-testid="link-register">Crear una cuenta</Link>
+          </p>
+        </div>
+      </div>
+    </AppLayout>
+  );
+}
+ cuenta? <Link href="/register" className="text-primary font-semibold hover:underline" data-testid="link-register">Crear una cuenta</Link>
           </p>
         </div>
       </div>

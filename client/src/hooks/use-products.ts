@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { z } from "zod";
 
-export function useProducts(params?: { search?: string; categoryId?: number; admin?: boolean }) {
+export function useProducts(params?: { search?: string; categoryId?: number; admin?: boolean; page?: number; limit?: number }) {
   return useQuery({
     queryKey: [api.products.list.path, params],
     queryFn: async () => {
@@ -10,6 +10,8 @@ export function useProducts(params?: { search?: string; categoryId?: number; adm
       if (params?.search) url.searchParams.set("search", params.search);
       if (params?.categoryId) url.searchParams.set("categoryId", params.categoryId.toString());
       if (params?.admin) url.searchParams.set("admin", "true");
+      if (params?.page !== undefined) url.searchParams.set("page", params.page.toString());
+      if (params?.limit !== undefined) url.searchParams.set("limit", params.limit.toString());
       
       const res = await fetch(url.toString(), { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch products");

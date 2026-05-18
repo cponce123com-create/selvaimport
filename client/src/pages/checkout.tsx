@@ -2,6 +2,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useCart, clearGuestCart } from "@/hooks/use-cart";
 import { useCreateOrder } from "@/hooks/use-orders";
 import { useAuth } from "@/hooks/use-auth";
+import { useProducts } from "@/hooks/use-products";
+import { useAddToCart } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -66,6 +68,78 @@ function useCreateGuestOrder() {
   });
 }
 
+function RelatedProductsSection({ cartItems }: { cartItems: any[] }) {
+  const { data: products } = useProducts({ admin: true });
+  const addToCart = useAddToCart();
+
+  const related = useMemo(() => {
+    if (!products || !Array.isArray(products) || !cartItems?.length) return [];
+
+    const cartProductIds = new Set(cartItems.map((i: any) => i.productId));
+    const cartCategoryIds = new Set(
+      cartItems.map((i: any) => i.product?.categoryId).filter(Boolean)
+    );
+
+    const candidates = products.filter(
+      (p: any) =>
+        p.isVisible !== false &&
+        !cartProductIds.has(p.id) &&
+        cartCategoryIds.has(p.categoryId)
+    );
+
+    const shuffled = [...candidates].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 3);
+  }, [products, cartItems]);
+
+  if (!related.length) return null;
+
+  return (
+    <div className="pt-2">
+      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+        Quizás también te guste
+      </h3>
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {related.map((product: any) => (
+          <div
+            key={product.id}
+            className="flex-shrink-0 w-[130px] border rounded-xl p-2 bg-card"
+          >
+            <div className="w-full h-16 bg-muted rounded-lg overflow-hidden mb-2">
+              {(product.images?.[0] || product.imageUrl) && (
+                <img
+                  src={toWebP(product.images?.[0] || product.imageUrl)}
+                  className="w-full h-full object-cover"
+                  alt={product.name}
+                />
+              )}
+            </div>
+            <p className="text-xs font-medium truncate mb-1">{product.name}</p>
+            <p className="text-xs font-bold mb-2">
+              S/ {getDisplayPrice(product).current.toFixed(2)}
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="w-full h-7 text-[11px] px-0"
+              onClick={() =>
+                addToCart.mutate({
+                  productId: product.id,
+                  quantity: 1,
+                  product,
+                })
+              }
+              disabled={addToCart.isPending}
+            >
+              Agregar
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Checkout() {
   const { data: cart, isLoading } = useCart();
   const { data: user } = useAuth();
@@ -82,6 +156,20 @@ export default function Checkout() {
     const handler = () => forceUpdate(n => n + 1);
     window.addEventListener("guest-cart-update", handler);
     return () => window.removeEventListener("guest-cart-update", handler);
+  }, []);
+
+  // Restaurar cupón desde localStorage (aplicado en el carrito)
+  useEffect(() => {
+    const stored = localStorage.getItem("selva_applied_coupon");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setAppliedCoupon(parsed);
+        form.setValue("couponCode", parsed.code || "");
+      } catch {
+        localStorage.removeItem("selva_applied_coupon");
+      }
+    }
   }, []);
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
@@ -194,6 +282,7 @@ export default function Checkout() {
     if (user) {
       createOrder({ shippingAddress: fullAddress }, {
         onSuccess: (order) => {
+          localStorage.removeItem("selva_applied_coupon");
           toast({ title: "Pedido registrado con exito" });
           window.open(whatsappUrl, "_blank", "noopener,noreferrer");
           setLocation(`/order/${order.id}`);
@@ -213,6 +302,7 @@ export default function Checkout() {
         })),
       }, {
         onSuccess: (order) => {
+          localStorage.removeItem("selva_applied_coupon");
           toast({ title: "Pedido registrado con exito" });
           window.open(whatsappUrl, "_blank", "noopener,noreferrer");
           setLocation(`/order/${order.id}?guest=1`);
@@ -389,6 +479,8 @@ export default function Checkout() {
                       </li>
                     ))}
                   </ul>
+
+                  <RelatedProductsSection cartItems={cart.items} />
 
                   <div className="bg-primary/5 rounded-xl p-4 space-y-3 border border-primary/10">
                     <div className="flex items-center gap-2">

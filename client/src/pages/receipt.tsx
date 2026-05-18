@@ -181,6 +181,37 @@ export default function Receipt() {
               </div>
             </div>
 
+            {isGuest && order.guestAccessToken && (
+              <div className="mt-8 pt-6 border-t">
+                <div className="bg-primary/5 border border-primary/10 rounded-xl p-5">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                    Link de Seguimiento
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Guarda este enlace para seguir tu pedido:
+                  </p>
+                  <div className="flex items-center gap-2 bg-background border rounded-lg p-3 text-sm font-mono break-all">
+                    <span className="flex-1 min-w-0 truncate">
+                      https://selvaimport.onrender.com/track-order/{order.id}?token={order.guestAccessToken}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="shrink-0 h-8 px-3 text-xs"
+                      onClick={() => {
+                        navigator.clipboard.writeText(
+                          `https://selvaimport.onrender.com/track-order/${order.id}?token=${order.guestAccessToken}`
+                        );
+                      }}
+                    >
+                      Copiar enlace
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="mt-8 pt-6 border-t">
               <Button
                 onClick={() => setShowProforma(true)}

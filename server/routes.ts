@@ -66,7 +66,7 @@ async function generateUniqueSlug(name: string, excludeProductId?: number): Prom
     return slug;
   }
 
-  const existingProducts = await storage.getProducts();
+  const existingProducts = (await storage.getProducts()).products;
   const existingSlugs = new Set(
     existingProducts.filter((p) => p.id !== excludeProductId).map((p) => p.slug)
   );
@@ -148,8 +148,24 @@ export async function registerRoutes(
   // ── Rate limiting general para toda la API pública ──
   app.use("/api", generalApiLimiter);
 
-  app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  app.get('/api/health', async (_req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      await db.execute(sql`SELECT 1`);
+      res.json({
+        status: 'ok',
+        database: 'connected',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      res.status(503).json({
+        status: 'error',
+        database: 'disconnected',
+        message: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
   });
   setupAuth(app);
 
@@ -288,8 +304,20 @@ export async function registerRoutes(
 
     const onlyShowOnHome = !categoryId && !search && !isAdmin;
 
-    const prods = await storage.getProducts(categoryId, search, onlyShowOnHome);
-    res.json(prods);
+    const pageParam = req.query.page ? Number(req.query.page) : undefined;
+    const limitParam = req.query.limit ? Number(req.query.limit) : undefined;
+
+    // Si no vienen page/limit, no paginar (compatibilidad con búsqueda/dropdown)
+    const usePagination = pageParam !== undefined && limitParam !== undefined;
+
+    const result = await storage.getProducts(
+      categoryId,
+      search,
+      onlyShowOnHome,
+      usePagination ? pageParam : undefined,
+      usePagination ? limitParam : undefined
+    );
+    res.json(result);
   });
 
   app.get(api.products.get.path, async (req, res) => {
@@ -566,7 +594,7 @@ export async function registerRoutes(
       const { randomBytes } = await import("crypto");
       const guestAccessToken = randomBytes(32).toString("hex");
 
-      const allProducts = await storage.getProducts();
+      const allProducts = (await storage.getProducts()).products;
 
       let total = 0;
 
@@ -1101,6 +1129,70 @@ export async function registerRoutes(
   });
 
 
+  // ── Dashboard metrics endpoint ──
+  app.get("/api/admin/metrics/dashboard", requireAdmin, async (_req, res) => {
+    try {
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const allOrders = await storage.getOrders();
+
+      // Ventas hoy
+      const salesToday = allOrders
+        .filter((o) => {
+          if (!o.createdAt) return false;
+          const d = new Date(o.createdAt);
+          return d >= startOfDay && o.status !== "cancelado" && o.status !== "cancelled";
+        })
+        .reduce((sum, o) => sum + Number(o.totalAmount), 0);
+
+      // Pedidos pendientes (no entregados ni cancelados)
+      const pendingOrders = allOrders.filter(
+        (o) => o.status !== "entregado" && o.status !== "cancelado" && o.status !== "cancelled"
+      ).length;
+
+      // Productos con stock bajo (< 5)
+      const lowStockItems = await storage.checkLowStock(5);
+
+      // Ingresos del mes actual
+      const monthlyRevenue = allOrders
+        .filter((o) => {
+          if (!o.createdAt) return false;
+          const d = new Date(o.createdAt);
+          return d >= startOfMonth && o.status !== "cancelado" && o.status !== "cancelled";
+        })
+        .reduce((sum, o) => sum + Number(o.totalAmount), 0);
+
+      // Últimos 5 pedidos
+      const recentOrders = [...allOrders]
+        .sort((a, b) => {
+          const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return db - da;
+        })
+        .slice(0, 5)
+        .map((o) => ({
+          id: o.id,
+          status: o.status,
+          totalAmount: o.totalAmount,
+          guestName: o.guestName,
+          createdAt: o.createdAt,
+        }));
+
+      res.json({
+        salesToday,
+        pendingOrders,
+        lowStockItems: lowStockItems.length,
+        lowStockProducts: lowStockItems,
+        monthlyRevenue,
+        recentOrders,
+      });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
   // ── Sitemap XML — ayuda a Google a descubrir todos los productos ──
   app.get("/sitemap.xml", async (_req, res) => {
     try {
@@ -1180,6 +1272,7 @@ async function seedDatabase() {
   await seedUsers();
   await seedCatalog();
   await seedPages();
+  await seedCoupons();
 }
 
 async function seedUsers() {
@@ -1354,4 +1447,26 @@ async function seedPages() {
       await storage.upsertSitePage(page.slug, page);
     }
   }
+}
+
+async function seedCoupons() {
+  const COUPON_CODE = "BIENVENIDO10";
+
+  const existing = await storage.getCouponByCode(COUPON_CODE);
+  if (existing) {
+    return; // Ya existe
+  }
+
+  await storage.createCoupon({
+    code: COUPON_CODE,
+    discountType: "percentage",
+    discountValue: "10",
+    maxUses: null,
+    expiryDate: null,
+    isActive: true,
+  } as any);
+
+  console.log(`[seed] Cupón ${COUPON_CODE} creado (10% de descuento)`);
+}
+nto)`);
 }

@@ -56,6 +56,7 @@ export default function Cart() {
 
       const coupon = await response.json();
       setAppliedCoupon(coupon);
+      localStorage.setItem("selva_applied_coupon", JSON.stringify(coupon));
       toast({
         title: "¡Cupón aplicado!",
         description: `Descuento de ${coupon.discountType === "percentage" ? coupon.discountValue + "%" : "S/ " + coupon.discountValue}`,

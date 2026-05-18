@@ -383,6 +383,19 @@ export default function Home() {
     }
   }, [scrollToSection]);
 
+  // Preload first banner image for LCP
+  useEffect(() => {
+    const firstSlide = bannerSlides[0];
+    if (!firstSlide?.imageUrl) return;
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = toWebP(firstSlide.imageUrl, 1200);
+    link.fetchPriority = 'high';
+    document.head.appendChild(link);
+    return () => { link.remove(); };
+  }, [bannerSlides]);
+
   // Escuchar búsquedas desde el navbar cuando el usuario está en la home
   useEffect(() => {
     const handler = (e: Event) => {
