@@ -3,6 +3,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Barcode, Camera, CameraOff, Loader2, Scan } from "lucide-react";
 
+// Type declarations for BarcodeDetector Web API (Chrome, Edge, Safari)
+interface DetectedBarcode {
+  rawValue: string;
+  format: string;
+  boundingBox: DOMRectReadOnly;
+  cornerPoints: readonly { x: number; y: number }[];
+}
+
+declare class BarcodeDetector {
+  constructor(options?: { formats?: string[] });
+  static getSupportedFormats(): Promise<string[]>;
+  detect(image: ImageBitmapSource): Promise<DetectedBarcode[]>;
+}
+
 interface BarcodeScannerProps {
   value: string;
   onChange: (value: string) => void;
@@ -26,7 +40,7 @@ export function BarcodeScanner({ value, onChange }: BarcodeScannerProps) {
   // Detectar soporte de BarcodeDetector
   useEffect(() => {
     if ("BarcodeDetector" in window) {
-      BarcodeDetector.getSupportedFormats().then((formats) => {
+      BarcodeDetector.getSupportedFormats().then((formats: string[]) => {
         setSupported(formats.length > 0);
       }).catch(() => setSupported(false));
     } else {

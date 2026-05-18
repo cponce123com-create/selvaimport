@@ -206,7 +206,7 @@ export default function AdminProducts() {
     : null;
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
-    const payload: Record<string, any> = {
+    const payload = {
       ...data,
       slug: generateSlug(data.name),
       imageUrl: images.length > 0 ? images[0] : null,
