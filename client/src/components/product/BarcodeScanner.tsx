@@ -87,14 +87,21 @@ export function BarcodeScanner({ value, onChange }: BarcodeScannerProps) {
   useEffect(() => {
     if (!scanning || !videoRef.current) return;
 
-    const detector = new BarcodeDetector({
-      formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39", "qr", "itf", "codabar"],
-    });
-
     let animFrame: number;
+    let detector: BarcodeDetector | null = null;
+
+    try {
+      detector = new BarcodeDetector({
+        formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39", "qr", "itf", "codabar"],
+      });
+    } catch {
+      console.warn("BarcodeDetector no soportado para los formatos solicitados");
+      stopCamera();
+      return;
+    }
 
     const detect = async () => {
-      if (!videoRef.current || detectedRef.current) return;
+      if (!videoRef.current || detectedRef.current || !detector) return;
 
       try {
         const barcodes = await detector.detect(videoRef.current);
