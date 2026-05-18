@@ -167,10 +167,3 @@ export default function Login() {
     </AppLayout>
   );
 }
- cuenta? <Link href="/register" className="text-primary font-semibold hover:underline" data-testid="link-register">Crear una cuenta</Link>
-          </p>
-        </div>
-      </div>
-    </AppLayout>
-  );
-}
