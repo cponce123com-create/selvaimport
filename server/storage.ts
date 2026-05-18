@@ -913,16 +913,3 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
-storage = new DatabaseStorage();
-s).values(
-        productIds.map((productId, idx) => ({
-          homeRectangleId,
-          productId,
-          sortOrder: idx,
-        }))
-      );
-    }
-  }
-}
-
-export const storage = new DatabaseStorage();
