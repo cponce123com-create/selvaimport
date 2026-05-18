@@ -61,6 +61,7 @@ export const api = {
         slug: z.string().optional(),
         price: z.coerce.string(),
         offerPrice: z.coerce.string().nullable().optional(),
+        barcode: z.string().nullable().optional(),
         images: z.array(z.string().url()).max(5).optional(),
         videoUrl: z.string().nullable().optional(),
         videoPublicId: z.string().nullable().optional(),
@@ -73,6 +74,7 @@ export const api = {
       input: insertProductSchema.partial().extend({
         price: z.coerce.string().optional(),
         offerPrice: z.coerce.string().nullable().optional(),
+        barcode: z.string().nullable().optional(),
         images: z.array(z.string().url()).max(5).optional(),
         videoUrl: z.string().nullable().optional(),
         videoPublicId: z.string().nullable().optional(),

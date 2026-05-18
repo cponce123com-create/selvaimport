@@ -9,12 +9,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, Upload, X, ImageIcon, Loader2, Tag } from "lucide-react";
+import { Plus, Edit2, Trash2, Upload, X, ImageIcon, Loader2, Tag, Barcode } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { BarcodeScanner } from "@/components/product/BarcodeScanner";
 
 const MAX_IMAGES = 5;
 
@@ -89,6 +90,7 @@ export default function AdminProducts() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoPublicId, setVideoPublicId] = useState<string | null>(null);
   const [isOffer, setIsOffer] = useState(false);
+  const [barcode, setBarcode] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -118,6 +120,7 @@ export default function AdminProducts() {
     setVideoUrl(p.videoUrl || null);
     setVideoPublicId(p.videoPublicId || null);
     setIsOffer(!!p.isOffer);
+    setBarcode(p.barcode || "");
     setIsOpen(true);
   };
 
@@ -203,7 +206,7 @@ export default function AdminProducts() {
     : null;
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
-    const payload = {
+    const payload: Record<string, any> = {
       ...data,
       slug: generateSlug(data.name),
       imageUrl: images.length > 0 ? images[0] : null,
@@ -212,6 +215,7 @@ export default function AdminProducts() {
       videoPublicId: videoPublicId,
       isOffer: isOffer,
       offerPrice: isOffer && data.offerPrice && Number(data.offerPrice) > 0 ? data.offerPrice : null,
+      barcode: barcode || null,
     };
 
     if (editingId) {
@@ -317,6 +321,16 @@ export default function AdminProducts() {
                       )}
                     </div>
                   )}
+                </div>
+
+                {/* ── Código de Barras ── */}
+                <div className="space-y-2">
+                  <FormLabel className="flex items-center gap-2">
+                    <Barcode className="w-4 h-4 text-muted-foreground" />
+                    Código de Barras
+                    <span className="text-xs font-normal text-muted-foreground">(opcional)</span>
+                  </FormLabel>
+                  <BarcodeScanner value={barcode} onChange={setBarcode} />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

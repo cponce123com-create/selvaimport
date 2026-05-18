@@ -29,6 +29,7 @@ export const products = pgTable("products", {
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   offerPrice: decimal("offer_price", { precision: 10, scale: 2 }),
   inventory: integer("inventory").notNull().default(0),
+  barcode: text("barcode"),
   imageUrl: text("image_url"),
   images: text("images").array().default([]),
   videoUrl: text("video_url"),
