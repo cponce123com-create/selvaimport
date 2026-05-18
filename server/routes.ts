@@ -1,9 +1,10 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, hashPassword } from "./auth";
 import { OAuth2Client } from "google-auth-library";
 import { api } from "@shared/routes";
+import { InsertProduct } from "@shared/schema";
 import { z } from "zod";
 import { v2 as cloudinary } from "cloudinary";
 import multer from "multer";
@@ -21,15 +22,15 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB
 });
 
-function requireAuth(req: any, res: any, next: any) {
+function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ message: "No autorizado" });
   }
   next();
 }
 
-function requireAdmin(req: any, res: any, next: any) {
-  if (!req.isAuthenticated() || req.user.role !== "admin") {
+function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.isAuthenticated() || req.user!.role !== "admin") {
     return res.status(401).json({ message: "No autorizado: Solo administradores" });
   }
   next();
@@ -116,7 +117,7 @@ async function applyCouponToTotal(total: number, shippingAddress: string) {
   if (!couponCode) {
     return {
       finalTotal: total,
-      coupon: null as any,
+      coupon: null,
       couponCode: null as string | null,
       discount: 0,
     };
@@ -193,7 +194,7 @@ export async function registerRoutes(
         user = await storage.createUser({
           email: payload.email,
           name: payload.name || payload.email.split("@")[0],
-          password: null as any,
+          password: null as unknown as string,
         });
       }
 
@@ -304,18 +305,15 @@ export async function registerRoutes(
 
     const onlyShowOnHome = !categoryId && !search && !isAdmin;
 
-    const pageParam = req.query.page ? Number(req.query.page) : undefined;
-    const limitParam = req.query.limit ? Number(req.query.limit) : undefined;
-
-    // Si no vienen page/limit, no paginar (compatibilidad con búsqueda/dropdown)
-    const usePagination = pageParam !== undefined && limitParam !== undefined;
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
 
     const result = await storage.getProducts(
       categoryId,
       search,
       onlyShowOnHome,
-      usePagination ? pageParam : undefined,
-      usePagination ? limitParam : undefined
+      page,
+      limit
     );
     res.json(result);
   });
@@ -344,9 +342,9 @@ export async function registerRoutes(
   app.post(api.products.create.path, requireAdmin, async (req, res) => {
     try {
       const data = api.products.create.input.parse(req.body);
-      (data as any).slug = await generateUniqueSlug(data.name);
+      const productData = { ...data, slug: await generateUniqueSlug(data.name) };
 
-      const p = await storage.createProduct(data as any);
+      const p = await storage.createProduct(productData as InsertProduct);
       res.status(201).json(p);
     } catch (e: any) {
       res.status(400).json({ message: e.message });
@@ -359,17 +357,19 @@ export async function registerRoutes(
       const productId = Number(req.params.id);
       const existing = await storage.getProduct(productId);
 
+      const updateData = { ...data };
       if (data.name) {
-        (data as any).slug = await generateUniqueSlug(data.name, productId);
+        updateData.slug = await generateUniqueSlug(data.name, productId);
       }
 
-      const p = await storage.updateProduct(productId, data as any);
+      const p = await storage.updateProduct(productId, updateData as Partial<InsertProduct>);
 
+      const updateDataAny = data as Record<string, any>;
       if (
         existing &&
         existing.videoPublicId &&
-        (data as any).videoPublicId &&
-        existing.videoPublicId !== (data as any).videoPublicId
+        updateDataAny.videoPublicId &&
+        existing.videoPublicId !== updateDataAny.videoPublicId
       ) {
         await cloudinary.uploader
           .destroy(existing.videoPublicId, { resource_type: "video" })
@@ -495,7 +495,7 @@ export async function registerRoutes(
 
       const order = await storage.createOrderWithStock(
         req.user!.id,
-        orderInfo as any,
+        orderInfo,
         items
       );
 
@@ -749,7 +749,7 @@ export async function registerRoutes(
       if (typeof content === "string") updates.content = content;
       if (imageUrl !== undefined) updates.imageUrl = imageUrl;
 
-      const page = await storage.upsertSitePage(req.params.slug, updates);
+      const page = await storage.upsertSitePage(req.params.slug as string, updates);
       res.json(page);
     } catch (e: any) {
       res.status(500).json({ message: e.message });
@@ -941,7 +941,7 @@ export async function registerRoutes(
         maxUses: data.maxUses || null,
         expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
         isActive: data.isActive,
-      } as any);
+      });
 
       res.status(201).json(coupon);
     } catch (e: any) {
@@ -974,7 +974,7 @@ export async function registerRoutes(
             ? null
             : undefined,
         isActive: data.isActive,
-      } as any);
+      });
 
       res.json(coupon);
     } catch (e: any) {
@@ -1198,12 +1198,13 @@ export async function registerRoutes(
     try {
       const SITE_URL = process.env.SITE_URL || "https://selvaimport.onrender.com";
 
-      const [products, categories] = await Promise.all([
+      const [productsResult, categories] = await Promise.all([
         storage.getProducts(),
         storage.getCategories(),
       ]);
 
-      const visibleProducts = products.filter((p) => p.isVisible);
+      const products = Array.isArray(productsResult) ? productsResult : productsResult.products;
+      const visibleProducts = products.filter((p: any) => p.isVisible);
 
       const staticPages = [
         { url: "/", priority: "1.0", changefreq: "daily" },
@@ -1222,7 +1223,7 @@ export async function registerRoutes(
             : new Date().toISOString().split("T")[0];
           return `
   <url>
-    <loc>${SITE_URL}/product/${p.id}</loc>
+    <loc>${SITE_URL}/product/${p.slug}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
@@ -1263,6 +1264,17 @@ ${productEntries}
     }
   });
 
+  // ── Robots.txt ──
+  app.get("/robots.txt", async (_req, res) => {
+    const SITE_URL = process.env.SITE_URL || "https://selvaimport.onrender.com";
+    const robotsTxt = `User-agent: *
+Allow: /
+Sitemap: ${SITE_URL}/sitemap.xml`;
+    res.setHeader("Content-Type", "text/plain");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.send(robotsTxt);
+  });
+
   seedDatabase().catch(console.error);
 
   return httpServer;
@@ -1281,9 +1293,23 @@ async function seedUsers() {
   const { eq } = await import("drizzle-orm");
 
   const adminEmail = process.env.ADMIN_EMAIL || "admin@selvaimport.com";
-  const adminPassword =
-    process.env.ADMIN_PASSWORD ||
-    (process.env.NODE_ENV === "production" ? undefined : "admin123");
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
+  if (!adminPassword) {
+    if (process.env.NODE_ENV === "production") {
+      console.warn(
+        "[seed] WARNING: ADMIN_PASSWORD not set in production. Skipping admin account creation."
+      );
+      return;
+    }
+    console.warn(
+      "[seed] WARNING: ADMIN_PASSWORD not set. Using default password for development only."
+    );
+  }
+
+  // En producción ya retornamos arriba si no hay ADMIN_PASSWORD
+  // En desarrollo usamos "admin123" como fallback local
+  const effectivePassword = adminPassword || "admin123";
 
   const existingAdmin = await storage.getUserByEmail(adminEmail);
 
@@ -1293,23 +1319,17 @@ async function seedUsers() {
       console.log(`[seed] Promoted ${adminEmail} to admin`);
     }
 
-    if (adminPassword) {
-      const adminPass = await hashPassword(adminPassword);
-      await db.update(users).set({ password: adminPass }).where(eq(users.id, existingAdmin.id));
-    }
-  } else if (adminPassword) {
-    const adminPass = await hashPassword(adminPassword);
+    const adminPass = await hashPassword(effectivePassword);
+    await db.update(users).set({ password: adminPass }).where(eq(users.id, existingAdmin.id));
+  } else {
+    const adminPass = await hashPassword(effectivePassword);
     const admin = await storage.createUser({
       email: adminEmail,
       name: "Admin Selva Import",
       password: adminPass,
-    } as any);
+    });
 
     await db.update(users).set({ role: "admin" }).where(eq(users.id, admin.id));
-  } else {
-    console.warn(
-      "[seed] ADMIN_PASSWORD not set and admin account does not exist - skipping admin creation"
-    );
   }
 }
 
@@ -1464,7 +1484,7 @@ async function seedCoupons() {
     maxUses: null,
     expiryDate: null,
     isActive: true,
-  } as any);
+  });
 
   console.log(`[seed] Cupón ${COUPON_CODE} creado (10% de descuento)`);
 }

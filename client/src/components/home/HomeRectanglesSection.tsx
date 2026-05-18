@@ -5,6 +5,7 @@ import { ChevronRight } from "lucide-react";
 interface ProductThumb {
   id: number;
   name: string;
+  slug: string;
   imageUrl: string | null;
   images: string[] | null;
   inventory: number;

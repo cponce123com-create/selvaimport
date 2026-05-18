@@ -363,7 +363,7 @@ function HomeRowsSection() {
                     <SelectValue placeholder="Seleccionar categoría" />
                   </SelectTrigger>
                   <SelectContent>
-                    {(categories as any[])
+                    {(categories as Array<Record<string, any>>)
                       .filter((c: any) => c.slug !== "tacora")
                       .map((c: any) => (
                         <SelectItem key={c.id} value={c.id.toString()}>
@@ -383,7 +383,7 @@ function HomeRowsSection() {
                 <ProductMultiSelect
                   selected={form.productIds || []}
                   onChange={(ids) => setForm({ ...form, productIds: ids })}
-                  products={products as any[]}
+                  products={products as Array<Record<string, any>>}
                 />
               </div>
             )}
@@ -588,7 +588,7 @@ function HomeRectanglesAdmin() {
                             <SelectValue placeholder="Seleccionar" />
                           </SelectTrigger>
                           <SelectContent>
-                            {(products as any[])
+                            {(products as Array<Record<string, any>>)
                               .filter((p: any) => p.category?.slug !== "tacora")
                               .map((p: any) => (
                                 <SelectItem key={p.id} value={p.id.toString()}>
@@ -608,7 +608,7 @@ function HomeRectanglesAdmin() {
                         <ProductMultiSelect
                           selected={f.productIds || []}
                           onChange={(ids) => updateForm(pos, { productIds: ids })}
-                          products={products as any[]}
+                          products={products as Array<Record<string, any>>}
                           max={4}
                         />
                       </div>
@@ -625,7 +625,7 @@ function HomeRectanglesAdmin() {
                             <SelectValue placeholder="Seleccionar" />
                           </SelectTrigger>
                           <SelectContent>
-                            {(categories as any[])
+                            {(categories as Array<Record<string, any>>)
                               .filter((c: any) => c.slug !== "tacora")
                               .map((c: any) => (
                                 <SelectItem key={c.id} value={c.id.toString()}>

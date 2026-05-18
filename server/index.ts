@@ -7,6 +7,29 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { initDatabase } from "./db-init";
 
+// ── Validación de environment variables requeridas ──
+const REQUIRED_VARS = ["DATABASE_URL", "SESSION_SECRET"] as const;
+for (const varName of REQUIRED_VARS) {
+  if (!process.env[varName]) {
+    console.error(`[ENV] FATAL: ${varName} is required but not set.`);
+    process.exit(1);
+  }
+}
+
+// Variables opcionales — solo warning
+const OPTIONAL_VARS = [
+  "CLOUDINARY_CLOUD_NAME",
+  "CLOUDINARY_API_KEY",
+  "CLOUDINARY_API_SECRET",
+  "TELEGRAM_BOT_TOKEN",
+  "TELEGRAM_CHAT_ID",
+] as const;
+for (const varName of OPTIONAL_VARS) {
+  if (!process.env[varName]) {
+    console.warn(`[ENV] WARNING: ${varName} is not set. Related features will be unavailable.`);
+  }
+}
+
 const app = express();
 const httpServer = createServer(app);
 
@@ -39,6 +62,15 @@ export function log(message: string, source = "express") {
 
   console.log(`${formattedTime} [${source}] ${message}`);
 }
+
+// ── Security Headers ──
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "geolocation=()");
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

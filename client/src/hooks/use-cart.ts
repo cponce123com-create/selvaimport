@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, UseQueryResult } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { z } from "zod";
 import { useAuth } from "./use-auth";
@@ -67,7 +67,7 @@ export function useCart() {
     data: guestItems.length > 0 ? { cart: { id: 0, userId: 0 }, items: guestItems.map((item, i) => ({ id: i + 1, cartId: 0, productId: item.productId, quantity: item.quantity, product: item.product })) } : { cart: { id: 0, userId: 0 }, items: [] },
     isLoading: false,
     error: null,
-  } as any;
+  } as UseQueryResult;
 }
 
 export function useAddToCart() {

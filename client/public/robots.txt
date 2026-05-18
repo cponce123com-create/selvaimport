@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://selvaimport.onrender.com/sitemap.xml

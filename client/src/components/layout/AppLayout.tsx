@@ -107,7 +107,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const topResults = useMemo(() => {
     if (!searchResults || debouncedSearch.length < 2) return [];
-    return searchResults.filter((p) => p.isVisible).slice(0, 5);
+    return searchResults.filter((p: any) => p.isVisible).slice(0, 5);
   }, [searchResults, debouncedSearch]);
 
   const showDropdown = searchFocused && debouncedSearch.length >= 2;
@@ -226,7 +226,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 ) : (
                   <>
                     <ul>
-                      {topResults.map((product) => (
+                      {topResults.map((product: any) => (
                         <li key={product.id}>
                           <button
                             type="button"
@@ -252,7 +252,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         </li>
                       ))}
                     </ul>
-                    {searchResults && searchResults.filter(p => p.isVisible).length > 5 && (
+                    {searchResults && searchResults.filter((p: any) => p.isVisible).length > 5 && (
                       <button
                         type="button"
                         onClick={() => executeSearch(debouncedSearch)}
@@ -439,7 +439,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 ) : (
                   <>
                     <ul>
-                      {topResults.map((product) => (
+                      {topResults.map((product: any) => (
                         <li key={product.id}>
                           <button
                             type="button"
@@ -465,7 +465,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         </li>
                       ))}
                     </ul>
-                    {searchResults && searchResults.filter(p => p.isVisible).length > 5 && (
+                    {searchResults && searchResults.filter((p: any) => p.isVisible).length > 5 && (
                       <button
                         type="button"
                         onClick={() => executeSearch(debouncedSearch)}

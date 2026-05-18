@@ -68,7 +68,8 @@ All configurable values are driven by environment variables. See `.env.example` 
 - `VITE_` prefixed vars are baked into the frontend build
 
 ## Admin Credentials
-- Default: `admin@selvaimport.com` / `admin123` (configurable via `ADMIN_EMAIL` / `ADMIN_PASSWORD` env vars)
+- Default: `admin@selvaimport.com` (configurable via `ADMIN_EMAIL` / `ADMIN_PASSWORD` env vars)
+  - ⚠️ En producción, ADMIN_PASSWORD es OBLIGATORIO. Si no se configura, no se crea el admin.
 
 ## Language & Branding
 - 100% Spanish UI

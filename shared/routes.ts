@@ -47,7 +47,7 @@ export const api = {
       method: "GET" as const,
       path: "/api/products" as const,
       input: z.object({ search: z.string().optional(), categoryId: z.coerce.number().optional() }).optional(),
-      responses: { 200: z.array(z.any()) },
+      responses: { 200: z.object({ products: z.array(z.any()), total: z.number(), page: z.number(), totalPages: z.number() }) },
     },
     get: {
       method: "GET" as const,

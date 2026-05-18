@@ -358,7 +358,7 @@ export default function AdminDashboard() {
             <div className="space-y-3">
               {recentOrders.map((order) => {
                 const status = STATUS_LABEL[order.status] ?? { label: order.status, color: "bg-gray-100 text-gray-700" };
-                const name = (order as any).guestName || (order as any).user?.name || `Cliente #${order.userId}`;
+                const name = (order as Record<string, any>).guestName || (order as Record<string, any>).user?.name || `Cliente #${order.userId}`;
                 const date = order.createdAt
                   ? new Date(order.createdAt).toLocaleDateString("es-PE", { day: "2-digit", month: "short" })
                   : "";

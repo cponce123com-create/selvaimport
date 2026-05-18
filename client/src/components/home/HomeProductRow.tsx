@@ -6,6 +6,7 @@ import { useRef } from "react";
 interface ProductThumb {
   id: number;
   name: string;
+  slug: string;
   imageUrl: string | null;
   images: string[] | null;
   inventory: number;

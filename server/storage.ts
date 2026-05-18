@@ -255,11 +255,13 @@ export class DatabaseStorage implements IStorage {
 
   async createProduct(product: InsertProduct): Promise<Product> {
     const [p] = await db.insert(products).values(product).returning();
+    invalidateCache('products');
     return p;
   }
 
   async updateProduct(id: number, productUpdate: Partial<InsertProduct>): Promise<Product> {
     const [p] = await db.update(products).set(productUpdate).where(eq(products.id, id)).returning();
+    invalidateCache('products');
     return p;
   }
 
@@ -507,7 +509,7 @@ export class DatabaseStorage implements IStorage {
     orderInfo: InsertOrder & { totalAmount: string; status: string },
     items: OrderItemInput[]
   ): Promise<OrderWithItems> {
-    return await db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
       await this.validateAndDiscountInventory(tx, items);
 
       const [order] = await tx
@@ -529,6 +531,8 @@ export class DatabaseStorage implements IStorage {
 
       return await this.buildOrderResponse(tx, order, insertedItems);
     });
+    invalidateCache('products');
+    return result;
   }
 
   async createGuestOrderWithStock(
@@ -891,7 +895,14 @@ export class DatabaseStorage implements IStorage {
     } else {
       const [created] = await db
         .insert(homeRectangles)
-        .values({ ...data, position } as any)
+        .values({
+          position,
+          title: data.title ?? "",
+          rectType: data.rectType ?? "product",
+          productId: data.productId ?? null,
+          categoryId: data.categoryId ?? null,
+          isActive: data.isActive ?? true,
+        })
         .returning();
       return created;
     }

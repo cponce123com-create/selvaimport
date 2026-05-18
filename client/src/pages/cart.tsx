@@ -81,7 +81,42 @@ export default function Cart() {
     });
   };
 
-  if (isLoading) return <AppLayout><div className="p-20 text-center">Cargando carrito...</div></AppLayout>;
+  if (isLoading) return (
+    <AppLayout>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-pulse">
+        <div className="h-8 w-48 bg-muted rounded-lg mb-10" />
+        <div className="grid lg:grid-cols-3 gap-10">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
+              <div className="p-6 border-b bg-muted/20">
+                <div className="h-5 w-32 bg-muted rounded" />
+              </div>
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="p-6 flex gap-6">
+                  <div className="w-24 h-24 bg-muted rounded-xl flex-shrink-0" />
+                  <div className="flex-1 space-y-3">
+                    <div className="h-5 w-48 bg-muted rounded" />
+                    <div className="h-4 w-24 bg-muted rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="lg:col-span-1">
+            <div className="bg-muted rounded-3xl p-8 sticky top-24 space-y-6">
+              <div className="h-7 w-40 bg-muted-foreground/20 rounded" />
+              <div className="space-y-3">
+                <div className="h-4 w-full bg-muted-foreground/20 rounded" />
+                <div className="h-4 w-full bg-muted-foreground/20 rounded" />
+                <div className="h-4 w-3/4 bg-muted-foreground/20 rounded" />
+              </div>
+              <div className="h-12 w-full bg-muted-foreground/20 rounded-xl" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </AppLayout>
+  );
 
   const items = cart?.items || [];
   const isEmpty = items.length === 0;

@@ -39,7 +39,7 @@ cp .env.example .env
 |----------|-------------|-------------------|
 | `PORT` | Puerto del servidor | `5000` |
 | `ADMIN_EMAIL` | Email del admin inicial | `admin@selvaimport.com` |
-| `ADMIN_PASSWORD` | Contraseña del admin inicial | `admin123` |
+| `ADMIN_PASSWORD` | Contraseña del admin inicial (OBLIGATORIO en producción) | — |
 | `VITE_WHATSAPP_NUMBER` | Numero de WhatsApp (con codigo de pais) | `51998130656` |
 | `NODE_ENV` | Entorno de ejecucion | `production` |
 

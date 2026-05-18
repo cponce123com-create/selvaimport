@@ -27,6 +27,11 @@ jobs:
       - name: Verificar tipos TypeScript
         run: npm run check
 
+      - name: Ejecutar tests
+        run: npm test
+        env:
+          TEST_URL: http://localhost:5000
+
       - name: Build de producción
         run: npm run build
         env:

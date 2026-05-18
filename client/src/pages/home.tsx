@@ -37,6 +37,7 @@ interface BannerSlideData {
   product1?: {
     id: number;
     name: string;
+    slug: string;
     price: string;
     offerPrice?: string | null;
     isOffer?: boolean | null;
@@ -47,6 +48,7 @@ interface BannerSlideData {
   product2?: {
     id: number;
     name: string;
+    slug: string;
     price: string;
     offerPrice?: string | null;
     isOffer?: boolean | null;
@@ -435,7 +437,7 @@ export default function Home() {
         >
           <AnimatePresence mode="wait">
             {bannerLoading ? (
-              <div className="absolute inset-0 bg-white" />
+              <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 animate-pulse" />
             ) : hasDynamicSlides ? (
               <motion.div
                 key={`slide-${bannerSlides[currentSlide]?.id}`}

@@ -51,6 +51,12 @@ function sanitizeUser(user: SelectUser) {
 }
 
 export function setupAuth(app: Express) {
+  if (!process.env.SESSION_SECRET) {
+    throw new Error(
+      "[auth] SESSION_SECRET is required. Set it in your environment variables."
+    );
+  }
+
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET!,
     resave: false,
@@ -59,7 +65,7 @@ export function setupAuth(app: Express) {
     cookie: {
       secure: process.env.NODE_ENV === "production" && process.env.COOKIE_SECURE !== "false",
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: "strict",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     }
   };

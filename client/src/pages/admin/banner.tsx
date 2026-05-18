@@ -194,7 +194,7 @@ export default function AdminBanner() {
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
   const selectedCatName = editingSlide?.buttonCategoryId
-    ? (categories as any[]).find((c: any) => c.id === editingSlide.buttonCategoryId)?.name || ""
+    ? (categories as Array<Record<string, any>>).find((c: any) => c.id === editingSlide.buttonCategoryId)?.name || ""
     : "";
 
   return (
@@ -484,7 +484,7 @@ export default function AdminBanner() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Sin categoria (enlace manual)</SelectItem>
-                      {(categories as any[]).map((cat: any) => (
+                      {(categories as Array<Record<string, any>>).map((cat: any) => (
                         <SelectItem key={cat.id} value={cat.id.toString()}>
                           {cat.name}
                         </SelectItem>

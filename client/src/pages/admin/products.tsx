@@ -222,7 +222,7 @@ export default function AdminProducts() {
         }
       });
     } else {
-      createProduct(payload as any, {
+      createProduct(payload, {
         onSuccess: () => {
           toast({ title: "Producto creado" });
           setIsOpen(false);
