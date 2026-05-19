@@ -78,6 +78,19 @@ const CREATE_TABLES_SQL = [
   sql`CREATE INDEX IF NOT EXISTS idx_product_templates_category ON product_templates(category_id)`,
   sql`CREATE INDEX IF NOT EXISTS idx_product_templates_supplier ON product_templates(supplier_id)`,
 
+  // ── Historial de Precios ──
+  sql`CREATE TABLE IF NOT EXISTS price_history (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    price DECIMAL(10,2) NOT NULL,
+    purchase_price DECIMAL(10,2),
+    changed_at TIMESTAMP DEFAULT NOW(),
+    changed_by TEXT DEFAULT 'admin'
+  )`,
+
+  sql`CREATE INDEX IF NOT EXISTS idx_price_history_product ON price_history(product_id)`,
+  sql`CREATE INDEX IF NOT EXISTS idx_price_history_changed ON price_history(changed_at DESC)`,
+
   // ── Índices para pedidos, carrito y productos ──
   sql`CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id)`,
   sql`CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at DESC)`,
@@ -93,6 +106,7 @@ const ALTER_TABLES_SQL = [
   // Se ejecuta DESPUES de asegurar que las tablas base existen
   sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS show_on_home BOOLEAN NOT NULL DEFAULT true`,
   sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS entry_date TIMESTAMP DEFAULT NOW()`,
+  sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS min_stock INTEGER`,
 ];
 
 export async function initDatabase(): Promise<void> {

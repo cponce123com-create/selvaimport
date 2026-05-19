@@ -79,7 +79,7 @@ export function useCreateProduct() {
       if (!res.ok) throw new Error("Failed to create product");
       return api.products.create.responses[201].parse(await res.json());
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.products.list.path] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: [api.products.list.path] }),
   });
 }
 
@@ -97,7 +97,40 @@ export function useUpdateProduct() {
       if (!res.ok) throw new Error("Failed to update product");
       return api.products.update.responses[200].parse(await res.json());
     },
-    onSuccess: (_, variables) => {
+    onMutate: async ({ id, ...data }) => {
+      await queryClient.cancelQueries({ queryKey: [api.products.list.path] });
+      await queryClient.cancelQueries({ queryKey: [api.products.get.path, id] });
+
+      const previousList = queryClient.getQueryData([api.products.list.path]);
+      const previousItem = queryClient.getQueryData([api.products.get.path, id]);
+
+      // Optimistic update en la lista
+      queryClient.setQueryData([api.products.list.path], (old: any) => {
+        if (!old) return old;
+        const products = Array.isArray(old) ? old : (old.products ?? []);
+        const updated = products.map((p: any) =>
+          p.id === id ? { ...p, ...data } : p
+        );
+        return Array.isArray(old) ? updated : { ...old, products: updated };
+      });
+
+      // Optimistic update en el detalle
+      queryClient.setQueryData([api.products.get.path, id], (old: any) => {
+        if (!old) return old;
+        return { ...old, ...data };
+      });
+
+      return { previousList, previousItem };
+    },
+    onError: (_err, variables, context) => {
+      if (context?.previousList) {
+        queryClient.setQueryData([api.products.list.path], context.previousList);
+      }
+      if (context?.previousItem) {
+        queryClient.setQueryData([api.products.get.path, variables.id], context.previousItem);
+      }
+    },
+    onSettled: (_data, _err, variables) => {
       queryClient.invalidateQueries({ queryKey: [api.products.list.path] });
       queryClient.invalidateQueries({ queryKey: [api.products.get.path, variables.id] });
     },
@@ -115,7 +148,29 @@ export function useDeleteProduct() {
       });
       if (!res.ok) throw new Error("Failed to delete product");
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.products.list.path] }),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: [api.products.list.path] });
+
+      const previousData = queryClient.getQueryData([api.products.list.path]);
+
+      // Eliminar del caché inmediatamente
+      queryClient.setQueryData([api.products.list.path], (old: any) => {
+        if (!old) return old;
+        const products = Array.isArray(old) ? old : (old.products ?? []);
+        const filtered = products.filter((p: any) => p.id !== id);
+        return Array.isArray(old) ? filtered : { ...old, products: filtered };
+      });
+
+      return { previousData };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData([api.products.list.path], context.previousData);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: [api.products.list.path] });
+    },
   });
 }
 
@@ -132,7 +187,33 @@ export function useToggleProductVisibility() {
       if (!res.ok) throw new Error("Error al actualizar visibilidad");
       return res.json();
     },
-    onSuccess: () => {
+    onMutate: async ({ id, isVisible }) => {
+      // Cancelar queries en curso
+      await queryClient.cancelQueries({ queryKey: [api.products.list.path] });
+
+      // Snapshot del estado anterior para rollback
+      const previousData = queryClient.getQueryData([api.products.list.path]);
+
+      // Optimistic update: actualizar la caché inmediatamente
+      queryClient.setQueryData([api.products.list.path], (old: any) => {
+        if (!old) return old;
+        const products = Array.isArray(old) ? old : (old.products ?? []);
+        const updated = products.map((p: any) =>
+          p.id === id ? { ...p, isVisible } : p
+        );
+        return Array.isArray(old) ? updated : { ...old, products: updated };
+      });
+
+      return { previousData };
+    },
+    onError: (_err, _vars, context) => {
+      // Rollback al estado anterior
+      if (context?.previousData) {
+        queryClient.setQueryData([api.products.list.path], context.previousData);
+      }
+    },
+    onSettled: () => {
+      // Siempre refrescar al final para asegurar consistencia
       queryClient.invalidateQueries({ queryKey: [api.products.list.path] });
     },
   });

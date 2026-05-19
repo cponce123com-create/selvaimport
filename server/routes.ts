@@ -4,10 +4,11 @@ import { storage } from "./storage";
 import { setupAuth, hashPassword } from "./auth";
 import { OAuth2Client } from "google-auth-library";
 import { api } from "@shared/routes";
-import { InsertProduct, Supplier, InsertSupplier } from "@shared/schema";
+import { InsertProduct, Supplier, InsertSupplier, priceHistory } from "@shared/schema";
 import { z } from "zod";
 import { v2 as cloudinary } from "cloudinary";
 import multer from "multer";
+import { desc } from "drizzle-orm";
 import { authLimiter, guestOrderLimiter, generalApiLimiter } from "./rateLimiter";
 import { sendTelegramMessage, buildOrderMessage, buildStatusMessage, sendTelegramToPhone } from "./telegram";
 
@@ -419,6 +420,22 @@ export async function registerRoutes(
           .catch(console.error);
       }
 
+      // Registrar en historial de precios si cambió el precio
+      try {
+        if (existing && (data.price !== undefined || data.purchasePrice !== undefined)) {
+          const { db } = await import("./db");
+          const { priceHistory } = await import("@shared/schema");
+          await db.insert(priceHistory).values({
+            productId: productId,
+            price: data.price ?? existing.price,
+            purchasePrice: data.purchasePrice ?? existing.purchasePrice,
+            changedBy: "admin",
+          });
+        }
+      } catch (phErr) {
+        console.warn("[price-history] Error registrando cambio:", phErr);
+      }
+
       res.json(p);
     } catch (e: any) {
       res.status(400).json({ message: e.message });
@@ -477,6 +494,23 @@ export async function registerRoutes(
       const search = (req.query.q as string) || "";
       const result = await storage.getProductTemplates(search, 1, 10);
       res.json(result.templates);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // ── Historial de Precios ──
+  app.get("/api/admin/products/:id/price-history", requireAdmin, async (req, res) => {
+    try {
+      const productId = Number(req.params.id);
+      const { db } = await import("./db");
+      const { priceHistory } = await import("@shared/schema");
+      const { eq, desc } = await import("drizzle-orm");
+      const rows = await db.select().from(priceHistory)
+        .where(eq(priceHistory.productId, productId))
+        .orderBy(desc(priceHistory.changedAt))
+        .limit(20);
+      res.json(rows);
     } catch (e: any) {
       res.status(500).json({ message: e.message });
     }

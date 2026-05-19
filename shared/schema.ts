@@ -41,6 +41,7 @@ export const products = pgTable("products", {
   purchasePrice: decimal("purchase_price", { precision: 10, scale: 2 }),
   offerPrice: decimal("offer_price", { precision: 10, scale: 2 }),
   inventory: integer("inventory").notNull().default(0),
+  minStock: integer("min_stock"),
   barcode: text("barcode"),
   imageUrl: text("image_url"),
   images: text("images").array().default([]),
@@ -68,6 +69,16 @@ export const productTemplates = pgTable("product_templates", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   lastUsedAt: timestamp("last_used_at"),
+});
+
+// ── Historial de Precios ──
+export const priceHistory = pgTable("price_history", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  purchasePrice: decimal("purchase_price", { precision: 10, scale: 2 }),
+  changedAt: timestamp("changed_at").defaultNow(),
+  changedBy: text("changed_by"), // "admin", "system", "import"
 });
 
 export const carts = pgTable("carts", {

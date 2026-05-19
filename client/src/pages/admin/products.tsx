@@ -72,6 +72,7 @@ const formSchema = z.object({
   purchasePrice: z.string().optional(),
   offerPrice: z.string().optional(),
   inventory: z.coerce.number().min(0, "El inventario no puede ser negativo"),
+  minStock: z.coerce.number().optional(),
   categoryId: z.coerce.number().optional(),
 });
 
@@ -145,6 +146,7 @@ export default function AdminProducts() {
       purchasePrice: p.purchasePrice ? Number(p.purchasePrice).toString() : "",
       offerPrice: p.offerPrice ? Number(p.offerPrice).toString() : "",
       inventory: p.inventory,
+      minStock: p.minStock ?? undefined,
       categoryId: p.categoryId,
     });
     const existingImages: string[] = [];
@@ -163,7 +165,7 @@ export default function AdminProducts() {
   };
 const openNew = () => {
   setEditingId(null);
-  form.reset({ name: "", description: "", price: "", purchasePrice: "", offerPrice: "", inventory: 0, categoryId: undefined });
+  form.reset({ name: "", description: "", price: "", purchasePrice: "", offerPrice: "", inventory: 0, minStock: undefined, categoryId: undefined });
   setImages([]);
   setVideoUrl(null);
   setVideoPublicId(null);
@@ -341,6 +343,9 @@ const openNew = () => {
                   )} />
                   <FormField control={form.control} name="inventory" render={({field}) => (
                     <FormItem><FormLabel>Inventario</FormLabel><FormControl><Input type="number" data-testid="input-product-inventory" {...field} /></FormControl><FormMessage/></FormItem>
+                  )} />
+                  <FormField control={form.control} name="minStock" render={({field}) => (
+                    <FormItem><FormLabel>Stock Mínimo</FormLabel><FormControl><Input type="number" placeholder="Ej: 5" data-testid="input-product-minstock" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))} /></FormControl><FormMessage/></FormItem>
                   )} />
                   <FormField control={form.control} name="categoryId" render={({field}) => (
                     <FormItem><FormLabel>Categoria</FormLabel>
@@ -554,6 +559,7 @@ const openNew = () => {
               <TableHead>Precio</TableHead>
               <TableHead>Precio Compra</TableHead>
               <TableHead>Inventario</TableHead>
+              <TableHead>Stock Mín</TableHead>
               <TableHead>Proveedor</TableHead>
               <TableHead>Categoria</TableHead>
               <TableHead>Visible</TableHead>
@@ -562,9 +568,9 @@ const openNew = () => {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8">Cargando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center py-8">Cargando...</TableCell></TableRow>
             ) : filteredProducts.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8">No se encontraron productos</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center py-8">No se encontraron productos</TableCell></TableRow>
             ) : (
               filteredProducts.map((p: any) => (
                 <TableRow key={p.id} data-testid={`row-product-${p.id}`} className={!p.isVisible ? "opacity-60" : ""}>
@@ -611,7 +617,23 @@ const openNew = () => {
                       <span className="text-muted-foreground/50">-</span>
                     )}
                   </TableCell>
-                  <TableCell>{p.inventory}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <span className={p.minStock != null && p.inventory <= p.minStock ? "text-destructive font-bold" : ""}>
+                        {p.inventory}
+                      </span>
+                      {p.minStock != null && p.inventory <= p.minStock && (
+                        <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">
+                          BAJO
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className={p.minStock != null && p.inventory <= p.minStock ? "text-destructive font-semibold" : "text-muted-foreground"}>
+                      {p.minStock ?? "-"}
+                    </span>
+                  </TableCell>
                   <TableCell>
                     <span className="text-sm">{p.supplier?.name || '-'}</span>
                   </TableCell>
