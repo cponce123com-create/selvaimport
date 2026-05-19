@@ -58,7 +58,7 @@ export default function AdminPurchaseReport() {
       const params = new URLSearchParams();
       if (desde) params.set("desde", desde);
       if (hasta) params.set("hasta", hasta);
-      if (supplierId) params.set("supplierId", supplierId);
+      if (supplierId && supplierId !== "all") params.set("supplierId", supplierId);
 
       const res = await fetch(`/api/admin/purchase-report?${params.toString()}`, {
         credentials: "include",
@@ -126,7 +126,7 @@ export default function AdminPurchaseReport() {
                   <SelectValue placeholder="Todos los proveedores" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos los proveedores</SelectItem>
+                  <SelectItem value="all">Todos los proveedores</SelectItem>
                   {suppliers.map((s: any) => (
                     <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
                   ))}

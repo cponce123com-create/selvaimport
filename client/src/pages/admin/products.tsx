@@ -123,7 +123,7 @@ export default function AdminProducts() {
   const [videoPublicId, setVideoPublicId] = useState<string | null>(null);
   const [isOffer, setIsOffer] = useState(false);
   const [barcode, setBarcode] = useState("");
-  const [purchasePrice, setPurchasePrice] = useState("");
+
   const [supplierId, setSupplierId] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
@@ -156,20 +156,18 @@ export default function AdminProducts() {
     setVideoUrl(p.videoUrl || null);
     setVideoPublicId(p.videoPublicId || null);
     setIsOffer(!!p.isOffer);
-    setPurchasePrice(p.purchasePrice || "");
     setSupplierId(p.supplierId || null);
     setBarcode(p.barcode || "");
     setIsOpen(true);
   };
 const openNew = () => {
   setEditingId(null);
-  form.reset({ name: "", description: "", price: "", offerPrice: "", inventory: 0 });
+  form.reset({ name: "", description: "", price: "", purchasePrice: "", offerPrice: "", inventory: 0 });
   setImages([]);
   setVideoUrl(null);
   setVideoPublicId(null);
   setIsOffer(false);
   setBarcode("");
-  setPurchasePrice("");
   setSupplierId(null);
   setIsOpen(true);
 };
@@ -256,7 +254,7 @@ const openNew = () => {
       isOffer: isOffer,
       offerPrice: isOffer && data.offerPrice && Number(data.offerPrice) > 0 ? data.offerPrice : null,
       barcode: barcode || null,
-      purchasePrice: purchasePrice || null,
+      purchasePrice: data.purchasePrice || null,
       supplierId: supplierId || null,
     };
 
