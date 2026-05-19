@@ -301,6 +301,7 @@ export class DatabaseStorage implements IStorage {
     // Eliminar registros relacionados para evitar errores de FK
     await db.delete(priceHistory).where(eq(priceHistory.productId, id));
     await db.delete(cartItems).where(eq(cartItems.productId, id));
+    await db.delete(orderItems).where(eq(orderItems.productId, id));
     await db.delete(homeRowItems).where(eq(homeRowItems.productId, id));
     await db.delete(homeRectangleItems).where(eq(homeRectangleItems.productId, id));
     // Banner slides: limpiar referencias (poner null en lugar de borrar el slide)
