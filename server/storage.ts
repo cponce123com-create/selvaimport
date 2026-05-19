@@ -1217,16 +1217,25 @@ export class DatabaseStorage implements IStorage {
 
     const normalizedName = product.name.toLowerCase().trim().replace(/\s+/g, ' ');
 
+    // Resolver brand name (cache brands only once)
+    let brandName: string | null = null;
+    if (product.brandId) {
+      const [brandRow] = await db.select({ name: brands.name }).from(brands).where(eq(brands.id, product.brandId));
+      if (brandRow) brandName = brandRow.name;
+    }
+
     // Check if template already exists
     const existing = await this.findProductTemplateByName(normalizedName);
     if (existing) {
-      // Update last purchase price and increment usage
       const [updated] = await db
         .update(productTemplates)
         .set({
           lastPurchasePrice: product.purchasePrice,
-          brand: product.brandId ? (await this.getBrands()).find(b => b.id === product.brandId)?.name || null : null,
+          brand: brandName,
           model: product.model,
+          categoryId: product.categoryId,
+          supplierId: product.supplierId,
+          barcode: product.barcode,
           usageCount: sql`${productTemplates.usageCount} + 1`,
           lastUsedAt: new Date(),
           updatedAt: new Date(),
@@ -1245,7 +1254,7 @@ export class DatabaseStorage implements IStorage {
         supplierId: product.supplierId,
         barcode: product.barcode,
         lastPurchasePrice: product.purchasePrice,
-        brand: product.brandId ? (await this.getBrands()).find(b => b.id === product.brandId)?.name || null : null,
+        brand: brandName,
         model: product.model,
         usageCount: 1,
         lastUsedAt: new Date(),

@@ -6,7 +6,7 @@ import { useBrands } from "@/hooks/use-brands";
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -131,6 +131,7 @@ export default function AdminProducts() {
   const [images, setImages] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoPublicId, setVideoPublicId] = useState<string | null>(null);
+  const [viewImage, setViewImage] = useState<string | null>(null);
   const [isOffer, setIsOffer] = useState(false);
   const [barcode, setBarcode] = useState("");
 
@@ -526,12 +527,18 @@ const openNew = () => {
                     <FormLabel>Imagenes del Producto ({images.length}/{MAX_IMAGES})</FormLabel>
                     <div className={`mt-2 grid grid-cols-5 xl:grid-cols-${Math.min(images.length + 1, MAX_IMAGES)} gap-3`}>
                       {images.map((url, i) => (
-                        <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border border-border bg-muted" data-testid={`image-preview-${i}`}>
-                          <img src={url} alt={`Imagen ${i + 1}`} className="w-full h-full object-cover" />
+                        <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border border-border bg-muted cursor-pointer" data-testid={`image-preview-${i}`}>
+                          <img
+                            src={url}
+                            alt={`Imagen ${i + 1}`}
+                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                            onClick={() => setViewImage(url)}
+                            loading="lazy"
+                          />
                           <button
                             type="button"
-                            onClick={() => removeImage(i)}
-                            className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                            onClick={(e) => { e.stopPropagation(); removeImage(i); }}
+                            className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-10"
                             data-testid={`button-remove-image-${i}`}
                           >
                             <X className="w-3 h-3" />
@@ -759,6 +766,27 @@ const openNew = () => {
           </TableBody>
         </Table>
       </div>
+
+      {/* ── Visor de imágenes ── */}
+      <Dialog open={!!viewImage} onOpenChange={(v) => { if (!v) setViewImage(null); }}>
+        <DialogContent className="max-w-3xl p-2 bg-black/90">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Vista previa de imagen</DialogTitle>
+          </DialogHeader>
+          {viewImage && (
+            <img
+              src={viewImage}
+              alt="Vista previa"
+              className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
+            />
+          )}
+          <DialogFooter className="sm:justify-center">
+            <Button variant="secondary" size="sm" onClick={() => setViewImage(null)}>
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </AdminLayout>
   );
