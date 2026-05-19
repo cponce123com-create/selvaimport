@@ -109,46 +109,6 @@ function generateSlug(name: string) {
   return name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
 }
 
-// Componente para input de fecha en formato DD/MM/AAAA
-function DateInputField({ value, onChange }: { value: string | undefined; onChange: (v: string) => void }) {
-  const toDisplay = (val: string | undefined) => {
-    if (!val) return "";
-    const m = val.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (m) return `${m[3]}/${m[2]}/${m[1]}`;
-    return val;
-  };
-  const [display, setDisplay] = useState(toDisplay(value));
-  // Sincronizar cuando value cambie externamente (reset del form)
-  if (value && !display) setDisplay(toDisplay(value));
-  if (!value && display) setDisplay("");
-
-  return (
-    <FormItem>
-      <FormLabel>Fecha Ingreso</FormLabel>
-      <FormControl>
-        <Input
-          type="text"
-          placeholder="DD/MM/AAAA"
-          value={display}
-          onChange={(e) => {
-            let raw = e.target.value.replace(/[^0-9]/g, "").slice(0, 8);
-            let fmt = raw.length > 2 ? raw.slice(0, 2) + "/" + raw.slice(2) : raw;
-            if (raw.length > 4) fmt = fmt.slice(0, 5) + "/" + raw.slice(4);
-            setDisplay(fmt);
-            if (raw.length === 8) {
-              onChange(`${raw.slice(4, 8)}-${raw.slice(2, 4)}-${raw.slice(0, 2)}`);
-            } else if (raw.length === 0) {
-              onChange("");
-            }
-          }}
-          data-testid="input-product-entrydate"
-        />
-      </FormControl>
-      <FormMessage />
-    </FormItem>
-  );
-}
-
 export default function AdminProducts() {
   const { data: products = [], isLoading } = useProducts({ admin: true });
   const { data: categories = [] } = useCategories();
@@ -396,9 +356,39 @@ const openNew = () => {
                    <FormItem><FormLabel>Stock Mínimo</FormLabel><FormControl><Input type="number" placeholder="Ej: 5" data-testid="input-product-minstock" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))} /></FormControl><FormMessage/></FormItem>
                   )} />
                   {/* Fecha Ingreso en DD/MM/AAAA */}
-                  <FormField control={form.control} name="entryDate" render={({field}) => (
-                    <DateInputField value={field.value} onChange={field.onChange} />
-                  )} />
+                  <FormField control={form.control} name="entryDate" render={({field}) => {
+                    // field.value puede ser:
+                    // - "2024-05-12" (fecha completa desde DB o tipeo completo)
+                    // - "12/05/2" (tipeo parcial)
+                    // - "" (vacío)
+                    const isFullDate = !!field.value?.match(/^\d{4}-\d{2}-\d{2}$/);
+                    const displayValue = isFullDate
+                      ? `${field.value!.slice(8,10)}/${field.value!.slice(5,7)}/${field.value!.slice(0,4)}`
+                      : (field.value ?? "");
+                    return (
+                      <FormItem><FormLabel>Fecha Ingreso</FormLabel><FormControl>
+                        <Input
+                          type="text"
+                          placeholder="DD/MM/AAAA"
+                          value={displayValue}
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/\D/g, "").slice(0, 8);
+                            if (digits.length === 8) {
+                              field.onChange(`${digits.slice(4,8)}-${digits.slice(2,4)}-${digits.slice(0,2)}`);
+                            } else if (digits.length === 0) {
+                              field.onChange("");
+                            } else {
+                              // Guardar el tipeo parcial con barras automáticas
+                              let partial = digits.length > 2 ? digits.slice(0,2) + "/" + digits.slice(2) : digits;
+                              if (digits.length > 4) partial = partial.slice(0,5) + "/" + digits.slice(4);
+                              field.onChange(partial);
+                            }
+                          }}
+                          data-testid="input-product-entrydate"
+                        />
+                      </FormControl><FormMessage/></FormItem>
+                    );
+                  }} />
                   <FormField control={form.control} name="categoryId" render={({field}) => (
                     <FormItem><FormLabel>Categoria</FormLabel>                      <Select onValueChange={(v) => field.onChange(Number(v))} value={field.value?.toString() || ""}>
                         <FormControl>
