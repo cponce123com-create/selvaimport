@@ -1236,6 +1236,7 @@ export class DatabaseStorage implements IStorage {
           categoryId: product.categoryId,
           supplierId: product.supplierId,
           barcode: product.barcode,
+          images: product.images,
           usageCount: sql`${productTemplates.usageCount} + 1`,
           lastUsedAt: new Date(),
           updatedAt: new Date(),
@@ -1256,6 +1257,7 @@ export class DatabaseStorage implements IStorage {
         lastPurchasePrice: product.purchasePrice,
         brand: brandName,
         model: product.model,
+        images: product.images,
         usageCount: 1,
         lastUsedAt: new Date(),
       })

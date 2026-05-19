@@ -146,13 +146,14 @@ export default function AdminProductTemplates() {
               <TableHead>Precio Compra</TableHead>
               <TableHead>Usos</TableHead>
               <TableHead>Último Uso</TableHead>
+              <TableHead>Imagen</TableHead>
               <TableHead className="text-right">Acción</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
+                <TableCell colSpan={10} className="text-center py-8">
                   <div className="flex items-center justify-center gap-2 text-muted-foreground">
                     <Loader2 className="w-5 h-5 animate-spin" />
                     Cargando templates...
@@ -161,7 +162,7 @@ export default function AdminProductTemplates() {
               </TableRow>
             ) : templates.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-16">
+                <TableCell colSpan={10} className="text-center py-16">
                   <div className="flex flex-col items-center gap-3 text-muted-foreground">
                     <Package className="w-16 h-16 opacity-20" />
                     <p className="text-lg font-medium">No hay templates</p>
@@ -199,6 +200,15 @@ export default function AdminProductTemplates() {
                     {t.lastUsedAt
                       ? new Date(t.lastUsedAt).toLocaleDateString("es-PE")
                       : <span className="text-muted-foreground/50">Nunca</span>}
+                  </TableCell>
+                  <TableCell>
+                    {t.images && t.images.length > 0 ? (
+                      <img src={t.images[0]} alt={t.name} className="w-10 h-10 rounded-lg object-cover border" loading="lazy" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                        <Package className="w-4 h-4 text-muted-foreground/50" />
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <AlertDialog open={deleteId === t.id} onOpenChange={(val) => { if (!val) setDeleteId(null); }}>
@@ -267,4 +277,5 @@ export default function AdminProductTemplates() {
       </div>
     </AdminLayout>
   );
+
 }

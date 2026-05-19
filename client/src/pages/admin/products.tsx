@@ -522,114 +522,116 @@ const openNew = () => {
                   <BarcodeScanner value={barcode} onChange={setBarcode} />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <FormLabel>Imagenes del Producto ({images.length}/{MAX_IMAGES})</FormLabel>
-                    <div className={`mt-2 grid grid-cols-5 xl:grid-cols-${Math.min(images.length + 1, MAX_IMAGES)} gap-3`}>
-                      {images.map((url, i) => (
-                        <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border border-border bg-muted cursor-pointer" data-testid={`image-preview-${i}`}>
-                          <img
-                            src={url}
-                            alt={`Imagen ${i + 1}`}
-                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-                            onClick={() => setViewImage(url)}
-                            loading="lazy"
-                          />
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); removeImage(i); }}
-                            className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-10"
-                            data-testid={`button-remove-image-${i}`}
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                          {i === 0 && (
-                            <span className="absolute bottom-1 left-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-medium">
-                              Principal
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                      {images.length < MAX_IMAGES && (
+                {/* ── Imágenes + Video compacto ── */}
+                <div>
+                  <FormLabel>Imagenes del Producto ({images.length}/{MAX_IMAGES})</FormLabel>
+                  <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                    {images.map((url, i) => (
+                      <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border border-border bg-muted cursor-pointer" data-testid={`image-preview-${i}`}>
+                        <img
+                          src={url}
+                          alt={`Imagen ${i + 1}`}
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                          onClick={() => setViewImage(url)}
+                          loading="lazy"
+                        />
                         <button
                           type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={uploading}
-                          className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                          data-testid="button-upload-image"
+                          onClick={(e) => { e.stopPropagation(); removeImage(i); }}
+                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-10"
+                          data-testid={`button-remove-image-${i}`}
                         >
-                          {uploading ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                          ) : (
-                            <>
-                              <Upload className="w-5 h-5" />
-                              <span className="text-[10px] font-medium">Subir</span>
-                            </>
-                          )}
+                          <X className="w-3 h-3" />
                         </button>
-                      )}
-                    </div>
-                    {/* Input para galería (múltiples archivos) */}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => handleUpload(e.target.files)}
-                      data-testid="input-file-upload"
-                    />
-                    {/* Input para cámara (foto única, sin multiple para que capture funcione) */}
-                    <CameraUploadButton
-                      uploading={uploading}
-                      onCapture={(files) => handleUpload(files)}
-                    />
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Maximo {MAX_IMAGES} imagenes. Formatos: JPG, PNG, WebP.
-                    </p>
+                        {i === 0 && (
+                          <span className="absolute bottom-1 left-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-medium">Principal</span>
+                        )}
+                      </div>
+                    ))}
+                    {images.length < MAX_IMAGES && (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        data-testid="button-upload-image"
+                      >
+                        {uploading ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <>
+                            <Upload className="w-5 h-5" />
+                            <span className="text-[10px] font-medium">Subir</span>
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
+                  {/* Input para galería (múltiples archivos) */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => handleUpload(e.target.files)}
+                    data-testid="input-file-upload"
+                  />
+                  {/* Input para cámara (foto única, sin multiple para que capture funcione) */}
+                  <CameraUploadButton
+                    uploading={uploading}
+                    onCapture={(files) => handleUpload(files)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Maximo {MAX_IMAGES} imagenes. Formatos: JPG, PNG, WebP.
+                  </p>
 
-                  <div>
-                    <FormLabel>Video del Producto (Opcional)</FormLabel>
-                    <div className="mt-2">
-                      {videoUrl ? (
-                        <div className="relative group aspect-video rounded-xl overflow-hidden border border-border bg-muted">
+                  {/* Video compacto */}
+                  <div className="mt-4 flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30">
+                    {videoUrl ? (
+                      <>
+                        <div className="w-16 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0 relative">
                           <video src={videoUrl} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">Video actual</p>
                           <button
                             type="button"
                             onClick={() => { setVideoUrl(null); setVideoPublicId(null); }}
-                            className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                            className="text-xs text-destructive hover:underline"
                           >
-                            <X className="w-4 h-4" />
+                            Eliminar video
                           </button>
                         </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => videoInputRef.current?.click()}
-                          disabled={uploadingVideo}
-                          className="w-full aspect-video rounded-xl border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => videoInputRef.current?.click()}
+                        disabled={uploadingVideo}
+                        className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50 w-full"
+                      >
+                        <div className="w-16 h-12 rounded-lg border-2 border-dashed border-border flex items-center justify-center flex-shrink-0">
                           {uploadingVideo ? (
-                            <Loader2 className="w-8 h-8 animate-spin" />
+                            <Loader2 className="w-5 h-5 animate-spin" />
                           ) : (
-                            <>
-                              <Upload className="w-8 h-8" />
-                              <span className="text-sm font-medium">Subir Video (Max 20MB)</span>
-                              <span className="text-xs">MP4, WebM</span>
-                            </>
+                            <Upload className="w-5 h-5" />
                           )}
-                        </button>
-                      )}
-                    </div>
-                    <input
-                      ref={videoInputRef}
-                      type="file"
-                      accept="video/*"
-                      className="hidden"
-                      onChange={(e) => handleVideoUpload(e.target.files?.[0] || null)}
-                    />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-medium">{uploadingVideo ? "Subiendo..." : "Agregar Video"}</p>
+                          <p className="text-xs">MP4, WebM (Max 20MB)</p>
+                        </div>
+                      </button>
+                    )}
                   </div>
+                  <input
+                    ref={videoInputRef}
+                    type="file"
+                    accept="video/*"
+                    className="hidden"
+                    onChange={(e) => handleVideoUpload(e.target.files?.[0] || null)}
+                  />
                 </div>
 
                 <Button type="submit" className="w-full" disabled={isSaving} data-testid="button-save-product">

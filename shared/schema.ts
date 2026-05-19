@@ -71,6 +71,7 @@ export const productTemplates = pgTable("product_templates", {
   sku: text("sku"),
   brand: text("brand"),
   model: text("model"),
+  images: text("images").array().default([]),
   unit: text("unit"),
   lastPurchasePrice: decimal("last_purchase_price", { precision: 10, scale: 2 }),
   usageCount: integer("usage_count").notNull().default(0),
