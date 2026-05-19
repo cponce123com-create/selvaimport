@@ -964,21 +964,165 @@ export class DatabaseStorage implements IStorage {
   }
 
 
-  async getPurchaseReport(_params: { desde?: Date; hasta?: Date; supplierId?: number }): Promise<any> {
-    const statusConditions = [eq(orders.status, "entregado"), eq(orders.status, "pagado")];
-    if (_params.desde) statusConditions.push(gte(orders.createdAt, _params.desde));
-    if (_params.hasta) statusConditions.push(lte(orders.createdAt, _params.hasta));
+  async getPurchaseReport({ desde, hasta, supplierId }: {
+    desde?: Date; hasta?: Date; supplierId?: number;
+  }): Promise<{
+    suppliers: {
+      supplierId: number | null;
+      supplierName: string;
+      items: {
+        productId: number;
+        productName: string;
+        imageUrl: string | null;
+        images: string[];
+        barcode: string | null;
+        quantity: number;
+        purchasePrice: number;
+        salePrice: number;
+        unitProfit: number;
+        totalProfit: number;
+      }[];
+      subtotalQuantity: number;
+      subtotalProfit: number;
+    }[];
+    grandTotalQuantity: number;
+    grandTotalProfit: number;
+    generatedAt: string;
+    desde: string | null;
+    hasta: string | null;
+  }> {
+    const statusFilters = [eq(orders.status, "entregado"), eq(orders.status, "pagado")];
+    if (desde) statusFilters.push(gte(orders.createdAt, desde));
+    if (hasta) statusFilters.push(lte(orders.createdAt, hasta));
+
     const orderList = await db
       .select()
       .from(orders)
-      .where(and(...statusConditions))
+      .where(and(...statusFilters))
       .orderBy(desc(orders.createdAt));
+
     if (orderList.length === 0) {
-      return { suppliers: [], grandTotalQuantity: 0, grandTotalProfit: 0, generatedAt: new Date().toISOString(), desde: null, hasta: null };
+      return {
+        suppliers: [],
+        grandTotalQuantity: 0,
+        grandTotalProfit: 0,
+        generatedAt: new Date().toISOString(),
+        desde: desde?.toISOString() || null,
+        hasta: hasta?.toISOString() || null,
+      };
     }
-    return { suppliers: [], grandTotalQuantity: 0, grandTotalProfit: 0, generatedAt: new Date().toISOString(), desde: null, hasta: null };
+
+    const orderIds = orderList.map((o) => o.id);
+    const itemsData = await db
+      .select()
+      .from(orderItems)
+      .where(or(...orderIds.map((id) => eq(orderItems.orderId, id))));
+
+    const productIds = Array.from(new Set(itemsData.map((i) => i.productId)));
+    const allProducts = productIds.length > 0
+      ? await db.select().from(products).where(or(...productIds.map((id) => eq(products.id, id))))
+      : [];
+
+    const productMap = new Map(allProducts.map((p) => [p.id, p]));
+    const allSuppliers = await this.getSuppliers();
+    const supplierMap = new Map(allSuppliers.map((s) => [s.id, s]));
+
+    // Aggregate by product (sum quantities across orders)
+    const productAgg = new Map<number, {
+      productId: number;
+      productName: string;
+      imageUrl: string | null;
+      images: string[];
+      barcode: string | null;
+      productSupplierId: number | null;
+      quantity: number;
+      purchasePrice: number;
+      salePrice: number;
+      unitProfit: number;
+      totalProfit: number;
+    }>();
+
+    for (const item of itemsData) {
+      const prod = productMap.get(item.productId);
+      if (!prod) continue;
+
+      const purchasePrice = Number(prod.purchasePrice || 0);
+      const salePrice = Number(item.price || 0);
+      const unitProfit = salePrice - purchasePrice;
+
+      const existing = productAgg.get(item.productId);
+      if (existing) {
+        existing.quantity += item.quantity;
+        existing.totalProfit += unitProfit * item.quantity;
+      } else {
+        productAgg.set(item.productId, {
+          productId: item.productId,
+          productName: prod.name,
+          imageUrl: prod.imageUrl,
+          images: prod.images || [],
+          barcode: prod.barcode,
+          productSupplierId: prod.supplierId,
+          quantity: item.quantity,
+          purchasePrice,
+          salePrice,
+          unitProfit,
+          totalProfit: unitProfit * item.quantity,
+        });
+      }
+    }
+
+    // Group by supplier
+    const supplierGroups = new Map<string, {
+      supplierId: number | null;
+      supplierName: string;
+      items: any[];
+      subtotalQuantity: number;
+      subtotalProfit: number;
+    }>();
+
+    productAgg.forEach((agg: any) => {
+      const sid = agg.productSupplierId;
+      const sName = sid ? (supplierMap.get(sid)?.name || "Sin proveedor") : "Sin proveedor";
+      const groupKey = sid ? "s-" + sid : "s-null";
+
+      if (!supplierGroups.has(groupKey)) {
+        supplierGroups.set(groupKey, {
+          supplierId: sid,
+          supplierName: sName,
+          items: [],
+          subtotalQuantity: 0,
+          subtotalProfit: 0,
+        });
+      }
+
+      const group = supplierGroups.get(groupKey)!;
+      group.items.push(agg);
+      group.subtotalQuantity += agg.quantity;
+      group.subtotalProfit += agg.totalProfit;
+    });
+
+    let grandTotalQuantity = 0;
+    let grandTotalProfit = 0;
+
+    const suppliersResult: any[] = [];
+    supplierGroups.forEach((g: any) => {
+      grandTotalQuantity += g.subtotalQuantity;
+      grandTotalProfit += g.subtotalProfit;
+      if (!supplierId || g.supplierId === supplierId) {
+        suppliersResult.push(g);
+      }
+    });
+
+    return {
+      suppliers: suppliersResult,
+      grandTotalQuantity,
+      grandTotalProfit,
+      generatedAt: new Date().toISOString(),
+      desde: desde?.toISOString() || null,
+      hasta: hasta?.toISOString() || null,
+    };
   }
 
-  }
+}
 
 export const storage = new DatabaseStorage();
