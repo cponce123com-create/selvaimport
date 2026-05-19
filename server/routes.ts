@@ -395,6 +395,12 @@ export async function registerRoutes(
       }
 
       const p = await storage.createProduct(productData as InsertProduct);
+      // Crear template en el Maestro de Productos
+      try {
+        await storage.createProductTemplateFromProduct(p.id);
+      } catch (tmplErr: any) {
+        console.warn("[templates] Error creando template para producto nuevo:", tmplErr.message);
+      }
       res.status(201).json(p);
     } catch (e: any) {
       res.status(400).json({ message: e.message });
@@ -497,6 +503,29 @@ export async function registerRoutes(
     try {
       await storage.deleteProductTemplate(Number(req.params.id));
       res.status(204).end();
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // ── Backfill: crear templates para productos existentes ──
+  app.post("/api/admin/product-templates/backfill", requireAdmin, async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { products: productsTable } = await import("@shared/schema");
+      const allProducts = await db.select({ id: productsTable.id, name: productsTable.name }).from(productsTable);
+      let creados = 0;
+      let existentes = 0;
+      for (const p of allProducts) {
+        try {
+          const created = await storage.createProductTemplateFromProduct(p.id);
+          if (created) creados++;
+          else existentes++;
+        } catch {
+          existentes++;
+        }
+      }
+      res.json({ message: `Backfill completado. ${creados} templates creados, ${existentes} ya existentes.`, creados, existentes });
     } catch (e: any) {
       res.status(500).json({ message: e.message });
     }

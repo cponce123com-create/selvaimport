@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Trash2, Search, Package, Loader2, Clock, TrendingUp } from "lucide-react";
+import { Trash2, Search, Package, Loader2, Clock, TrendingUp, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AdminProductTemplates() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isBackfilling, setIsBackfilling] = useState(false);
   const limit = 20;
   const { toast } = useToast();
 
@@ -44,6 +45,34 @@ export default function AdminProductTemplates() {
     <AdminLayout>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Maestro de Productos</h1>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isBackfilling}
+          onClick={async () => {
+            setIsBackfilling(true);
+            try {
+              const res = await fetch("/api/admin/product-templates/backfill", {
+                method: "POST",
+                credentials: "include",
+              });
+              const data = await res.json();
+              toast({ title: data.message || "Backfill completado" });
+              window.location.reload();
+            } catch (e: any) {
+              toast({ title: "Error", description: e.message, variant: "destructive" });
+            } finally {
+              setIsBackfilling(false);
+            }
+          }}
+        >
+          {isBackfilling ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4" />
+          )}
+          <span className="ml-2">{isBackfilling ? "Sincronizando..." : "Sincronizar productos existentes"}</span>
+        </Button>
       </div>
 
       {/* ── Stats ── */}
