@@ -131,6 +131,8 @@ export default function AdminProducts() {
   const [uploading, setUploading] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const submittingRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
@@ -249,8 +251,14 @@ const openNew = () => {
     : null;
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
-    // Convertir entryDate de string (YYYY-MM-DD) a Date para la API
-    const entryDateValue = data.entryDate
+    // Prevenir doble envío
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setIsSaving(true);
+
+    // Validar que entryDate sea una fecha completa antes de enviar
+    const isFullDate = !!data.entryDate?.match(/^\d{4}-\d{2}-\d{2}$/);
+    const entryDateValue = isFullDate
       ? new Date(data.entryDate + "T12:00:00")
       : undefined;
 
@@ -269,20 +277,28 @@ const openNew = () => {
       supplierId: supplierId || null,
     };
 
+    const onDone = () => {
+      setIsSaving(false);
+      submittingRef.current = false;
+      setIsOpen(false);
+    };
+
     if (editingId) {
-      updateProduct({ id: editingId, ...payload }, {
-        onSuccess: () => {
-          toast({ title: "Producto actualizado" });
-          setIsOpen(false);
+      updateProduct(
+        { id: editingId, ...payload },
+        {
+          onSuccess: () => { toast({ title: "Producto actualizado" }); onDone(); },
+          onError: (err) => { toast({ title: "Error", description: err.message, variant: "destructive" }); setIsSaving(false); submittingRef.current = false; },
         }
-      });
+      );
     } else {
-      createProduct(payload, {
-        onSuccess: () => {
-          toast({ title: "Producto creado" });
-          setIsOpen(false);
+      createProduct(
+        payload,
+        {
+          onSuccess: () => { toast({ title: "Producto creado" }); onDone(); },
+          onError: (err) => { toast({ title: "Error", description: err.message, variant: "destructive" }); setIsSaving(false); submittingRef.current = false; },
         }
-      });
+      );
     }
   };
 
@@ -572,7 +588,9 @@ const openNew = () => {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full" data-testid="button-save-product">Guardar Producto</Button>
+                <Button type="submit" className="w-full" disabled={isSaving} data-testid="button-save-product">
+                  {isSaving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Guardando...</> : "Guardar Producto"}
+                </Button>
               </form>
             </Form>
           </DialogContent>
