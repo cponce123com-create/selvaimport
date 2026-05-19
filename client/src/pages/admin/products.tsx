@@ -1,5 +1,5 @@
 import { AdminLayout } from "@/components/layout/AdminLayout";
-import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from "@/hooks/use-products";
+import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, useToggleProductVisibility } from "@/hooks/use-products";
 import { useCategories } from "@/hooks/use-categories";
 import { useSuppliers } from "@/hooks/use-suppliers";
 import { useState, useRef } from "react";
@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, Upload, X, ImageIcon, Loader2, Tag, Barcode } from "lucide-react";
+import { Plus, Edit2, Trash2, Upload, X, ImageIcon, Loader2, Tag, Barcode, Eye, EyeOff } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -18,7 +18,7 @@ import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { BarcodeScanner } from "@/components/product/BarcodeScanner";
 
-const MAX_IMAGES = 5;
+const MAX_IMAGES = 10;
 
 // Comprime una imagen antes de subirla al servidor
 // Reduce el tamaño manteniendo calidad aceptable (máx 1200px, calidad 85%)
@@ -113,6 +113,7 @@ export default function AdminProducts() {
   const { mutate: createProduct } = useCreateProduct();
   const { mutate: updateProduct } = useUpdateProduct();
   const { mutate: deleteProduct } = useDeleteProduct();
+  const { mutate: toggleVisibility } = useToggleProductVisibility();
   const { toast } = useToast();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -126,6 +127,7 @@ export default function AdminProducts() {
   const [supplierId, setSupplierId] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [showHidden, setShowHidden] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
@@ -281,6 +283,9 @@ const openNew = () => {
     }
   };
 
+  // Filtrar productos según el checkbox
+  const filteredProducts = showHidden ? products : products.filter((p: any) => p.isVisible !== false);
+
   return (
     <AdminLayout>
       <div className="flex justify-between items-center mb-8">
@@ -394,7 +399,7 @@ const openNew = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <FormLabel>Imagenes del Producto ({images.length}/{MAX_IMAGES})</FormLabel>
-                    <div className="mt-2 grid grid-cols-5 gap-3">
+                    <div className={`mt-2 grid grid-cols-5 xl:grid-cols-${Math.min(images.length + 1, MAX_IMAGES)} gap-3`}>
                       {images.map((url, i) => (
                         <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border border-border bg-muted" data-testid={`image-preview-${i}`}>
                           <img src={url} alt={`Imagen ${i + 1}`} className="w-full h-full object-cover" />
@@ -503,6 +508,19 @@ const openNew = () => {
       </div>
 
       <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+        <div className="flex items-center justify-between px-4 py-3 border-b">
+          <span className="text-sm text-muted-foreground">
+            {filteredProducts.length} producto(s)
+          </span>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <Checkbox
+              checked={showHidden}
+              onCheckedChange={(val) => setShowHidden(!!val)}
+              data-testid="checkbox-show-hidden"
+            />
+            <span className="text-muted-foreground">Incluir productos ocultos</span>
+          </label>
+        </div>
         <Table>
           <TableHeader className="bg-muted/30">
             <TableRow>
@@ -512,17 +530,18 @@ const openNew = () => {
               <TableHead>Inventario</TableHead>
               <TableHead>Proveedor</TableHead>
               <TableHead>Categoria</TableHead>
+              <TableHead>Visible</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8">Cargando...</TableCell></TableRow>
-            ) : products.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8">No se encontraron productos</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-8">Cargando...</TableCell></TableRow>
+            ) : filteredProducts.length === 0 ? (
+              <TableRow><TableCell colSpan={8} className="text-center py-8">No se encontraron productos</TableCell></TableRow>
             ) : (
-              products.map((p: any) => (
-                <TableRow key={p.id} data-testid={`row-product-${p.id}`}>
+              filteredProducts.map((p: any) => (
+                <TableRow key={p.id} data-testid={`row-product-${p.id}`} className={!p.isVisible ? "opacity-60" : ""}>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-muted rounded overflow-hidden flex-shrink-0">
@@ -534,12 +553,19 @@ const openNew = () => {
                           </div>
                         )}
                       </div>
-                      <span>{p.name}</span>
-                      {p.isOffer && (
-                        <span className="ml-2 inline-flex items-center gap-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                          <Tag className="w-3 h-3" /> OFERTA
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <span>{p.name}</span>
+                        {!p.isVisible && (
+                          <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                            <EyeOff className="w-3 h-3" /> OCULTO
+                          </span>
+                        )}
+                        {p.isOffer && (
+                          <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                            <Tag className="w-3 h-3" /> OFERTA
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -564,6 +590,21 @@ const openNew = () => {
                     <span className="text-sm">{p.supplier?.name || '-'}</span>
                   </TableCell>
                   <TableCell>{p.category?.name || '-'}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => toggleVisibility({ id: p.id, isVisible: !p.isVisible })}
+                      title={p.isVisible ? "Ocultar producto" : "Mostrar producto"}
+                      data-testid={`button-toggle-visibility-${p.id}`}
+                    >
+                      {p.isVisible ? (
+                        <Eye className="w-4 h-4 text-green-500" />
+                      ) : (
+                        <EyeOff className="w-4 h-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button variant="ghost" size="icon" onClick={() => openEdit(p)} data-testid={`button-edit-product-${p.id}`}><Edit2 className="w-4 h-4" /></Button>
                     <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(p.id)} data-testid={`button-delete-product-${p.id}`}><Trash2 className="w-4 h-4" /></Button>

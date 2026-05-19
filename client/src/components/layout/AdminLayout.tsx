@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { LayoutDashboard, Package, Tags, ShoppingCart, ArrowLeft, Users, FileText, Image, Ticket, LayoutGrid } from "lucide-react";
+import { LayoutDashboard, Package, Tags, ShoppingCart, ArrowLeft, Users, FileText, Image, Ticket, LayoutGrid, Truck, FileBarChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -25,6 +25,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
     { icon: Package, label: "Productos", path: "/admin/products" },
     { icon: Tags, label: "Categorias", path: "/admin/categories" },
+    { icon: Truck, label: "Proveedores", path: "/admin/suppliers" },
+    { icon: FileBarChart, label: "Informe de Compra", path: "/admin/purchase-report" },
     { icon: ShoppingCart, label: "Pedidos", path: "/admin/orders" },
     { icon: Users, label: "Clientes", path: "/admin/customers" },
     { icon: Ticket, label: "Cupones", path: "/admin/coupons" },

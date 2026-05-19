@@ -1,6 +1,6 @@
 import { getCached, setCache, invalidateCache } from "./cache";
 import { db } from "./db";
-import { eq, and, isNull, isNotNull, desc, ilike, or, sql } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, desc, ilike, or, sql, gte, lte } from "drizzle-orm";
 import {
   users, categories, suppliers, products, carts, cartItems, orders, orderItems, sitePages, bannerSlides, coupons,
   homeRows, homeRowItems, homeRectangles, homeRectangleItems,
@@ -173,7 +173,7 @@ export class DatabaseStorage implements IStorage {
     return cat;
   }
 
-  async getProducts(categoryId?: number, search?: string, onlyShowOnHome?: boolean, page?: number, limit?: number): Promise<{ products: ProductWithCategory[]; total: number; page: number; totalPages: number }> {
+  async getProducts(categoryId?: number, search?: string, onlyShowOnHome?: boolean, page?: number, limit?: number, includeHidden?: boolean): Promise<{ products: ProductWithCategory[]; total: number; page: number; totalPages: number }> {
     const cacheKey = `products:${categoryId || ''}:${search || ''}:${onlyShowOnHome || ''}:${page || ''}:${limit || ''}`;
     const cached = getCached<{ products: ProductWithCategory[]; total: number; page: number; totalPages: number }>(cacheKey);
     if (cached) return cached;
@@ -211,8 +211,10 @@ export class DatabaseStorage implements IStorage {
       );
     }
 
-    // Siempre mostrar solo productos visibles en la tienda pública
-    conditions.push(eq(products.isVisible, true));
+    // Mostrar solo productos visibles (a menos que includeHidden sea true)
+    if (includeHidden !== true) {
+      conditions.push(eq(products.isVisible, true));
+    }
 
     const withPagination = page !== undefined && limit !== undefined;
     const effectivePage = page ?? 1;
@@ -960,6 +962,23 @@ export class DatabaseStorage implements IStorage {
     await db.update(products).set({ supplierId: null }).where(eq(products.supplierId, id));
     await db.delete(suppliers).where(eq(suppliers.id, id));
   }
-}
+
+
+  async getPurchaseReport(_params: { desde?: Date; hasta?: Date; supplierId?: number }): Promise<any> {
+    const statusConditions = [eq(orders.status, "entregado"), eq(orders.status, "pagado")];
+    if (_params.desde) statusConditions.push(gte(orders.createdAt, _params.desde));
+    if (_params.hasta) statusConditions.push(lte(orders.createdAt, _params.hasta));
+    const orderList = await db
+      .select()
+      .from(orders)
+      .where(and(...statusConditions))
+      .orderBy(desc(orders.createdAt));
+    if (orderList.length === 0) {
+      return { suppliers: [], grandTotalQuantity: 0, grandTotalProfit: 0, generatedAt: new Date().toISOString(), desde: null, hasta: null };
+    }
+    return { suppliers: [], grandTotalQuantity: 0, grandTotalProfit: 0, generatedAt: new Date().toISOString(), desde: null, hasta: null };
+  }
+
+  }
 
 export const storage = new DatabaseStorage();

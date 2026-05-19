@@ -118,3 +118,23 @@ export function useDeleteProduct() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.products.list.path] }),
   });
 }
+
+export function useToggleProductVisibility() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, isVisible }: { id: number; isVisible: boolean }) => {
+      const res = await fetch(`/api/admin/products/${id}/visibility`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isVisible }),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Error al actualizar visibilidad");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.products.list.path] });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+    },
+  });
+}

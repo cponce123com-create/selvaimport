@@ -321,9 +321,37 @@ export async function registerRoutes(
       search,
       onlyShowOnHome,
       page,
-      limit
+      limit,
+      isAdmin ? true : undefined // includeHidden: admin ve todos los productos
     );
     res.json(result);
+  });
+
+  // ── Toggle visibilidad de producto (admin) ──
+  app.patch("/api/admin/products/:id/visibility", requireAdmin, async (req, res) => {
+    try {
+      const productId = Number(req.params.id);
+      const { isVisible } = req.body as { isVisible: boolean };
+      const updated = await storage.updateProduct(productId, { isVisible });
+      res.json(updated);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message });
+    }
+  });
+
+  // ── Informe de Compra (admin) ──
+  app.get("/api/admin/purchase-report", requireAdmin, async (req, res) => {
+    try {
+      const { desde, hasta, supplierId } = req.query;
+      const result = await storage.getPurchaseReport({
+        desde: desde ? new Date(desde as string) : undefined,
+        hasta: hasta ? new Date(hasta as string) : undefined,
+        supplierId: supplierId ? Number(supplierId) : undefined,
+      });
+      res.json(result);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
   });
 
   app.get(api.products.get.path, async (req, res) => {
