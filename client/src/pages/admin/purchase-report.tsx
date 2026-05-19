@@ -29,6 +29,7 @@ interface ReportItem {
     entryDate: string | null;
   }[];
   subtotalProducts: number;
+  subtotalUnits: number;
   subtotalCost: number;
   subtotalProfit: number;
 }
@@ -36,6 +37,7 @@ interface ReportItem {
 interface ReportData {
   suppliers: ReportItem[];
   grandTotalProducts: number;
+  grandTotalUnits: number;
   grandTotalCost: number;
   grandTotalProfit: number;
   generatedAt: string;
@@ -208,10 +210,11 @@ export default function AdminPurchaseReport() {
                         <TableHead>Código Barras</TableHead>
                         <TableHead>Marca</TableHead>
                         <TableHead>Modelo</TableHead>
-                        <TableHead className="text-right">Precio Compra</TableHead>
+                        <TableHead className="text-right">Precio Compra Unit.</TableHead>
+                        <TableHead className="text-right">Unidades</TableHead>
+                        <TableHead className="text-right">Subtotal Gastado</TableHead>
                         <TableHead className="text-right">Precio Venta</TableHead>
-                        <TableHead className="text-right">Ganancia Unit.</TableHead>
-                        <TableHead className="text-right">Inventario</TableHead>
+                        <TableHead className="text-right">Ganancia x Unidad</TableHead>
                         <TableHead className="text-right">Ganancia Total</TableHead>
                         <TableHead>Fecha Ingreso</TableHead>
                       </TableRow>
@@ -243,11 +246,12 @@ export default function AdminPurchaseReport() {
                           <TableCell>{item.brand || <span className="text-muted-foreground/50">-</span>}</TableCell>
                           <TableCell>{item.model || <span className="text-muted-foreground/50">-</span>}</TableCell>
                           <TableCell className="text-right">S/ {item.purchasePrice.toFixed(2)}</TableCell>
+                          <TableCell className="text-right font-medium">{item.inventory}</TableCell>
+                          <TableCell className="text-right font-medium">S/ {(item.purchasePrice * item.inventory).toFixed(2)}</TableCell>
                           <TableCell className="text-right">S/ {item.price.toFixed(2)}</TableCell>
                           <TableCell className={`text-right font-medium ${item.unitProfit >= 0 ? "text-green-600" : "text-destructive"}`}>
                             {item.unitProfit >= 0 ? "+" : ""}S/ {item.unitProfit.toFixed(2)}
                           </TableCell>
-                          <TableCell className="text-right font-medium">{item.inventory}</TableCell>
                           <TableCell className={`text-right font-medium ${item.totalProfit >= 0 ? "text-green-600" : "text-destructive"}`}>
                             {item.totalProfit >= 0 ? "+" : ""}S/ {item.totalProfit.toFixed(2)}
                           </TableCell>
@@ -264,8 +268,9 @@ export default function AdminPurchaseReport() {
                       {/* Subtotal del proveedor */}
                       <TableRow className="bg-muted/10">
                         <TableCell colSpan={4} className="font-semibold">Subtotal ({supplier.subtotalProducts} productos)</TableCell>
-                        <TableCell className="text-right font-semibold">S/ {supplier.subtotalCost.toFixed(2)}</TableCell>
                         <TableCell className="text-right text-muted-foreground">-</TableCell>
+                        <TableCell className="text-right font-semibold">{supplier.subtotalUnits}</TableCell>
+                        <TableCell className="text-right font-semibold">S/ {supplier.subtotalCost.toFixed(2)}</TableCell>
                         <TableCell className="text-right text-muted-foreground">-</TableCell>
                         <TableCell className="text-right text-muted-foreground">-</TableCell>
                         <TableCell className={`text-right font-semibold ${supplier.subtotalProfit >= 0 ? "text-green-600" : "text-destructive"}`}>
@@ -286,10 +291,11 @@ export default function AdminPurchaseReport() {
                       <TableCell className="font-bold text-lg" colSpan={4}>
                         TOTAL GENERAL ({report.grandTotalProducts} productos)
                       </TableCell>
+                      <TableCell className="text-right font-bold text-lg">-</TableCell>
+                      <TableCell className="text-right font-bold text-lg">{report.grandTotalUnits}</TableCell>
                       <TableCell className="text-right font-bold text-lg">
                         S/ {report.grandTotalCost.toFixed(2)}
                       </TableCell>
-                      <TableCell className="text-right text-muted-foreground">-</TableCell>
                       <TableCell className="text-right text-muted-foreground">-</TableCell>
                       <TableCell className="text-right text-muted-foreground">-</TableCell>
                       <TableCell className={`text-right font-bold text-lg ${report.grandTotalProfit >= 0 ? "text-green-600" : "text-destructive"}`}>

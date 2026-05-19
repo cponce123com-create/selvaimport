@@ -1055,10 +1055,12 @@ export class DatabaseStorage implements IStorage {
         entryDate: string | null;
       }[];
       subtotalProducts: number;
+      subtotalUnits: number;
       subtotalCost: number;
       subtotalProfit: number;
     }[];
     grandTotalProducts: number;
+    grandTotalUnits: number;
     grandTotalCost: number;
     grandTotalProfit: number;
     generatedAt: string;
@@ -1101,6 +1103,7 @@ export class DatabaseStorage implements IStorage {
       return {
         suppliers: [],
         grandTotalProducts: 0,
+        grandTotalUnits: 0,
         grandTotalCost: 0,
         grandTotalProfit: 0,
         generatedAt: new Date().toISOString(),
@@ -1123,6 +1126,7 @@ export class DatabaseStorage implements IStorage {
       supplierName: string;
       items: any[];
       subtotalProducts: number;
+      subtotalUnits: number;
       subtotalCost: number;
       subtotalProfit: number;
     }>();
@@ -1138,6 +1142,7 @@ export class DatabaseStorage implements IStorage {
           supplierName: sName,
           items: [],
           subtotalProducts: 0,
+          subtotalUnits: 0,
           subtotalCost: 0,
           subtotalProfit: 0,
         });
@@ -1145,6 +1150,8 @@ export class DatabaseStorage implements IStorage {
 
       const group = supplierGroups.get(groupKey)!;
       const purchasePrice = Number(prod.purchasePrice || 0);
+      const units = prod.inventory;
+      const subtotalSpent = purchasePrice * units;
       group.items.push({
         productId: prod.id,
         productName: prod.name,
@@ -1156,21 +1163,24 @@ export class DatabaseStorage implements IStorage {
         price: Number(prod.price || 0),
         purchasePrice,
         unitProfit: Number(prod.price || 0) - purchasePrice,
-        totalProfit: (Number(prod.price || 0) - purchasePrice) * prod.inventory,
-        inventory: prod.inventory,
+        totalProfit: (Number(prod.price || 0) - purchasePrice) * units,
+        inventory: units,
         entryDate: (prod.entryDate || prod.createdAt)?.toISOString?.() || null,
       });
       group.subtotalProducts++;
-      group.subtotalCost += purchasePrice;
-      group.subtotalProfit += (Number(prod.price || 0) - purchasePrice) * prod.inventory;
+      group.subtotalUnits += units;
+      group.subtotalCost += subtotalSpent;
+      group.subtotalProfit += (Number(prod.price || 0) - purchasePrice) * units;
     }
 
     let grandTotalProducts = 0;
+    let grandTotalUnits = 0;
     let grandTotalCost = 0;
     let grandTotalProfit = 0;
     const suppliersResult: any[] = [];
     supplierGroups.forEach((g) => {
       grandTotalProducts += g.subtotalProducts;
+      grandTotalUnits += g.subtotalUnits;
       grandTotalCost += g.subtotalCost;
       grandTotalProfit += g.subtotalProfit;
       suppliersResult.push(g);
@@ -1179,6 +1189,7 @@ export class DatabaseStorage implements IStorage {
     return {
       suppliers: suppliersResult,
       grandTotalProducts,
+      grandTotalUnits,
       grandTotalCost,
       grandTotalProfit,
       generatedAt: new Date().toISOString(),
