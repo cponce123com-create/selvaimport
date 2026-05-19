@@ -2,8 +2,8 @@ import { getCached, setCache, invalidateCache } from "./cache";
 import { db } from "./db";
 import { eq, and, isNull, isNotNull, desc, ilike, or, sql, gte, lte } from "drizzle-orm";
 import {
-  users, categories, suppliers, products, carts, cartItems, orders, orderItems, sitePages, bannerSlides, coupons,
-  homeRows, homeRowItems, homeRectangles, homeRectangleItems,
+  users, categories, suppliers, products, productTemplates, carts, cartItems, orders, orderItems, sitePages, bannerSlides, coupons,
+  homeRows, homeRowItems, homeRectangles, homeRectangleItems, insertProductTemplateSchema,
   type User, type InsertUser,
   type Category, type InsertCategory,
   type Product, type InsertProduct, type ProductWithCategory,
@@ -127,6 +127,14 @@ export interface IStorage {
   updateSupplier(id: number, data: Partial<InsertSupplier>): Promise<Supplier>;
   deleteSupplier(id: number): Promise<void>;
 
+  // Product Templates
+  getProductTemplates(search?: string, page?: number, limit?: number): Promise<{ templates: any[]; total: number; page: number; totalPages: number }>;
+  getProductTemplate(id: number): Promise<any | undefined>;
+  createProductTemplateFromProduct(productId: number): Promise<any>;
+  findProductTemplateByName(normalizedName: string): Promise<any | undefined>;
+  incrementProductTemplateUsage(id: number): Promise<any>;
+  deleteProductTemplate(id: number): Promise<void>;
+
   sessionStore: session.Store;
 }
 
@@ -235,11 +243,13 @@ export class DatabaseStorage implements IStorage {
       ? db.select().from(products).where(whereClause).orderBy(desc(products.createdAt)).limit(effectiveLimit).offset((effectivePage - 1) * effectiveLimit)
       : db.select().from(products).where(whereClause).orderBy(desc(products.createdAt)));
 
+    const catMap = new Map(cats.map((c) => [c.id, c]));
+    const supplierMap = new Map(allSuppliers.map((s) => [s.id, s]));
     const result = {
       products: filteredProducts.map((p) => ({
         ...p,
-        category: cats.find((c) => c.id === p.categoryId),
-        supplier: allSuppliers.find((s) => s.id === p.supplierId) || null,
+        category: p.categoryId ? catMap.get(p.categoryId) : undefined,
+        supplier: p.supplierId ? supplierMap.get(p.supplierId) || null : null,
       })),
       total,
       page: effectivePage,
@@ -1121,6 +1131,109 @@ export class DatabaseStorage implements IStorage {
       desde: desde?.toISOString() || null,
       hasta: hasta?.toISOString() || null,
     };
+  }
+
+  // ── Product Templates ──
+
+  async getProductTemplates(search?: string, page?: number, limit?: number): Promise<{ templates: any[]; total: number; page: number; totalPages: number }> {
+    const conditions = [];
+    if (search) {
+      conditions.push(ilike(productTemplates.name, `%${search}%`));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(productTemplates)
+      .where(whereClause);
+
+    const total = Number(count);
+
+    const withPagination = page !== undefined && limit !== undefined;
+    const effectivePage = page ?? 1;
+    const effectiveLimit = limit ?? 20;
+
+    const templateRows = await (withPagination
+      ? db.select().from(productTemplates).where(whereClause).orderBy(desc(productTemplates.usageCount)).limit(effectiveLimit).offset((effectivePage - 1) * effectiveLimit)
+      : db.select().from(productTemplates).where(whereClause).orderBy(desc(productTemplates.usageCount)));
+
+    return {
+      templates: templateRows,
+      total,
+      page: effectivePage,
+      totalPages: withPagination ? Math.max(1, Math.ceil(total / effectiveLimit)) : 1,
+    };
+  }
+
+  async getProductTemplate(id: number): Promise<any | undefined> {
+    const [template] = await db.select().from(productTemplates).where(eq(productTemplates.id, id));
+    return template;
+  }
+
+  async findProductTemplateByName(normalizedName: string): Promise<any | undefined> {
+    const [template] = await db
+      .select()
+      .from(productTemplates)
+      .where(eq(productTemplates.normalizedName, normalizedName));
+    return template;
+  }
+
+  async createProductTemplateFromProduct(productId: number): Promise<any> {
+    const [product] = await db.select().from(products).where(eq(products.id, productId));
+    if (!product) throw new Error("Producto no encontrado");
+
+    const normalizedName = product.name.toLowerCase().trim().replace(/\s+/g, ' ');
+
+    // Check if template already exists
+    const existing = await this.findProductTemplateByName(normalizedName);
+    if (existing) {
+      // Update last purchase price and increment usage
+      const [updated] = await db
+        .update(productTemplates)
+        .set({
+          lastPurchasePrice: product.purchasePrice,
+          usageCount: sql`${productTemplates.usageCount} + 1`,
+          lastUsedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(productTemplates.id, existing.id))
+        .returning();
+      return updated;
+    }
+
+    const [created] = await db
+      .insert(productTemplates)
+      .values({
+        name: product.name,
+        normalizedName,
+        categoryId: product.categoryId,
+        supplierId: product.supplierId,
+        barcode: product.barcode,
+        lastPurchasePrice: product.purchasePrice,
+        usageCount: 1,
+        lastUsedAt: new Date(),
+      })
+      .returning();
+
+    return created;
+  }
+
+  async incrementProductTemplateUsage(id: number): Promise<any> {
+    const [updated] = await db
+      .update(productTemplates)
+      .set({
+        usageCount: sql`${productTemplates.usageCount} + 1`,
+        lastUsedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(productTemplates.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteProductTemplate(id: number): Promise<void> {
+    await db.delete(productTemplates).where(eq(productTemplates.id, id));
   }
 
 }

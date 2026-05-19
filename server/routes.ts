@@ -342,7 +342,7 @@ export async function registerRoutes(
   // ── Informe de Compra (admin) ──
   app.get("/api/admin/purchase-report", requireAdmin, async (req, res) => {
     try {
-      const { desde, hasta, supplierId } = req.query;
+      const { desde, hasta, supplierId, entryDateFrom, entryDateTo } = req.query;
       const result = await storage.getPurchaseReport({
         desde: desde ? new Date(desde as string) : undefined,
         hasta: hasta ? new Date(hasta as string) : undefined,
@@ -437,6 +437,49 @@ export async function registerRoutes(
 
     await storage.deleteProduct(productId);
     res.status(204).end();
+  });
+
+  // ── Product Templates ──
+  app.get("/api/admin/product-templates", requireAdmin, async (req, res) => {
+    try {
+      const search = req.query.search as string | undefined;
+      const page = req.query.page ? Number(req.query.page) : undefined;
+      const limit = req.query.limit ? Number(req.query.limit) : undefined;
+      const result = await storage.getProductTemplates(search, page, limit);
+      res.json(result);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  app.get("/api/admin/product-templates/:id", requireAdmin, async (req, res) => {
+    try {
+      const template = await storage.getProductTemplate(Number(req.params.id));
+      if (!template) return res.status(404).json({ message: "Template no encontrado" });
+      res.json(template);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  app.delete("/api/admin/product-templates/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteProductTemplate(Number(req.params.id));
+      res.status(204).end();
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // ── Public endpoint for template search (no auth required for autocomplete) ──
+  app.get("/api/product-templates/search", async (req, res) => {
+    try {
+      const search = (req.query.q as string) || "";
+      const result = await storage.getProductTemplates(search, 1, 10);
+      res.json(result.templates);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
   });
 
   app.get(api.cart.get.path, requireAuth, async (req, res) => {

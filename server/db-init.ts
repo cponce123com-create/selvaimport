@@ -53,6 +53,31 @@ const CREATE_TABLES_SQL = [
   sql`CREATE INDEX IF NOT EXISTS idx_home_rectangle_items_rect_id ON home_rectangle_items(home_rectangle_id)`,
   sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_home_rectangles_position ON home_rectangles(position)`,
 
+  // ── Tabla Maestro de Productos ──
+  sql`CREATE TABLE IF NOT EXISTS product_templates (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    normalized_name TEXT NOT NULL,
+    category_id INTEGER REFERENCES categories(id),
+    supplier_id INTEGER REFERENCES suppliers(id),
+    barcode TEXT,
+    sku TEXT,
+    brand TEXT,
+    unit TEXT,
+    last_purchase_price DECIMAL(10,2),
+    usage_count INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    last_used_at TIMESTAMP
+  )`,
+
+  // ── Índices para product_templates ──
+  sql`CREATE INDEX IF NOT EXISTS idx_product_templates_name ON product_templates(name)`,
+  sql`CREATE INDEX IF NOT EXISTS idx_product_templates_normalized ON product_templates(normalized_name)`,
+  sql`CREATE INDEX IF NOT EXISTS idx_product_templates_barcode ON product_templates(barcode)`,
+  sql`CREATE INDEX IF NOT EXISTS idx_product_templates_category ON product_templates(category_id)`,
+  sql`CREATE INDEX IF NOT EXISTS idx_product_templates_supplier ON product_templates(supplier_id)`,
+
   // ── Índices para pedidos, carrito y productos ──
   sql`CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id)`,
   sql`CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at DESC)`,
@@ -67,6 +92,7 @@ const CREATE_TABLES_SQL = [
 const ALTER_TABLES_SQL = [
   // Se ejecuta DESPUES de asegurar que las tablas base existen
   sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS show_on_home BOOLEAN NOT NULL DEFAULT true`,
+  sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS entry_date TIMESTAMP DEFAULT NOW()`,
 ];
 
 export async function initDatabase(): Promise<void> {

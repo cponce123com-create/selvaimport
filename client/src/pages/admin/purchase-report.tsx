@@ -27,16 +27,12 @@ interface ReportItem {
   }[];
   subtotalQuantity: number;
   subtotalProfit: number;
-  subtotalRevenue: number;
-  subtotalCost: number;
 }
 
 interface ReportData {
   suppliers: ReportItem[];
   grandTotalQuantity: number;
   grandTotalProfit: number;
-  grandTotalRevenue: number;
-  grandTotalCost: number;
   generatedAt: string;
   desde: string | null;
   hasta: string | null;
@@ -159,7 +155,7 @@ export default function AdminPurchaseReport() {
         </div>
       )}
 
-      {generated && !isLoading && report && (
+      {!isLoading && report && (
         <div ref={printRef} id="print-area">
           {/* ── Cabecera para impresión ── */}
           <div className="hidden print:block mb-6 pb-4 border-b">

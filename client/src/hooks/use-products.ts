@@ -134,7 +134,52 @@ export function useToggleProductVisibility() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.products.list.path] });
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+    },
+  });
+}
+
+export function useProductTemplates(search?: string) {
+  return useQuery<any[]>({
+    queryKey: ["/api/product-templates/search", search],
+    queryFn: async () => {
+      const params = search ? `?q=${encodeURIComponent(search)}` : "";
+      const res = await fetch(`/api/product-templates/search${params}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch templates");
+      return res.json();
+    },
+    enabled: typeof search === "string",
+    staleTime: 30000,
+  });
+}
+
+export function useAdminProductTemplates(params?: { search?: string; page?: number; limit?: number }) {
+  return useQuery<{ templates: any[]; total: number; page: number; totalPages: number }>({
+    queryKey: ["/api/admin/product-templates", params],
+    queryFn: async () => {
+      const url = new URL("/api/admin/product-templates", window.location.origin);
+      if (params?.search) url.searchParams.set("search", params.search);
+      if (params?.page) url.searchParams.set("page", params.page.toString());
+      if (params?.limit) url.searchParams.set("limit", params.limit.toString());
+      const res = await fetch(url.toString(), { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch templates");
+      return res.json();
+    },
+  });
+}
+
+export function useDeleteProductTemplate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/admin/product-templates/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to delete template");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/product-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/product-templates/search"] });
     },
   });
 }

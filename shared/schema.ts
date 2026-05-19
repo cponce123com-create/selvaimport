@@ -49,6 +49,25 @@ export const products = pgTable("products", {
   isOffer: boolean("is_offer").default(false),
   isVisible: boolean("is_visible").default(true),
   createdAt: timestamp("created_at").defaultNow(),
+  entryDate: timestamp("entry_date").defaultNow(),
+});
+
+// ── Maestro de Productos (Templates) ──
+export const productTemplates = pgTable("product_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  normalizedName: text("normalized_name").notNull(),
+  categoryId: integer("category_id").references(() => categories.id),
+  supplierId: integer("supplier_id").references(() => suppliers.id),
+  barcode: text("barcode"),
+  sku: text("sku"),
+  brand: text("brand"),
+  unit: text("unit"),
+  lastPurchasePrice: decimal("last_purchase_price", { precision: 10, scale: 2 }),
+  usageCount: integer("usage_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  lastUsedAt: timestamp("last_used_at"),
 });
 
 export const carts = pgTable("carts", {
@@ -255,6 +274,8 @@ export type InsertBannerSlide = z.infer<typeof insertBannerSlideSchema>;
 
 export type Coupon = typeof coupons.$inferSelect;
 export type InsertCoupon = z.infer<typeof insertCouponSchema>;
+
+export const insertProductTemplateSchema = createInsertSchema(productTemplates).omit({ id: true, createdAt: true, updatedAt: true, usageCount: true, lastUsedAt: true });
 
 export const insertHomeRowSchema = createInsertSchema(homeRows).omit({ id: true, createdAt: true });
 export const insertHomeRowItemSchema = createInsertSchema(homeRowItems).omit({ id: true });

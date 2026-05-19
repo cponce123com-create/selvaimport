@@ -17,6 +17,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { BarcodeScanner } from "@/components/product/BarcodeScanner";
+import { ProductCombobox, type ProductTemplateSlim } from "@/components/product/ProductCombobox";
 
 const MAX_IMAGES = 10;
 
@@ -162,7 +163,7 @@ export default function AdminProducts() {
   };
 const openNew = () => {
   setEditingId(null);
-  form.reset({ name: "", description: "", price: "", purchasePrice: "", offerPrice: "", inventory: 0 });
+  form.reset({ name: "", description: "", price: "", purchasePrice: "", offerPrice: "", inventory: 0, categoryId: undefined });
   setImages([]);
   setVideoUrl(null);
   setVideoPublicId(null);
@@ -299,7 +300,34 @@ const openNew = () => {
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField control={form.control} name="name" render={({field}) => (
-                  <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input data-testid="input-product-name" {...field} /></FormControl><FormMessage/></FormItem>
+                  <FormItem>
+                    <FormLabel>Nombre <span className="text-destructive">*</span></FormLabel>
+                    <FormControl>
+                      <ProductCombobox
+                        value={field.value}
+                        onChange={field.onChange}
+                        onTemplateSelect={(template) => {
+                          // Auto-fill category if not set
+                          if (template.categoryId && !form.getValues("categoryId")) {
+                            form.setValue("categoryId", template.categoryId);
+                          }
+                          // Auto-fill supplier if not set
+                          if (template.supplierId && !supplierId) {
+                            setSupplierId(template.supplierId);
+                          }
+                          // Auto-fill barcode if not set
+                          if (template.barcode && !barcode) {
+                            setBarcode(template.barcode);
+                          }
+                          // Auto-fill purchasePrice if not set
+                          if (template.lastPurchasePrice && !form.getValues("purchasePrice")) {
+                            form.setValue("purchasePrice", Number(template.lastPurchasePrice).toString());
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage/>
+                  </FormItem>
                 )} />
                 <FormField control={form.control} name="description" render={({field}) => (
                   <FormItem><FormLabel>Descripcion</FormLabel><FormControl><Textarea data-testid="input-product-description" {...field} /></FormControl><FormMessage/></FormItem>
