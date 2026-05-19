@@ -74,6 +74,7 @@ const formSchema = z.object({
   inventory: z.coerce.number().min(0, "El inventario no puede ser negativo"),
   minStock: z.coerce.number().optional(),
   categoryId: z.coerce.number().optional(),
+  entryDate: z.string().optional(),
 });
 
 // Botón separado para abrir la cámara directamente (solo funciona sin "multiple")
@@ -148,6 +149,7 @@ export default function AdminProducts() {
       inventory: p.inventory,
       minStock: p.minStock ?? undefined,
       categoryId: p.categoryId,
+      entryDate: p.entryDate ? new Date(p.entryDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
     });
     const existingImages: string[] = [];
     if (p.images && p.images.length > 0) {
@@ -165,7 +167,7 @@ export default function AdminProducts() {
   };
 const openNew = () => {
   setEditingId(null);
-  form.reset({ name: "", description: "", price: "", purchasePrice: "", offerPrice: "", inventory: 0, minStock: undefined, categoryId: undefined });
+  form.reset({ name: "", description: "", price: "", purchasePrice: "", offerPrice: "", inventory: 0, minStock: undefined, categoryId: undefined, entryDate: new Date().toISOString().split("T")[0] });
   setImages([]);
   setVideoUrl(null);
   setVideoPublicId(null);
@@ -247,8 +249,14 @@ const openNew = () => {
     : null;
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
+    // Convertir entryDate de string (YYYY-MM-DD) a Date para la API
+    const entryDateValue = data.entryDate
+      ? new Date(data.entryDate + "T12:00:00")
+      : undefined;
+
     const payload = {
       ...data,
+      entryDate: entryDateValue,
       slug: generateSlug(data.name),
       imageUrl: images.length > 0 ? images[0] : null,
       images: images,
@@ -345,11 +353,13 @@ const openNew = () => {
                     <FormItem><FormLabel>Inventario</FormLabel><FormControl><Input type="number" data-testid="input-product-inventory" {...field} /></FormControl><FormMessage/></FormItem>
                   )} />
                   <FormField control={form.control} name="minStock" render={({field}) => (
-                    <FormItem><FormLabel>Stock Mínimo</FormLabel><FormControl><Input type="number" placeholder="Ej: 5" data-testid="input-product-minstock" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))} /></FormControl><FormMessage/></FormItem>
+                   <FormItem><FormLabel>Stock Mínimo</FormLabel><FormControl><Input type="number" placeholder="Ej: 5" data-testid="input-product-minstock" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))} /></FormControl><FormMessage/></FormItem>
+                  )} />
+                  <FormField control={form.control} name="entryDate" render={({field}) => (
+                   <FormItem><FormLabel>Fecha Ingreso</FormLabel><FormControl><Input type="date" data-testid="input-product-entrydate" {...field} /></FormControl><FormMessage/></FormItem>
                   )} />
                   <FormField control={form.control} name="categoryId" render={({field}) => (
-                    <FormItem><FormLabel>Categoria</FormLabel>
-                      <Select onValueChange={(v) => field.onChange(Number(v))} value={field.value?.toString() || ""}>
+                   <FormItem><FormLabel>Categoria</FormLabel>                      <Select onValueChange={(v) => field.onChange(Number(v))} value={field.value?.toString() || ""}>
                         <FormControl>
                           <SelectTrigger data-testid="select-product-category"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                         </FormControl>
