@@ -1279,6 +1279,15 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  async updateProductTemplate(id: number, data: { brand?: string | null; model?: string | null; barcode?: string | null; sku?: string | null; unit?: string | null; categoryId?: number | null; supplierId?: number | null }): Promise<any> {
+    const [updated] = await db
+      .update(productTemplates)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(productTemplates.id, id))
+      .returning();
+    return updated;
+  }
+
   async deleteProductTemplate(id: number): Promise<void> {
     await db.delete(productTemplates).where(eq(productTemplates.id, id));
   }

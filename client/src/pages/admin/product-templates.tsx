@@ -1,11 +1,12 @@
 import { AdminLayout } from "@/components/layout/AdminLayout";
-import { useAdminProductTemplates, useDeleteProductTemplate } from "@/hooks/use-products";
+import { useAdminProductTemplates, useDeleteProductTemplate, useUpdateProductTemplate } from "@/hooks/use-products";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Trash2, Search, Package, Loader2, Clock, TrendingUp, RefreshCw } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle } from "@/components/ui/dialog";
+import { Trash2, Search, Package, Loader2, Clock, TrendingUp, RefreshCw, Edit2, X, Expand } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AdminProductTemplates() {
@@ -13,11 +14,16 @@ export default function AdminProductTemplates() {
   const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isBackfilling, setIsBackfilling] = useState(false);
+  const [viewImage, setViewImage] = useState<string | null>(null);
+  const [viewImageList, setViewImageList] = useState<string[]>([]);
+  const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  const [editForm, setEditForm] = useState({ brand: "", model: "", barcode: "", sku: "", unit: "" });
   const limit = 20;
   const { toast } = useToast();
 
   const { data, isLoading, error } = useAdminProductTemplates({ search, page, limit });
   const { mutate: deleteTemplate, isPending: isDeleting } = useDeleteProductTemplate();
+  const { mutate: updateTemplate, isPending: isUpdating } = useUpdateProductTemplate();
 
   const templates = data?.templates ?? [];
   const total = data?.total ?? 0;
@@ -203,7 +209,9 @@ export default function AdminProductTemplates() {
                   </TableCell>
                   <TableCell>
                     {t.images && t.images.length > 0 ? (
-                      <img src={t.images[0]} alt={t.name} className="w-10 h-10 rounded-lg object-cover border" loading="lazy" />
+                      <img src={t.images[0]} alt={t.name} className="w-10 h-10 rounded-lg object-cover border cursor-pointer" loading="lazy"
+                        onClick={() => { setViewImage(t.images[0]); setViewImageList(t.images || []); }}
+                      />
                     ) : (
                       <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
                         <Package className="w-4 h-4 text-muted-foreground/50" />
@@ -211,36 +219,43 @@ export default function AdminProductTemplates() {
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <AlertDialog open={deleteId === t.id} onOpenChange={(val) => { if (!val) setDeleteId(null); }}>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => setDeleteId(t.id)}
-                        >
-                          {isDeleting && deleteId === t.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>¿Eliminar template?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Esta acción no se puede deshacer. Los productos creados a partir de este template no se verán afectados.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel onClick={() => setDeleteId(null)}>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            Eliminar
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => {
+                        setEditingTemplate(t);
+                        setEditForm({ brand: t.brand || "", model: t.model || "", barcode: t.barcode || "", sku: t.sku || "", unit: t.unit || "" });
+                      }}>
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <AlertDialog open={deleteId === t.id} onOpenChange={(val) => { if (!val) setDeleteId(null); }}>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setDeleteId(t.id)}
+                          >
+                            {isDeleting && deleteId === t.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Eliminar template?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta acción no se puede deshacer. Los productos creados a partir de este template no se verán afectados.
+                            </AlertDialogDescription>                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setDeleteId(null)}>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                              Eliminar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -275,6 +290,86 @@ export default function AdminProductTemplates() {
           </div>
         )}
       </div>
+
+      {/* ── Visor de imágenes ── */}
+      <Dialog open={!!viewImage} onOpenChange={(v) => { if (!v) setViewImage(null); }}>
+        <DialogContent className="max-w-3xl p-2 bg-black/90">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Imágenes del producto</DialogTitle>
+          </DialogHeader>
+          {viewImage && (
+            <div className="space-y-3">
+              <img src={viewImage} alt="Vista previa" className="w-full h-auto max-h-[70vh] object-contain rounded-lg" />
+              {viewImageList.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-2 justify-center">
+                  {viewImageList.map((url, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setViewImage(url)}
+                      className={`w-14 h-14 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${viewImage === url ? "border-primary scale-110" : "border-transparent opacity-60 hover:opacity-100"}`}
+                    >
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter className="sm:justify-center">
+            <Button variant="secondary" size="sm" onClick={() => setViewImage(null)}>
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Editar template ── */}
+      <Dialog open={!!editingTemplate} onOpenChange={(v) => { if (!v) setEditingTemplate(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar: {editingTemplate?.name || ""}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Marca</label>
+                <Input value={editForm.brand} onChange={(e) => setEditForm(f => ({ ...f, brand: e.target.value }))} placeholder="Ej: Samsung" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Modelo</label>
+                <Input value={editForm.model} onChange={(e) => setEditForm(f => ({ ...f, model: e.target.value }))} placeholder="Ej: X100" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Código Barras</label>
+                <Input value={editForm.barcode} onChange={(e) => setEditForm(f => ({ ...f, barcode: e.target.value }))} placeholder="Ej: 123456789" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">SKU</label>
+                <Input value={editForm.sku} onChange={(e) => setEditForm(f => ({ ...f, sku: e.target.value }))} placeholder="Ej: SAM-X100-BLK" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Unidad</label>
+                <Input value={editForm.unit} onChange={(e) => setEditForm(f => ({ ...f, unit: e.target.value }))} placeholder="Ej: pieza, kg, m" />
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditingTemplate(null)}>Cancelar</Button>
+            <Button onClick={() => {
+              if (!editingTemplate) return;
+              updateTemplate(
+                { id: editingTemplate.id, ...editForm, brand: editForm.brand || null, model: editForm.model || null, barcode: editForm.barcode || null, sku: editForm.sku || null, unit: editForm.unit || null },
+                {
+                  onSuccess: () => { toast({ title: "Template actualizado" }); setEditingTemplate(null); },
+                  onError: (err) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+                }
+              );
+            }} disabled={isUpdating}>
+              {isUpdating ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Guardando...</> : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 

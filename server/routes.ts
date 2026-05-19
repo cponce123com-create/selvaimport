@@ -563,6 +563,17 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/admin/product-templates/:id", requireAdmin, async (req, res) => {
+    try {
+      const template = await storage.getProductTemplate(Number(req.params.id));
+      if (!template) return res.status(404).json({ message: "Template no encontrado" });
+      const updated = await storage.updateProductTemplate(Number(req.params.id), req.body);
+      res.json(updated);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
   app.delete("/api/admin/product-templates/:id", requireAdmin, async (req, res) => {
     try {
       await storage.deleteProductTemplate(Number(req.params.id));

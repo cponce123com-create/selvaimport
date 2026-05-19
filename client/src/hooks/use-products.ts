@@ -251,6 +251,29 @@ export function useAdminProductTemplates(params?: { search?: string; page?: numb
   });
 }
 
+export function useUpdateProductTemplate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...data }: { id: number; brand?: string | null; model?: string | null; barcode?: string | null; sku?: string | null; unit?: string | null; categoryId?: number | null; supplierId?: number | null }) => {
+      const res = await fetch(`/api/admin/product-templates/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "Error al actualizar" }));
+        throw new Error(err.message);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/product-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/product-templates/search"] });
+    },
+  });
+}
+
 export function useDeleteProductTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
