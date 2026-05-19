@@ -21,18 +21,23 @@ interface ReportItem {
     barcode: string | null;
     brand: string | null;
     model: string | null;
+    price: number;
     purchasePrice: number;
+    unitProfit: number;
+    totalProfit: number;
     inventory: number;
     entryDate: string | null;
   }[];
   subtotalProducts: number;
   subtotalCost: number;
+  subtotalProfit: number;
 }
 
 interface ReportData {
   suppliers: ReportItem[];
   grandTotalProducts: number;
   grandTotalCost: number;
+  grandTotalProfit: number;
   generatedAt: string;
   desde: string | null;
   hasta: string | null;
@@ -204,7 +209,10 @@ export default function AdminPurchaseReport() {
                         <TableHead>Marca</TableHead>
                         <TableHead>Modelo</TableHead>
                         <TableHead className="text-right">Precio Compra</TableHead>
+                        <TableHead className="text-right">Precio Venta</TableHead>
+                        <TableHead className="text-right">Ganancia Unit.</TableHead>
                         <TableHead className="text-right">Inventario</TableHead>
+                        <TableHead className="text-right">Ganancia Total</TableHead>
                         <TableHead>Fecha Ingreso</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -235,7 +243,14 @@ export default function AdminPurchaseReport() {
                           <TableCell>{item.brand || <span className="text-muted-foreground/50">-</span>}</TableCell>
                           <TableCell>{item.model || <span className="text-muted-foreground/50">-</span>}</TableCell>
                           <TableCell className="text-right">S/ {item.purchasePrice.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">S/ {item.price.toFixed(2)}</TableCell>
+                          <TableCell className={`text-right font-medium ${item.unitProfit >= 0 ? "text-green-600" : "text-destructive"}`}>
+                            {item.unitProfit >= 0 ? "+" : ""}S/ {item.unitProfit.toFixed(2)}
+                          </TableCell>
                           <TableCell className="text-right font-medium">{item.inventory}</TableCell>
+                          <TableCell className={`text-right font-medium ${item.totalProfit >= 0 ? "text-green-600" : "text-destructive"}`}>
+                            {item.totalProfit >= 0 ? "+" : ""}S/ {item.totalProfit.toFixed(2)}
+                          </TableCell>
                           <TableCell>
                             {item.entryDate
                               ? new Date(item.entryDate).toLocaleDateString("es-PE", {
@@ -251,6 +266,11 @@ export default function AdminPurchaseReport() {
                         <TableCell colSpan={4} className="font-semibold">Subtotal ({supplier.subtotalProducts} productos)</TableCell>
                         <TableCell className="text-right font-semibold">S/ {supplier.subtotalCost.toFixed(2)}</TableCell>
                         <TableCell className="text-right text-muted-foreground">-</TableCell>
+                        <TableCell className="text-right text-muted-foreground">-</TableCell>
+                        <TableCell className="text-right text-muted-foreground">-</TableCell>
+                        <TableCell className={`text-right font-semibold ${supplier.subtotalProfit >= 0 ? "text-green-600" : "text-destructive"}`}>
+                          {supplier.subtotalProfit >= 0 ? "+" : ""}S/ {supplier.subtotalProfit.toFixed(2)}
+                        </TableCell>
                         <TableCell className="text-right text-muted-foreground">-</TableCell>
                       </TableRow>
                     </TableBody>
@@ -270,6 +290,11 @@ export default function AdminPurchaseReport() {
                         S/ {report.grandTotalCost.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">-</TableCell>
+                      <TableCell className="text-right text-muted-foreground">-</TableCell>
+                      <TableCell className="text-right text-muted-foreground">-</TableCell>
+                      <TableCell className={`text-right font-bold text-lg ${report.grandTotalProfit >= 0 ? "text-green-600" : "text-destructive"}`}>
+                        {report.grandTotalProfit >= 0 ? "+" : ""}S/ {report.grandTotalProfit.toFixed(2)}
+                      </TableCell>
                       <TableCell className="text-right text-muted-foreground">-</TableCell>
                     </TableRow>
                   </TableBody>
