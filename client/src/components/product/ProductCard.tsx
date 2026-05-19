@@ -123,7 +123,7 @@ export const ProductCard = memo(function ProductCard({ product, badge }: Product
           <>
             <button
               onClick={handlePrevImage}
-              className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/60 active:scale-90 text-white rounded-full p-0.5 sm:p-1 transition-all duration-200 z-10"
+              className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 active:scale-90 text-white rounded-full p-1.5 sm:p-1 transition-all duration-200 z-10 min-w-[28px] min-h-[28px] flex items-center justify-center"
               data-testid={`button-card-prev-${product.id}`}
               aria-label="Imagen anterior"
             >
@@ -131,7 +131,7 @@ export const ProductCard = memo(function ProductCard({ product, badge }: Product
             </button>
             <button
               onClick={handleNextImage}
-              className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/60 active:scale-90 text-white rounded-full p-0.5 sm:p-1 transition-all duration-200 z-10"
+              className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 active:scale-90 text-white rounded-full p-1.5 sm:p-1 transition-all duration-200 z-10 min-w-[28px] min-h-[28px] flex items-center justify-center"
               data-testid={`button-card-next-${product.id}`}
               aria-label="Imagen siguiente"
             >
@@ -162,7 +162,7 @@ export const ProductCard = memo(function ProductCard({ product, badge }: Product
       </div>
 
       <div className="p-2.5 sm:p-5 flex flex-col flex-1">
-        <h3 className="font-semibold text-foreground text-xs sm:text-sm leading-tight line-clamp-2 min-h-[2rem] sm:min-h-[2.5rem] mb-1" data-testid={`text-product-name-${product.id}`}>{product.name}</h3>
+        <h3 className="font-semibold text-foreground text-xs sm:text-sm leading-tight line-clamp-2 min-h-[2.25rem] sm:min-h-[2.5rem] mb-1.5" data-testid={`text-product-name-${product.id}`}>{product.name}</h3>
         {product.category && (
           <span className="text-[10px] sm:text-xs text-muted-foreground mb-1.5 sm:mb-3">{product.category.name}</span>
         )}
@@ -179,7 +179,7 @@ export const ProductCard = memo(function ProductCard({ product, badge }: Product
 
         <div className="sm:hidden mt-2">
           <Button
-            className="w-full rounded-lg font-medium h-9 text-xs active:scale-95"
+            className="w-full rounded-lg font-medium h-10 text-xs sm:text-sm active:scale-95"
             onClick={handleAddToCart}
             disabled={isPending || product.inventory === 0}
             data-testid={`button-quick-add-mobile-${product.id}`}

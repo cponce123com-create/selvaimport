@@ -193,7 +193,7 @@ function DynamicBannerSlide({ slide, priority }: { slide: BannerSlideData, prior
       )}
 
       {hasMedia && (
-        <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" />
       )}
       {hasMedia && (
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
@@ -208,7 +208,7 @@ function DynamicBannerSlide({ slide, priority }: { slide: BannerSlideData, prior
                   className={`font-bold leading-[1.1] mb-1 sm:mb-2 ${
                     hasMedia ? "text-white drop-shadow-lg" : "text-foreground"
                   }`}
-                  style={{ fontSize: "clamp(1.25rem, 3vw, 2.5rem)" }}
+                  style={{ fontSize: "clamp(1rem, 4vw, 2.5rem)" }}
                   data-testid="text-banner-title"
                 >
                   {slide.title}
@@ -220,7 +220,7 @@ function DynamicBannerSlide({ slide, priority }: { slide: BannerSlideData, prior
                   className={`mb-3 sm:mb-4 ${
                     hasMedia ? "text-white/90 drop-shadow" : "text-muted-foreground"
                   }`}
-                  style={{ fontSize: "clamp(0.75rem, 1.3vw, 1rem)" }}
+                  style={{ fontSize: "clamp(0.7rem, 2.5vw, 1rem)" }}
                 >
                   {slide.subtitle}
                 </p>
@@ -238,7 +238,7 @@ function DynamicBannerSlide({ slide, priority }: { slide: BannerSlideData, prior
           </div>
 
           {hasProducts && (
-            <div className="hidden lg:flex lg:flex-col gap-4 py-4 lg:w-[320px] xl:w-[380px] flex-shrink-0">
+            <div className="hidden lg:flex lg:flex-col gap-4 py-4 lg:w-[300px] xl:w-[360px] flex-shrink-0">
               {productCards.map((p) => (
                 <div key={p.id}>
                   <BannerProductCard product={p} />
@@ -253,7 +253,7 @@ function DynamicBannerSlide({ slide, priority }: { slide: BannerSlideData, prior
         <div className="lg:hidden relative">
           <div className="flex gap-3 px-4 pb-4 overflow-x-auto no-scrollbar">
             {productCards.map((p) => (
-              <div key={p.id} className="flex-shrink-0 w-[180px] sm:w-[220px]">
+              <div key={p.id} className="flex-shrink-0 w-[160px] sm:w-[200px]">
                 <BannerProductCard product={p} />
               </div>
             ))}
@@ -433,7 +433,7 @@ export default function Home() {
       >
         <div
           className="w-full relative"
-          style={{ aspectRatio: "16/7", minHeight: "300px", maxHeight: "620px" }}
+          style={{ aspectRatio: "16/9", minHeight: "200px", maxHeight: "620px" }}
         >
           <AnimatePresence mode="wait">
             {bannerLoading ? (
@@ -613,7 +613,7 @@ export default function Home() {
           <button
             onClick={() => setSelectedCat(undefined)}
             data-testid="button-category-all"
-            className={`whitespace-nowrap px-3.5 py-2 rounded-full text-xs sm:text-sm font-medium transition-all flex-shrink-0 ${
+            className={`whitespace-nowrap px-4 py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all flex-shrink-0 ${
               !selectedCat
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted text-foreground hover:bg-border"

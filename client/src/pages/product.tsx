@@ -240,7 +240,7 @@ export default function ProductDetail() {
 
   return (
     <AppLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 md:py-12">
         <Link href={isTacora ? "/tacora" : "/"} className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground mb-4 transition-colors" data-testid="link-back-catalog">
           <ArrowLeft className="w-4 h-4 mr-2" /> {isTacora ? "Volver a TACORA" : "Volver al catalogo"}
         </Link>
@@ -315,15 +315,15 @@ export default function ProductDetail() {
                 <>
                   <button
                     onClick={handlePreviousImage}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 transition-all duration-200 md:opacity-0 md:invisible md:group-hover:opacity-100 md:group-hover:visible"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2.5 transition-all duration-200 active:scale-90 md:opacity-0 md:invisible md:group-hover:opacity-100 md:group-hover:visible min-w-[40px] min-h-[40px] flex items-center justify-center"
                     data-testid="button-prev-image"
                     aria-label="Previous image"
                   >
-                    <ChevronLeft className="w-6 h-6" />
+                    <ChevronLeft className="w-5 h-5" />
                   </button>
                   <button
                     onClick={handleNextImage}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 transition-all duration-200 md:opacity-0 md:invisible md:group-hover:opacity-100 md:group-hover:visible"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2.5 transition-all duration-200 active:scale-90 md:opacity-0 md:invisible md:group-hover:opacity-100 md:group-hover:visible min-w-[40px] min-h-[40px] flex items-center justify-center"
                     data-testid="button-next-image"
                     aria-label="Next image"
                   >
@@ -337,7 +337,7 @@ export default function ProductDetail() {
                 {hasVideo && (
                   <button
                     onClick={() => setSelectedImage(0)}
-                    className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 relative ${
+                    className={`w-[68px] h-[68px] rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 relative ${
                       selectedImage === 0
                         ? "border-primary ring-2 ring-primary/20"
                         : "border-border/50 hover:border-border opacity-70 hover:opacity-100"
@@ -403,7 +403,7 @@ export default function ProductDetail() {
                 <div className="flex items-center border rounded-lg bg-background">
                   <button
                     onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                    className="px-4 py-2.5 hover:bg-accent text-lg transition-colors active:bg-accent"
+                    className="px-5 py-3 hover:bg-accent text-lg transition-colors active:bg-accent min-w-[44px] min-h-[44px] flex items-center justify-center"
                     data-testid="button-qty-minus"
                   >-</button>
                   <span className="w-12 text-center font-medium" data-testid="text-quantity">{quantity}</span>

@@ -152,7 +152,7 @@ export default function Cart() {
 
   return (
     <AppLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-8 sm:py-12">
         <h1 className="text-2xl sm:text-4xl font-bold mb-6 sm:mb-10" data-testid="text-cart-title">Tu Carrito</h1>
 
         <div className="grid lg:grid-cols-3 gap-10">
@@ -166,7 +166,7 @@ export default function Cart() {
               </div>
               <ul className="divide-y">
                 {items.map((item: any) => (
-                  <li key={item.productId || item.id} className="p-6 flex gap-6 sm:items-center flex-col sm:flex-row hover:bg-accent/30 transition-colors" data-testid={`cart-item-${item.productId || item.id}`}>
+                  <li key={item.productId || item.id} className="p-4 sm:p-6 flex gap-4 sm:gap-6 sm:items-center flex-col sm:flex-row hover:bg-accent/30 transition-colors" data-testid={`cart-item-${item.productId || item.id}`}>
                     <div className="w-24 h-24 bg-muted rounded-xl flex-shrink-0 overflow-hidden border">
                       {(item.product.images?.[0] || item.product.imageUrl) ? (
                         <img src={toWebP(item.product.images?.[0] || item.product.imageUrl)} alt={item.product.name} className="w-full h-full object-cover" />
@@ -195,7 +195,7 @@ export default function Cart() {
                     <div className="flex items-center gap-4 sm:ml-auto">
                       <div className="flex items-center border rounded-lg bg-background shadow-sm">
                         <button
-                          className="px-3 py-1.5 hover:bg-muted transition-colors"
+                          className="px-4 py-2 hover:bg-muted transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center"
                           onClick={() => updateQuantity({ id: item.id, quantity: item.quantity - 1, productId: item.productId })}
                           data-testid={`button-cart-minus-${item.productId || item.id}`}
                         >-</button>
@@ -287,7 +287,7 @@ export default function Cart() {
                 </div>
               </div>
               <Link href="/checkout" className="block">
-                <Button className="w-full bg-background text-foreground hover:bg-background/90 active:scale-[0.98] text-base sm:text-lg py-5 sm:py-6 rounded-xl group transition-all min-h-[48px]" data-testid="button-checkout">
+                <Button className="w-full bg-background text-foreground hover:bg-background/90 active:scale-[0.98] text-base sm:text-lg py-5 sm:py-6 rounded-xl group transition-all min-h-[52px]" data-testid="button-checkout">
                   Proceder al Pago <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>

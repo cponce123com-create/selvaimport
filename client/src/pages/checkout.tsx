@@ -325,7 +325,7 @@ export default function Checkout() {
 
   return (
     <AppLayout>
-      <div className="max-w-5xl mx-auto px-4 py-8 md:py-12">
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 py-6 md:py-12">
         <Link href="/cart" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground mb-6 transition-colors" data-testid="link-back-cart">
           <ArrowLeft className="w-4 h-4 mr-2" /> Volver al carrito
         </Link>
@@ -343,7 +343,7 @@ export default function Checkout() {
             <div className="grid lg:grid-cols-5 gap-8">
               <div className="lg:col-span-3 space-y-8 flex flex-col">
 
-                <div className="bg-card border rounded-2xl p-4 sm:p-6 shadow-sm order-2 sm:order-1">
+                <div className="bg-card border rounded-2xl p-3.5 sm:p-6 shadow-sm order-2 sm:order-1">
                   <h2 className="text-lg font-semibold mb-4">Opcion de Envio</h2>
                   <FormField
                     control={form.control}
@@ -362,7 +362,7 @@ export default function Checkout() {
                                 <Label
                                   key={option.id}
                                   htmlFor={`shipping-${option.id}`}
-                                  className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                                  className={`flex items-center gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-xl border-2 cursor-pointer transition-all ${
                                     field.value === option.id
                                       ? "border-primary bg-primary/5"
                                       : "border-border hover:border-primary/30"
@@ -432,7 +432,7 @@ export default function Checkout() {
                     <h2 className="text-lg font-semibold">Pago con Yape</h2>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-6 items-center">
-                    <div className="w-48 h-48 bg-white rounded-2xl border-2 border-[#6C2DC7]/20 p-2 flex-shrink-0 shadow-sm">
+                    <div className="w-40 h-40 sm:w-48 sm:h-48 bg-white rounded-2xl border-2 border-[#6C2DC7]/20 p-2 flex-shrink-0 shadow-sm">
                       <img
                         src="/yape-qr.jpg"
                         alt="QR Yape"
@@ -560,7 +560,7 @@ export default function Checkout() {
                   <Button
                     type="submit"
                     size="lg"
-                    className="w-full text-base py-6 sm:py-6 rounded-xl shadow-lg bg-[#25D366] hover:bg-[#20BD5A] active:scale-[0.98] text-white gap-2 min-h-[48px]"
+                    className="w-full text-base py-6 sm:py-6 rounded-xl shadow-lg bg-[#25D366] hover:bg-[#20BD5A] active:scale-[0.98] text-white gap-2 min-h-[52px]"
                     disabled={submitting || !selectedShipping}
                     data-testid="button-send-whatsapp"
                   >

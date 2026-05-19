@@ -181,7 +181,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen flex flex-col bg-background selection:bg-primary selection:text-primary-foreground">
       {/* ── HEADER ── */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-[3.75rem] sm:h-16 flex items-center justify-between gap-3">
           {/* Logo + hamburger */}
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
@@ -212,7 +212,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
                 onFocus={() => setSearchFocused(true)}
-                className="pl-9 pr-4 rounded-full bg-muted/50 border-transparent focus:border-primary focus:bg-background h-9 text-sm"
+                className="pl-9 pr-4 rounded-full bg-muted/50 border-transparent focus:border-primary focus:bg-background h-10 text-sm md:text-base"
                 data-testid="input-navbar-search"
               />
             </form>
@@ -315,7 +315,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
             {/* Botón lupa móvil */}
             <button
-              className="md:hidden p-2 rounded-full hover:bg-accent transition-colors"
+              className="md:hidden p-2.5 rounded-full hover:bg-accent transition-colors"
               onClick={() => setSearchOpen(!searchOpen)}
               aria-label="Buscar"
               data-testid="button-mobile-search"
@@ -327,7 +327,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative rounded-full h-10 w-10"
+                className="relative rounded-full h-11 w-11"
                 data-testid="button-cart"
               >
                 <ShoppingBag className="w-5 h-5" />
@@ -346,7 +346,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="rounded-full border border-border h-10 w-10"
+                      className="rounded-full border border-border h-11 w-11"
                       data-testid="button-user-menu"
                     >
                       <UserIcon className="w-4 h-4" />
@@ -402,7 +402,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link href="/login">
                   <Button
                     variant="default"
-                    className="rounded-full font-medium shadow-md shadow-primary/10 h-9 px-4 text-sm sm:h-10 sm:px-5"
+                    className="rounded-full font-medium shadow-md shadow-primary/10 h-11 px-4 text-sm sm:h-11 sm:px-5"
                     data-testid="button-login"
                   >
                     Iniciar Sesion
@@ -424,7 +424,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   onFocus={() => setSearchFocused(true)}
-                  className="pl-9 pr-4 rounded-full bg-muted/50 border-transparent focus:border-primary focus:bg-background h-10"
+                  className="pl-9 pr-4 rounded-full bg-muted/50 border-transparent focus:border-primary focus:bg-background h-11 text-base"
                   data-testid="input-mobile-search"
                 />
               </form>
