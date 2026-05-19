@@ -2,7 +2,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, useToggleProductVisibility } from "@/hooks/use-products";
 import { useCategories } from "@/hooks/use-categories";
 import { useSuppliers } from "@/hooks/use-suppliers";
-import { useBrands } from "@/hooks/use-brands";
+import { useBrands, useBrandModels } from "@/hooks/use-brands";
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,8 +11,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, Upload, X, ImageIcon, Loader2, Tag, Barcode, Eye, EyeOff, CalendarIcon } from "lucide-react";
+import { Plus, Edit2, Trash2, Upload, X, ImageIcon, Loader2, Tag, Barcode, Eye, EyeOff, CalendarIcon, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -82,6 +84,122 @@ const formSchema = z.object({
   categoryId: z.coerce.number().optional(),
   entryDate: z.string().optional(),
 });
+
+// ── Combobox inteligente para modelo vinculado a marca ──
+function ModelComboboxControl({
+  brandId,
+  value,
+  onChange,
+}: {
+  brandId: number | null | undefined;
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const { data: models = [], isLoading } = useBrandModels(brandId);
+
+  const filteredModels = search
+    ? models.filter((m) => m.toLowerCase().includes(search.toLowerCase()))
+    : models;
+
+  const handleSelect = (model: string) => {
+    onChange(model);
+    setOpen(false);
+    setSearch("");
+  };
+
+  return (
+    <FormItem>
+      <FormLabel>Modelo</FormLabel>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <FormControl>
+            <div className="relative">
+              <Input
+                type="text"
+                placeholder={brandId ? "Buscar o escribir modelo..." : "Selecciona una marca primero"}
+                value={value}
+                onChange={(e) => {
+                  onChange(e.target.value);
+                  setSearch(e.target.value);
+                  if (!open) setOpen(true);
+                }}
+                onFocus={() => {
+                  if (brandId) setOpen(true);
+                }}
+                disabled={!brandId}
+                className="pr-10"
+                data-testid="input-product-model"
+              />
+              {value && (
+                <button
+                  type="button"
+                  onClick={() => { onChange(""); setSearch(""); }}
+                  className="absolute right-0 top-0 h-full px-2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </FormControl>
+        </PopoverTrigger>
+        {brandId && (
+          <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+            <Command shouldFilter={false}>
+              <CommandInput
+                placeholder="Buscar modelo..."
+                value={search}
+                onValueChange={(v) => {
+                  setSearch(v);
+                  onChange(v);
+                }}
+                className="h-9"
+              />
+              <CommandList>
+                <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Cargando modelos...
+                    </div>
+                  ) : search.trim() ? (
+                    <div>
+                      <p>No hay modelos con ese nombre</p>
+                      <p className="text-xs mt-1">Se usará: "{search}"</p>
+                    </div>
+                  ) : (
+                    <p>Sin modelos registrados para esta marca</p>
+                  )}
+                </CommandEmpty>
+                {filteredModels.length > 0 && (
+                  <CommandGroup heading="Modelos existentes">
+                    {filteredModels.map((model) => (
+                      <CommandItem
+                        key={model}
+                        value={model}
+                        onSelect={() => handleSelect(model)}
+                      >
+                        <Check className={cn("mr-2 h-4 w-4", value === model ? "opacity-100" : "opacity-0")} />
+                        {model}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        )}
+      </Popover>
+      {!brandId && (
+        <p className="text-xs text-muted-foreground mt-1">
+          Primero selecciona una marca para ver sus modelos
+        </p>
+      )}
+      <FormMessage />
+    </FormItem>
+  );
+}
 
 // Botón separado para abrir la cámara directamente (solo funciona sin "multiple")
 // En móvil abre la cámara, en desktop abre el selector de archivos
@@ -396,9 +514,11 @@ const openNew = () => {
                       <FormMessage/>
                     </FormItem>
                   )} />
-                  <FormField control={form.control} name="model" render={({field}) => (
-                    <FormItem><FormLabel>Modelo</FormLabel><FormControl><Input type="text" placeholder="Ej: X100" data-testid="input-product-model" {...field} /></FormControl><FormMessage/></FormItem>
-                  )} />
+                  <ModelComboboxControl
+                    brandId={form.watch("brandId")}
+                    value={form.watch("model") || ""}
+                    onChange={(val) => form.setValue("model", val)}
+                  />
                   {/* Fecha Ingreso con calendario */}
                   <FormField control={form.control} name="entryDate" render={({field}) => {
                     const dateValue = field.value?.match(/^\d{4}-\d{2}-\d{2}$/)

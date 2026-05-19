@@ -43,3 +43,16 @@ export function useDeleteBrand() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/admin/brands"] }),
   });
 }
+
+export function useBrandModels(brandId: number | null | undefined) {
+  return useQuery<string[]>({
+    queryKey: ["/api/brands", brandId, "models"],
+    queryFn: async () => {
+      if (!brandId) return [];
+      const res = await fetch(`/api/brands/${brandId}/models`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch brand models");
+      return res.json();
+    },
+    enabled: !!brandId,
+  });
+}

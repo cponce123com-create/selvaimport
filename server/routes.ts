@@ -521,6 +521,32 @@ export async function registerRoutes(
     }
   });
 
+  // ── Modelos por marca (desde productos existentes) ──
+  app.get("/api/brands/:id/models", async (req, res) => {
+    try {
+      const brandId = Number(req.params.id);
+      const { db } = await import("./db");
+      const { products } = await import("@shared/schema");
+      const { eq, and, isNotNull, sql } = await import("drizzle-orm");
+      const rows = await db
+        .select({ model: products.model })
+        .from(products)
+        .where(
+          and(
+            eq(products.brandId, brandId),
+            isNotNull(products.model),
+            sql`${products.model} != ''`
+          )
+        )
+        .groupBy(products.model)
+        .orderBy(products.model)
+        .limit(50);
+      res.json(rows.map(r => r.model).filter(Boolean));
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
   // ── Model search (from existing templates) ──
   app.get("/api/product-models/search", async (req, res) => {
     try {
