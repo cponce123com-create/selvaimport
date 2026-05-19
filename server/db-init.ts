@@ -69,6 +69,7 @@ const CREATE_TABLES_SQL = [
     barcode TEXT,
     sku TEXT,
     brand TEXT,
+    model TEXT,
     unit TEXT,
     last_purchase_price DECIMAL(10,2),
     usage_count INTEGER NOT NULL DEFAULT 0,
@@ -115,6 +116,7 @@ const ALTER_TABLES_SQL = [
   sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS min_stock INTEGER`,
   sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS brand_id INTEGER REFERENCES brands(id)`,
   sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS model TEXT`,
+  sql`ALTER TABLE product_templates ADD COLUMN IF NOT EXISTS model TEXT`,
 ];
 
 export async function initDatabase(): Promise<void> {

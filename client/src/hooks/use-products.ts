@@ -242,7 +242,10 @@ export function useAdminProductTemplates(params?: { search?: string; page?: numb
       if (params?.page) url.searchParams.set("page", params.page.toString());
       if (params?.limit) url.searchParams.set("limit", params.limit.toString());
       const res = await fetch(url.toString(), { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch templates");
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({ message: "Error del servidor" }));
+        throw new Error(errBody.message || `Error ${res.status}`);
+      }
       return res.json();
     },
   });

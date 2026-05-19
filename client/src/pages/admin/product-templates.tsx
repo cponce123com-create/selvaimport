@@ -16,7 +16,7 @@ export default function AdminProductTemplates() {
   const limit = 20;
   const { toast } = useToast();
 
-  const { data, isLoading } = useAdminProductTemplates({ search, page, limit });
+  const { data, isLoading, error } = useAdminProductTemplates({ search, page, limit });
   const { mutate: deleteTemplate, isPending: isDeleting } = useDeleteProductTemplate();
 
   const templates = data?.templates ?? [];
@@ -113,6 +113,13 @@ export default function AdminProductTemplates() {
           </div>
         </div>
       </div>
+
+      {/* ── Error ── */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6 text-sm text-red-700 dark:text-red-400">
+          <strong>Error al cargar:</strong> {error.message}
+        </div>
+      )}
 
       {/* ── Search ── */}
       <div className="relative mb-6">
