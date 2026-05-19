@@ -1152,6 +1152,8 @@ export class DatabaseStorage implements IStorage {
       const purchasePrice = Number(prod.purchasePrice || 0);
       const units = prod.inventory;
       const subtotalSpent = purchasePrice * units;
+      const effectivePrice = Number(prod.offerPrice || prod.price || 0);
+      const hasOffer = prod.offerPrice != null && Number(prod.offerPrice) > 0;
       group.items.push({
         productId: prod.id,
         productName: prod.name,
@@ -1161,16 +1163,17 @@ export class DatabaseStorage implements IStorage {
         brand: prod.brandId ? brandMap.get(prod.brandId) || null : null,
         model: prod.model,
         price: Number(prod.price || 0),
+        offerPrice: hasOffer ? Number(prod.offerPrice) : null,
         purchasePrice,
-        unitProfit: Number(prod.price || 0) - purchasePrice,
-        totalProfit: (Number(prod.price || 0) - purchasePrice) * units,
+        unitProfit: effectivePrice - purchasePrice,
+        totalProfit: (effectivePrice - purchasePrice) * units,
         inventory: units,
         entryDate: (prod.entryDate || prod.createdAt)?.toISOString?.() || null,
       });
       group.subtotalProducts++;
       group.subtotalUnits += units;
       group.subtotalCost += subtotalSpent;
-      group.subtotalProfit += (Number(prod.price || 0) - purchasePrice) * units;
+      group.subtotalProfit += (effectivePrice - purchasePrice) * units;
     }
 
     let grandTotalProducts = 0;

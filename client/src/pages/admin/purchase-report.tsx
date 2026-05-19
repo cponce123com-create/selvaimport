@@ -22,6 +22,7 @@ interface ReportItem {
     brand: string | null;
     model: string | null;
     price: number;
+    offerPrice: number | null;
     purchasePrice: number;
     unitProfit: number;
     totalProfit: number;
@@ -248,7 +249,13 @@ export default function AdminPurchaseReport() {
                           <TableCell className="text-right">S/ {item.purchasePrice.toFixed(2)}</TableCell>
                           <TableCell className="text-right font-medium">{item.inventory}</TableCell>
                           <TableCell className="text-right font-medium">S/ {(item.purchasePrice * item.inventory).toFixed(2)}</TableCell>
-                          <TableCell className="text-right">S/ {item.price.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">
+                            {item.offerPrice != null ? (
+                              <><s className="text-muted-foreground">S/ {item.price.toFixed(2)}</s> S/ {item.offerPrice.toFixed(2)}</>
+                            ) : (
+                              <>S/ {item.price.toFixed(2)}</>
+                            )}
+                          </TableCell>
                           <TableCell className={`text-right font-medium ${item.unitProfit >= 0 ? "text-green-600" : "text-destructive"}`}>
                             {item.unitProfit >= 0 ? "+" : ""}S/ {item.unitProfit.toFixed(2)}
                           </TableCell>
