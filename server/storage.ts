@@ -29,6 +29,32 @@ type OrderItemInput = {
   price: string;
 };
 
+// Producto por defecto para items de pedidos cuyo producto fue eliminado
+const DELETED_PRODUCT_PLACEHOLDER: Product = {
+  id: 0,
+  name: "(Producto eliminado)",
+  slug: "",
+  description: "",
+  price: "0",
+  purchasePrice: null,
+  offerPrice: null,
+  inventory: 0,
+  minStock: null,
+  imageUrl: null,
+  images: [],
+  videoUrl: null,
+  videoPublicId: null,
+  categoryId: null,
+  brandId: null,
+  supplierId: null,
+  model: null,
+  barcode: null,
+  isVisible: false,
+  isOffer: false,
+  entryDate: null,
+  createdAt: new Date(),
+};
+
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
@@ -457,7 +483,7 @@ export class DatabaseStorage implements IStorage {
       if (!itemsByOrder.has(orderId)) itemsByOrder.set(orderId, []);
       itemsByOrder.get(orderId)!.push({
         ...item,
-        product: productMap.get(item.productId)!,
+        product: productMap.get(item.productId) || DELETED_PRODUCT_PLACEHOLDER,
       });
     });
 
@@ -478,7 +504,7 @@ export class DatabaseStorage implements IStorage {
       ...order,
       items: items.map((i) => ({
         ...i,
-        product: (allProducts as Product[]).find((p) => p.id === i.productId)!,
+        product: (allProducts as Product[]).find((p) => p.id === i.productId) || DELETED_PRODUCT_PLACEHOLDER,
       })),
     };
   }
@@ -543,7 +569,7 @@ export class DatabaseStorage implements IStorage {
       ...order,
       items: insertedItems.map((i) => ({
         ...i,
-        product: (allProducts as Product[]).find((p) => p.id === i.productId)!,
+        product: (allProducts as Product[]).find((p) => p.id === i.productId) || DELETED_PRODUCT_PLACEHOLDER,
       })),
     };
   }
@@ -651,6 +677,7 @@ export class DatabaseStorage implements IStorage {
       const order = await this.getOrder(id);
       if (order && order.status !== "cancelado" && order.status !== "cancelled") {
         for (const item of order.items) {
+          if (item.product.id === 0) continue; // producto eliminado, no se puede devolver stock
           await db
             .update(products)
             .set({ inventory: sql`${products.inventory} + ${item.quantity}` })
