@@ -369,10 +369,11 @@ export async function registerRoutes(
     if (!product) {
       return res.status(404).json({ message: "Producto no encontrado" });
     }
-    // Enriquecer con categoría y proveedor
-    const [categories, allSuppliers] = await Promise.all([
+    // Enriquecer con categoría, proveedor y marca
+    const [categories, allSuppliers, allBrands] = await Promise.all([
       storage.getCategories(),
       storage.getSuppliers(),
+      storage.getBrands(),
     ]);
     const category = product.categoryId
       ? categories.find((c) => c.id === product.categoryId)
@@ -380,7 +381,10 @@ export async function registerRoutes(
     const supplier = product.supplierId
       ? allSuppliers.find((s) => s.id === product.supplierId)
       : null;
-    res.json({ ...product, category, supplier });
+    const brand = product.brandId
+      ? allBrands.find((b) => b.id === product.brandId) || null
+      : null;
+    res.json({ ...product, category, supplier, brand });
   });
 
   app.post(api.products.create.path, requireAdmin, async (req, res) => {
@@ -474,6 +478,66 @@ export async function registerRoutes(
 
     await storage.deleteProduct(productId);
     res.status(204).end();
+  });
+
+  // ── Brands (Marcas) ──
+  app.get("/api/admin/brands", requireAdmin, async (req, res) => {
+    try {
+      const result = await storage.getBrands();
+      res.json(result);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  app.post("/api/admin/brands", requireAdmin, async (req, res) => {
+    try {
+      const { name } = req.body as { name: string };
+      const brand = await storage.createBrand({ name: name.trim() });
+      res.status(201).json(brand);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message });
+    }
+  });
+
+  app.delete("/api/admin/brands/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteBrand(Number(req.params.id));
+      res.status(204).end();
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // ── Public brand search ──
+  app.get("/api/brands/search", async (req, res) => {
+    try {
+      const brands = await storage.getBrands();
+      const q = ((req.query.q as string) || "").toLowerCase();
+      const filtered = q ? brands.filter((b: any) => b.name.toLowerCase().includes(q)) : brands;
+      res.json(filtered.slice(0, 10));
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // ── Model search (from existing templates) ──
+  app.get("/api/product-models/search", async (req, res) => {
+    try {
+      const q = ((req.query.q as string) || "").toLowerCase();
+      const { db } = await import("./db");
+      const { productTemplates } = await import("@shared/schema");
+      const { ilike } = await import("drizzle-orm");
+      const rows = await db
+        .select({ model: productTemplates.model })
+        .from(productTemplates)
+        .where(ilike(productTemplates.model, `%${q}%`))
+        .groupBy(productTemplates.model)
+        .limit(10);
+      res.json(rows.map(r => r.model).filter(Boolean));
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
   });
 
   // ── Product Templates ──

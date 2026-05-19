@@ -34,6 +34,7 @@ const AdminSuppliers = lazy(() => import("@/pages/admin/suppliers"));
 const AdminPurchaseReport = lazy(() => import("@/pages/admin/purchase-report"));
 const AdminHomeSections = lazy(() => import("@/pages/admin/home-sections"));
 const AdminProductTemplates = lazy(() => import("@/pages/admin/product-templates"));
+const AdminBrands = lazy(() => import("@/pages/admin/brands"));
 
 const NotFound = lazy(() => import("@/pages/not-found"));
 
@@ -81,6 +82,9 @@ function Router() {
         </Route>
         <Route path="/admin/suppliers">
           {() => <AdminRoute component={AdminSuppliers} />}
+        </Route>
+        <Route path="/admin/brands">
+          {() => <AdminRoute component={AdminBrands} />}
         </Route>
         <Route path="/admin/purchase-report">
           {() => <AdminRoute component={AdminPurchaseReport} />}

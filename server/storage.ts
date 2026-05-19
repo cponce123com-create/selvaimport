@@ -2,12 +2,13 @@ import { getCached, setCache, invalidateCache } from "./cache";
 import { db } from "./db";
 import { eq, and, isNull, isNotNull, desc, ilike, or, sql, gte, lte } from "drizzle-orm";
 import {
-  users, categories, suppliers, products, productTemplates, carts, cartItems, orders, orderItems, sitePages, bannerSlides, coupons,
+  users, categories, suppliers, brands, products, productTemplates, carts, cartItems, orders, orderItems, sitePages, bannerSlides, coupons,
   homeRows, homeRowItems, homeRectangles, homeRectangleItems, insertProductTemplateSchema,
   type User, type InsertUser,
   type Category, type InsertCategory,
   type Product, type InsertProduct, type ProductWithCategory,
   type Supplier, type InsertSupplier,
+  type Brand, type InsertBrand,
   type Cart, type CartItem, type InsertCartItem, type CartItemWithProduct,
   type Order, type InsertOrder, type OrderItem, type OrderWithItems,
   type SitePage, type InsertSitePage,
@@ -126,6 +127,11 @@ export interface IStorage {
   createSupplier(data: InsertSupplier): Promise<Supplier>;
   updateSupplier(id: number, data: Partial<InsertSupplier>): Promise<Supplier>;
   deleteSupplier(id: number): Promise<void>;
+
+  // Brands
+  getBrands(): Promise<Brand[]>;
+  createBrand(data: InsertBrand): Promise<Brand>;
+  deleteBrand(id: number): Promise<void>;
 
   // Product Templates
   getProductTemplates(search?: string, page?: number, limit?: number): Promise<{ templates: any[]; total: number; page: number; totalPages: number }>;
@@ -973,6 +979,20 @@ export class DatabaseStorage implements IStorage {
     await db.delete(suppliers).where(eq(suppliers.id, id));
   }
 
+  async getBrands(): Promise<Brand[]> {
+    return await db.select().from(brands).orderBy(brands.name);
+  }
+
+  async createBrand(data: InsertBrand): Promise<Brand> {
+    const [brand] = await db.insert(brands).values(data).returning();
+    return brand;
+  }
+
+  async deleteBrand(id: number): Promise<void> {
+    // Set brand_id to null on all products that reference this brand
+    await db.update(products).set({ brandId: null }).where(eq(products.brandId, id));
+    await db.delete(brands).where(eq(brands.id, id));
+  }
 
   async getPurchaseReport({ desde, hasta, supplierId }: {
     desde?: Date; hasta?: Date; supplierId?: number;
@@ -1158,8 +1178,20 @@ export class DatabaseStorage implements IStorage {
       ? db.select().from(productTemplates).where(whereClause).orderBy(desc(productTemplates.usageCount)).limit(effectiveLimit).offset((effectivePage - 1) * effectiveLimit)
       : db.select().from(productTemplates).where(whereClause).orderBy(desc(productTemplates.usageCount)));
 
+    // Enrich with category and supplier
+    const [allCats, allSuppliers] = await Promise.all([
+      this.getCategories(),
+      this.getSuppliers(),
+    ]);
+    const catMap = new Map(allCats.map((c) => [c.id, c]));
+    const supplierMap = new Map(allSuppliers.map((s) => [s.id, s]));
+
     return {
-      templates: templateRows,
+      templates: templateRows.map((t) => ({
+        ...t,
+        category: t.categoryId ? catMap.get(t.categoryId) : undefined,
+        supplier: t.supplierId ? supplierMap.get(t.supplierId) || null : null,
+      })),
       total,
       page: effectivePage,
       totalPages: withPagination ? Math.max(1, Math.ceil(total / effectiveLimit)) : 1,
@@ -1193,6 +1225,8 @@ export class DatabaseStorage implements IStorage {
         .update(productTemplates)
         .set({
           lastPurchasePrice: product.purchasePrice,
+          brand: product.brandId ? (await this.getBrands()).find(b => b.id === product.brandId)?.name || null : null,
+          model: product.model,
           usageCount: sql`${productTemplates.usageCount} + 1`,
           lastUsedAt: new Date(),
           updatedAt: new Date(),
@@ -1211,6 +1245,8 @@ export class DatabaseStorage implements IStorage {
         supplierId: product.supplierId,
         barcode: product.barcode,
         lastPurchasePrice: product.purchasePrice,
+        brand: product.brandId ? (await this.getBrands()).find(b => b.id === product.brandId)?.name || null : null,
+        model: product.model,
         usageCount: 1,
         lastUsedAt: new Date(),
       })
@@ -1239,3 +1275,4 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
+ new DatabaseStorage();

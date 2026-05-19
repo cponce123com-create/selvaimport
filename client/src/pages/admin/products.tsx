@@ -2,6 +2,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, useToggleProductVisibility } from "@/hooks/use-products";
 import { useCategories } from "@/hooks/use-categories";
 import { useSuppliers } from "@/hooks/use-suppliers";
+import { useBrands } from "@/hooks/use-brands";
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -76,6 +77,8 @@ const formSchema = z.object({
   offerPrice: z.string().optional(),
   inventory: z.coerce.number().min(0, "El inventario no puede ser negativo"),
   minStock: z.coerce.number().optional(),
+  brandId: z.number().nullable().optional(),
+  model: z.string().optional(),
   categoryId: z.coerce.number().optional(),
   entryDate: z.string().optional(),
 });
@@ -116,6 +119,7 @@ export default function AdminProducts() {
   const { data: products = [], isLoading } = useProducts({ admin: true });
   const { data: categories = [] } = useCategories();
   const { data: suppliers = [] } = useSuppliers();
+  const { data: brands = [] } = useBrands();
   const { mutate: createProduct } = useCreateProduct();
   const { mutate: updateProduct } = useUpdateProduct();
   const { mutate: deleteProduct } = useDeleteProduct();
@@ -153,6 +157,8 @@ export default function AdminProducts() {
       offerPrice: p.offerPrice ? Number(p.offerPrice).toString() : "",
       inventory: p.inventory,
       minStock: p.minStock ?? undefined,
+      brandId: p.brandId ?? undefined,
+      model: p.model ?? "",
       categoryId: p.categoryId,
       entryDate: p.entryDate ? new Date(p.entryDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
     });
@@ -172,7 +178,7 @@ export default function AdminProducts() {
   };
 const openNew = () => {
   setEditingId(null);
-  form.reset({ name: "", description: "", price: "", purchasePrice: "", offerPrice: "", inventory: 0, minStock: undefined, categoryId: undefined, entryDate: new Date().toISOString().split("T")[0] });
+  form.reset({ name: "", description: "", price: "", purchasePrice: "", offerPrice: "", inventory: 0, minStock: undefined, brandId: undefined, model: "", categoryId: undefined, entryDate: new Date().toISOString().split("T")[0] });
   setImages([]);
   setVideoUrl(null);
   setVideoPublicId(null);
@@ -373,6 +379,24 @@ const openNew = () => {
                   )} />
                   <FormField control={form.control} name="minStock" render={({field}) => (
                    <FormItem><FormLabel>Stock Mínimo</FormLabel><FormControl><Input type="number" placeholder="Ej: 5" data-testid="input-product-minstock" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))} /></FormControl><FormMessage/></FormItem>
+                  )} />
+                  <FormField control={form.control} name="brandId" render={({field}) => (
+                    <FormItem><FormLabel>Marca</FormLabel>
+                      <Select onValueChange={(v) => field.onChange(Number(v))} value={field.value?.toString() || ""}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-product-brand"><SelectValue placeholder="Sin marca..." /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {brands.map((b: any) => (
+                            <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage/>
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="model" render={({field}) => (
+                    <FormItem><FormLabel>Modelo</FormLabel><FormControl><Input type="text" placeholder="Ej: X100" data-testid="input-product-model" {...field} /></FormControl><FormMessage/></FormItem>
                   )} />
                   {/* Fecha Ingreso con calendario */}
                   <FormField control={form.control} name="entryDate" render={({field}) => {
@@ -735,6 +759,7 @@ const openNew = () => {
           </TableBody>
         </Table>
       </div>
+
     </AdminLayout>
   );
 }

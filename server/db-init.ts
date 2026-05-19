@@ -11,6 +11,12 @@ import { db } from "./db";
 import { sql } from "drizzle-orm";
 
 const CREATE_TABLES_SQL = [
+  // ── Marcas ──
+  sql`CREATE TABLE IF NOT EXISTS brands (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE
+  )`,
+
   // ── Tablas del home (Filas estilo Amazon) ──
   sql`CREATE TABLE IF NOT EXISTS home_rows (
     id SERIAL PRIMARY KEY,
@@ -107,6 +113,8 @@ const ALTER_TABLES_SQL = [
   sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS show_on_home BOOLEAN NOT NULL DEFAULT true`,
   sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS entry_date TIMESTAMP DEFAULT NOW()`,
   sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS min_stock INTEGER`,
+  sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS brand_id INTEGER REFERENCES brands(id)`,
+  sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS model TEXT`,
 ];
 
 export async function initDatabase(): Promise<void> {

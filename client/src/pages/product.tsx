@@ -378,6 +378,16 @@ export default function ProductDetail() {
                 {product.category.name}
               </span>
             )}
+            {product.brand && (
+              <span className="text-sm text-muted-foreground mb-1">
+                Marca: {product.brand.name}
+              </span>
+            )}
+            {product.model && (
+              <span className="text-sm text-muted-foreground mb-1">
+                Modelo: {product.model}
+              </span>
+            )}
             <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-foreground mb-3 sm:mb-4" data-testid="text-product-title">
               {product.name}
             </h1>

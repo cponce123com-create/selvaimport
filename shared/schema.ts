@@ -30,6 +30,11 @@ export const suppliers = pgTable("suppliers", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const brands = pgTable("brands", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+});
+
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   categoryId: integer("category_id").references(() => categories.id),
@@ -43,6 +48,8 @@ export const products = pgTable("products", {
   inventory: integer("inventory").notNull().default(0),
   minStock: integer("min_stock"),
   barcode: text("barcode"),
+  brandId: integer("brand_id").references(() => brands.id),
+  model: text("model"),
   imageUrl: text("image_url"),
   images: text("images").array().default([]),
   videoUrl: text("video_url"),
@@ -63,6 +70,7 @@ export const productTemplates = pgTable("product_templates", {
   barcode: text("barcode"),
   sku: text("sku"),
   brand: text("brand"),
+  model: text("model"),
   unit: text("unit"),
   lastPurchasePrice: decimal("last_purchase_price", { precision: 10, scale: 2 }),
   usageCount: integer("usage_count").notNull().default(0),
@@ -245,6 +253,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, role: true });
 export const insertCategorySchema = createInsertSchema(categories).omit({ id: true });
 export const insertSupplierSchema = createInsertSchema(suppliers).omit({ id: true, createdAt: true });
+export const insertBrandSchema = createInsertSchema(brands).omit({ id: true });
 export const insertProductSchema = createInsertSchema(products).omit({ id: true, createdAt: true });
 export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, createdAt: true, status: true, totalAmount: true, userId: true });
 export const insertCartItemSchema = createInsertSchema(cartItems).omit({ id: true, cartId: true });
@@ -269,6 +278,8 @@ export type Category = typeof categories.$inferSelect;
 export type InsertCategory = z.infer<typeof insertCategorySchema>;
 export type Supplier = typeof suppliers.$inferSelect;
 export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
+export type Brand = typeof brands.$inferSelect;
+export type InsertBrand = z.infer<typeof insertBrandSchema>;
 export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Order = typeof orders.$inferSelect;
