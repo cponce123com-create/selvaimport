@@ -19,20 +19,20 @@ interface ReportItem {
     imageUrl: string | null;
     images: string[];
     barcode: string | null;
-    quantity: number;
+    brand: string | null;
+    model: string | null;
     purchasePrice: number;
-    salePrice: number;
-    unitProfit: number;
-    totalProfit: number;
+    inventory: number;
+    entryDate: string | null;
   }[];
-  subtotalQuantity: number;
-  subtotalProfit: number;
+  subtotalProducts: number;
+  subtotalCost: number;
 }
 
 interface ReportData {
   suppliers: ReportItem[];
-  grandTotalQuantity: number;
-  grandTotalProfit: number;
+  grandTotalProducts: number;
+  grandTotalCost: number;
   generatedAt: string;
   desde: string | null;
   hasta: string | null;
@@ -201,11 +201,11 @@ export default function AdminPurchaseReport() {
                       <TableRow>
                         <TableHead>Producto</TableHead>
                         <TableHead>Código Barras</TableHead>
-                        <TableHead className="text-right">Cant. Vendida</TableHead>
+                        <TableHead>Marca</TableHead>
+                        <TableHead>Modelo</TableHead>
                         <TableHead className="text-right">Precio Compra</TableHead>
-                        <TableHead className="text-right">Precio Venta</TableHead>
-                        <TableHead className="text-right">Ganancia Unit.</TableHead>
-                        <TableHead className="text-right">Ganancia Total</TableHead>
+                        <TableHead className="text-right">Inventario</TableHead>
+                        <TableHead>Fecha Ingreso</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -232,33 +232,26 @@ export default function AdminPurchaseReport() {
                           <TableCell>
                             {item.barcode || <span className="text-muted-foreground/50">-</span>}
                           </TableCell>
-                          <TableCell className="text-right font-medium">{item.quantity}</TableCell>
+                          <TableCell>{item.brand || <span className="text-muted-foreground/50">-</span>}</TableCell>
+                          <TableCell>{item.model || <span className="text-muted-foreground/50">-</span>}</TableCell>
                           <TableCell className="text-right">S/ {item.purchasePrice.toFixed(2)}</TableCell>
-                          <TableCell className="text-right">S/ {item.salePrice.toFixed(2)}</TableCell>
-                          <TableCell className="text-right">
-                            <span className={item.unitProfit >= 0 ? "text-green-600" : "text-red-600"}>
-                              S/ {item.unitProfit.toFixed(2)}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            <span className={item.totalProfit >= 0 ? "text-green-600" : "text-red-600"}>
-                              S/ {item.totalProfit.toFixed(2)}
-                            </span>
+                          <TableCell className="text-right font-medium">{item.inventory}</TableCell>
+                          <TableCell>
+                            {item.entryDate
+                              ? new Date(item.entryDate).toLocaleDateString("es-PE", {
+                                  year: "numeric", month: "2-digit", day: "2-digit"
+                                })
+                              : <span className="text-muted-foreground/50">-</span>
+                            }
                           </TableCell>
                         </TableRow>
                       ))}
                       {/* Subtotal del proveedor */}
                       <TableRow className="bg-muted/10">
-                        <TableCell colSpan={2} className="font-semibold">Subtotal</TableCell>
-                        <TableCell className="text-right font-semibold">{supplier.subtotalQuantity}</TableCell>
+                        <TableCell colSpan={4} className="font-semibold">Subtotal ({supplier.subtotalProducts} productos)</TableCell>
+                        <TableCell className="text-right font-semibold">S/ {supplier.subtotalCost.toFixed(2)}</TableCell>
                         <TableCell className="text-right text-muted-foreground">-</TableCell>
                         <TableCell className="text-right text-muted-foreground">-</TableCell>
-                        <TableCell className="text-right text-muted-foreground">-</TableCell>
-                        <TableCell className="text-right font-semibold">
-                          <span className={supplier.subtotalProfit >= 0 ? "text-green-600" : "text-red-600"}>
-                            S/ {supplier.subtotalProfit.toFixed(2)}
-                          </span>
-                        </TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
@@ -270,18 +263,14 @@ export default function AdminPurchaseReport() {
                 <Table>
                   <TableBody>
                     <TableRow className="bg-primary/10">
-                      <TableCell className="font-bold text-lg" colSpan={2}>
-                        TOTAL GENERAL
+                      <TableCell className="font-bold text-lg" colSpan={4}>
+                        TOTAL GENERAL ({report.grandTotalProducts} productos)
                       </TableCell>
                       <TableCell className="text-right font-bold text-lg">
-                        {report.grandTotalQuantity}
+                        S/ {report.grandTotalCost.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">-</TableCell>
                       <TableCell className="text-right text-muted-foreground">-</TableCell>
-                      <TableCell className="text-right text-muted-foreground">-</TableCell>
-                      <TableCell className="text-right font-bold text-lg text-primary">
-                        S/ {report.grandTotalProfit.toFixed(2)}
-                      </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>

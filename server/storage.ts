@@ -1006,112 +1006,83 @@ export class DatabaseStorage implements IStorage {
         imageUrl: string | null;
         images: string[];
         barcode: string | null;
-        quantity: number;
+        brand: string | null;
+        model: string | null;
         purchasePrice: number;
-        salePrice: number;
-        unitProfit: number;
-        totalProfit: number;
+        inventory: number;
+        entryDate: string | null;
       }[];
-      subtotalQuantity: number;
-      subtotalProfit: number;
+      subtotalProducts: number;
+      subtotalCost: number;
     }[];
-    grandTotalQuantity: number;
-    grandTotalProfit: number;
+    grandTotalProducts: number;
+    grandTotalCost: number;
     generatedAt: string;
     desde: string | null;
     hasta: string | null;
   }> {
-    const statusFilters = [eq(orders.status, "entregado"), eq(orders.status, "pagado")];
-    if (desde) statusFilters.push(gte(orders.createdAt, desde));
-    if (hasta) statusFilters.push(lte(orders.createdAt, hasta));
+    // Construir condiciones de filtro sobre products
+    const conditions: any[] = [];
 
-    const orderList = await db
+    // Usar entryDate si está disponible, sino createdAt como fallback
+    if (desde) {
+      conditions.push(
+        or(
+          gte(products.entryDate, desde),
+          and(isNull(products.entryDate), gte(products.createdAt, desde))
+        )
+      );
+    }
+    if (hasta) {
+      conditions.push(
+        or(
+          lte(products.entryDate, hasta),
+          and(isNull(products.entryDate), lte(products.createdAt, hasta))
+        )
+      );
+    }
+    if (supplierId) {
+      conditions.push(eq(products.supplierId, supplierId));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const productList = await db
       .select()
-      .from(orders)
-      .where(and(...statusFilters))
-      .orderBy(desc(orders.createdAt));
+      .from(products)
+      .where(whereClause)
+      .orderBy(desc(products.createdAt));
 
-    if (orderList.length === 0) {
+    if (productList.length === 0) {
       return {
         suppliers: [],
-        grandTotalQuantity: 0,
-        grandTotalProfit: 0,
+        grandTotalProducts: 0,
+        grandTotalCost: 0,
         generatedAt: new Date().toISOString(),
         desde: desde?.toISOString() || null,
         hasta: hasta?.toISOString() || null,
       };
     }
 
-    const orderIds = orderList.map((o) => o.id);
-    const itemsData = await db
-      .select()
-      .from(orderItems)
-      .where(or(...orderIds.map((id) => eq(orderItems.orderId, id))));
-
-    const productIds = Array.from(new Set(itemsData.map((i) => i.productId)));
-    const allProducts = productIds.length > 0
-      ? await db.select().from(products).where(or(...productIds.map((id) => eq(products.id, id))))
-      : [];
-
-    const productMap = new Map(allProducts.map((p) => [p.id, p]));
+    // Obtener suppliers para mapear
     const allSuppliers = await this.getSuppliers();
     const supplierMap = new Map(allSuppliers.map((s) => [s.id, s]));
 
-    // Aggregate by product (sum quantities across orders)
-    const productAgg = new Map<number, {
-      productId: number;
-      productName: string;
-      imageUrl: string | null;
-      images: string[];
-      barcode: string | null;
-      productSupplierId: number | null;
-      quantity: number;
-      purchasePrice: number;
-      salePrice: number;
-      unitProfit: number;
-      totalProfit: number;
-    }>();
+    // Obtener brands para resolver brand names (por brandId)
+    const allBrands = await this.getBrands();
+    const brandMap = new Map(allBrands.map((b) => [b.id, b.name]));
 
-    for (const item of itemsData) {
-      const prod = productMap.get(item.productId);
-      if (!prod) continue;
-
-      const purchasePrice = Number(prod.purchasePrice || 0);
-      const salePrice = Number(item.price || 0);
-      const unitProfit = salePrice - purchasePrice;
-
-      const existing = productAgg.get(item.productId);
-      if (existing) {
-        existing.quantity += item.quantity;
-        existing.totalProfit += unitProfit * item.quantity;
-      } else {
-        productAgg.set(item.productId, {
-          productId: item.productId,
-          productName: prod.name,
-          imageUrl: prod.imageUrl,
-          images: prod.images || [],
-          barcode: prod.barcode,
-          productSupplierId: prod.supplierId,
-          quantity: item.quantity,
-          purchasePrice,
-          salePrice,
-          unitProfit,
-          totalProfit: unitProfit * item.quantity,
-        });
-      }
-    }
-
-    // Group by supplier
+    // Agrupar por proveedor
     const supplierGroups = new Map<string, {
       supplierId: number | null;
       supplierName: string;
       items: any[];
-      subtotalQuantity: number;
-      subtotalProfit: number;
+      subtotalProducts: number;
+      subtotalCost: number;
     }>();
 
-    productAgg.forEach((agg: any) => {
-      const sid = agg.productSupplierId;
+    for (const prod of productList) {
+      const sid = prod.supplierId;
       const sName = sid ? (supplierMap.get(sid)?.name || "Sin proveedor") : "Sin proveedor";
       const groupKey = sid ? "s-" + sid : "s-null";
 
@@ -1120,33 +1091,42 @@ export class DatabaseStorage implements IStorage {
           supplierId: sid,
           supplierName: sName,
           items: [],
-          subtotalQuantity: 0,
-          subtotalProfit: 0,
+          subtotalProducts: 0,
+          subtotalCost: 0,
         });
       }
 
       const group = supplierGroups.get(groupKey)!;
-      group.items.push(agg);
-      group.subtotalQuantity += agg.quantity;
-      group.subtotalProfit += agg.totalProfit;
-    });
+      const purchasePrice = Number(prod.purchasePrice || 0);
+      group.items.push({
+        productId: prod.id,
+        productName: prod.name,
+        imageUrl: prod.imageUrl,
+        images: prod.images || [],
+        barcode: prod.barcode,
+        brand: prod.brandId ? brandMap.get(prod.brandId) || null : null,
+        model: prod.model,
+        purchasePrice,
+        inventory: prod.inventory,
+        entryDate: (prod.entryDate || prod.createdAt)?.toISOString?.() || null,
+      });
+      group.subtotalProducts++;
+      group.subtotalCost += purchasePrice;
+    }
 
-    let grandTotalQuantity = 0;
-    let grandTotalProfit = 0;
-
+    let grandTotalProducts = 0;
+    let grandTotalCost = 0;
     const suppliersResult: any[] = [];
-    supplierGroups.forEach((g: any) => {
-      grandTotalQuantity += g.subtotalQuantity;
-      grandTotalProfit += g.subtotalProfit;
-      if (!supplierId || g.supplierId === supplierId) {
-        suppliersResult.push(g);
-      }
+    supplierGroups.forEach((g) => {
+      grandTotalProducts += g.subtotalProducts;
+      grandTotalCost += g.subtotalCost;
+      suppliersResult.push(g);
     });
 
     return {
       suppliers: suppliersResult,
-      grandTotalQuantity,
-      grandTotalProfit,
+      grandTotalProducts,
+      grandTotalCost,
       generatedAt: new Date().toISOString(),
       desde: desde?.toISOString() || null,
       hasta: hasta?.toISOString() || null,
