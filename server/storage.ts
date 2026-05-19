@@ -2,7 +2,7 @@ import { getCached, setCache, invalidateCache } from "./cache";
 import { db } from "./db";
 import { eq, and, isNull, isNotNull, desc, ilike, or, sql, gte, lte } from "drizzle-orm";
 import {
-  users, categories, suppliers, brands, products, productTemplates, carts, cartItems, orders, orderItems, sitePages, bannerSlides, coupons,
+  users, categories, suppliers, brands, products, productTemplates, carts, cartItems, orders, orderItems, sitePages, bannerSlides, coupons, priceHistory,
   homeRows, homeRowItems, homeRectangles, homeRectangleItems, insertProductTemplateSchema,
   type User, type InsertUser,
   type Category, type InsertCategory,
@@ -298,6 +298,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteProduct(id: number): Promise<void> {
+    // Eliminar registros relacionados para evitar errores de FK
+    await db.delete(priceHistory).where(eq(priceHistory.productId, id));
+    await db.delete(cartItems).where(eq(cartItems.productId, id));
+    await db.delete(homeRowItems).where(eq(homeRowItems.productId, id));
+    await db.delete(homeRectangleItems).where(eq(homeRectangleItems.productId, id));
+    // Banner slides: limpiar referencias (poner null en lugar de borrar el slide)
+    await db.update(bannerSlides).set({ productId1: null }).where(eq(bannerSlides.productId1, id));
+    await db.update(bannerSlides).set({ productId2: null }).where(eq(bannerSlides.productId2, id));
+    // Rectángulos de inicio: limpiar referencia
+    await db.update(homeRectangles).set({ productId: null }).where(eq(homeRectangles.productId, id));
+    // Finalmente, eliminar el producto
     await db.delete(products).where(eq(products.id, id));
     invalidateCache('products');
     invalidateCache('categories');

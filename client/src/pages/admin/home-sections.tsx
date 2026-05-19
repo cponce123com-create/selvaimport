@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useProducts } from "@/hooks/use-products";
 import { useCategories } from "@/hooks/use-categories";
-import { Plus, Trash2, Save, ArrowUp, ArrowDown, Loader2, LayoutGrid, Rows3, X, Check } from "lucide-react";
+import { Plus, Trash2, Save, ArrowUp, ArrowDown, Loader2, LayoutGrid, Rows3, X, Check, Tag } from "lucide-react";
 
 // ─────────────────────────────────────────────
 // Types
@@ -656,6 +656,146 @@ function HomeRectanglesAdmin() {
 }
 
 // ─────────────────────────────────────────────
+// Ofertas Destacadas Section
+// ─────────────────────────────────────────────
+function OffersSection() {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const { data: allProducts = [] } = useProducts({ admin: true });
+  const [search, setSearch] = useState("");
+  const [toggling, setToggling] = useState<number | null>(null);
+
+  const offerProducts = (allProducts as any[]).filter((p: any) => p.isOffer);
+  const nonOfferProducts = (allProducts as any[])
+    .filter((p: any) => !p.isOffer)
+    .filter((p) => !search || p.name.toLowerCase().includes(search.toLowerCase()));
+
+  const toggleOffer = async (productId: number, current: boolean) => {
+    setToggling(productId);
+    try {
+      const res = await fetch(`/api/admin/products/${productId}/offer`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isOffer: !current }),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error((await res.json()).message);
+      qc.invalidateQueries({ queryKey: ["/api/products"] });
+      toast({ title: current ? "Oferta quitada" : "Marcado como oferta" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setToggling(null);
+    }
+  };
+
+  return (
+    <div>
+      <div className="mb-4">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <Tag className="w-5 h-5 text-primary" /> Ofertas Destacadas
+        </h2>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Activa o desactiva productos en la sección de ofertas del home.{" "}
+          <strong>{offerProducts.length} producto(s)</strong> en oferta actualmente.
+        </p>
+      </div>
+
+      <div className="border rounded-2xl overflow-hidden bg-card">
+        {/* Productos en oferta */}
+        {offerProducts.length > 0 && (
+          <div className="p-4 space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              En oferta
+            </p>
+            <div className="grid gap-2">
+              {offerProducts.map((p: any) => (
+                <div
+                  key={p.id}
+                  className="flex items-center gap-3 p-2 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30"
+                >
+                  <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                    {(p.images?.[0] || p.imageUrl) ? (
+                      <img src={p.images?.[0] || p.imageUrl} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">?</div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{p.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {p.category?.name || "Sin categoría"} · S/ {Number(p.price).toFixed(2)}
+                      {p.offerPrice ? ` → S/ ${Number(p.offerPrice).toFixed(2)}` : ""}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-red-600 border-red-300 hover:bg-red-50 flex-shrink-0"
+                    onClick={() => toggleOffer(p.id, true)}
+                    disabled={toggling === p.id}
+                  >
+                    {toggling === p.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+                    Quitar
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Añadir productos a ofertas */}
+        <div className="border-t p-4 space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Agregar productos a ofertas
+          </p>
+          <Input
+            placeholder="Buscar producto para añadir a ofertas..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-9 text-sm"
+          />
+          <div className="max-h-48 overflow-y-auto space-y-1">
+            {nonOfferProducts.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                {search ? "No hay productos con ese nombre" : "Todos los productos ya están en oferta"}
+              </p>
+            ) : (
+              nonOfferProducts.slice(0, 30).map((p: any) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => toggleOffer(p.id, false)}
+                  disabled={toggling === p.id}
+                  className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors text-left disabled:opacity-50"
+                >
+                  <div className="w-8 h-8 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                    {(p.images?.[0] || p.imageUrl) ? (
+                      <img src={p.images?.[0] || p.imageUrl} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">?</div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm truncate">{p.name}</p>
+                    <p className="text-xs text-muted-foreground">S/ {Number(p.price).toFixed(2)}</p>
+                  </div>
+                  {toggling === p.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground flex-shrink-0" />
+                  ) : (
+                    <Tag className="w-4 h-4 text-primary flex-shrink-0" />
+                  )}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
 // Main Page
 // ─────────────────────────────────────────────
 export default function AdminHomeSections() {
@@ -664,12 +804,14 @@ export default function AdminHomeSections() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Secciones del Home</h1>
         <p className="text-muted-foreground mt-1">
-          Administra las filas de productos y los rectángulos visuales del inicio.
+          Administra las filas de productos, ofertas destacadas y los rectángulos visuales del inicio.
         </p>
       </div>
 
       <div className="space-y-10">
         <HomeRectanglesAdmin />
+        <hr className="border-border" />
+        <OffersSection />
         <hr className="border-border" />
         <HomeRowsSection />
       </div>

@@ -432,7 +432,10 @@ const openNew = () => {
 
   const handleDelete = (id: number) => {
     if(confirm("Estas seguro de que quieres eliminar este producto?")) {
-      deleteProduct(id, { onSuccess: () => toast({ title: "Producto eliminado" }) });
+      deleteProduct(id, {
+        onSuccess: () => toast({ title: "Producto eliminado" }),
+        onError: (err) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+      });
     }
   };
 

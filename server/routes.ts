@@ -340,6 +340,18 @@ export async function registerRoutes(
     }
   });
 
+  // ── Toggle oferta de producto (admin) ──
+  app.patch("/api/admin/products/:id/offer", requireAdmin, async (req, res) => {
+    try {
+      const productId = Number(req.params.id);
+      const { isOffer } = req.body as { isOffer: boolean };
+      const updated = await storage.updateProduct(productId, { isOffer });
+      res.json(updated);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message });
+    }
+  });
+
   // ── Informe de Compra (admin) ──
   app.get("/api/admin/purchase-report", requireAdmin, async (req, res) => {
     try {
@@ -467,17 +479,26 @@ export async function registerRoutes(
   });
 
   app.delete(api.products.delete.path, requireAdmin, async (req, res) => {
-    const productId = Number(req.params.id);
-    const product = await storage.getProduct(productId);
+    try {
+      const productId = Number(req.params.id);
+      const product = await storage.getProduct(productId);
 
-    if (product && product.videoPublicId) {
-      await cloudinary.uploader
-        .destroy(product.videoPublicId, { resource_type: "video" })
-        .catch(console.error);
+      if (!product) {
+        return res.status(404).json({ message: "Producto no encontrado" });
+      }
+
+      if (product && product.videoPublicId) {
+        await cloudinary.uploader
+          .destroy(product.videoPublicId, { resource_type: "video" })
+          .catch(console.error);
+      }
+
+      await storage.deleteProduct(productId);
+      res.status(204).end();
+    } catch (e: any) {
+      console.error("[delete-product] Error:", e);
+      res.status(500).json({ message: "No se pudo eliminar el producto. Puede que tenga pedidos, carritos o esté vinculado a otras secciones." });
     }
-
-    await storage.deleteProduct(productId);
-    res.status(204).end();
   });
 
   // ── Brands (Marcas) ──
