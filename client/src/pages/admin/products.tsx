@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, Upload, X, ImageIcon, Loader2, Tag, Barcode, Eye, EyeOff } from "lucide-react";
+import { Plus, Edit2, Trash2, Upload, X, ImageIcon, Loader2, Tag, Barcode, Eye, EyeOff, CalendarIcon } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -18,6 +18,9 @@ import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { BarcodeScanner } from "@/components/product/BarcodeScanner";
 import { ProductCombobox, type ProductTemplateSlim } from "@/components/product/ProductCombobox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
 
 const MAX_IMAGES = 10;
 
@@ -371,38 +374,48 @@ const openNew = () => {
                   <FormField control={form.control} name="minStock" render={({field}) => (
                    <FormItem><FormLabel>Stock Mínimo</FormLabel><FormControl><Input type="number" placeholder="Ej: 5" data-testid="input-product-minstock" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))} /></FormControl><FormMessage/></FormItem>
                   )} />
-                  {/* Fecha Ingreso en DD/MM/AAAA */}
+                  {/* Fecha Ingreso con calendario */}
                   <FormField control={form.control} name="entryDate" render={({field}) => {
-                    // field.value puede ser:
-                    // - "2024-05-12" (fecha completa desde DB o tipeo completo)
-                    // - "12/05/2" (tipeo parcial)
-                    // - "" (vacío)
-                    const isFullDate = !!field.value?.match(/^\d{4}-\d{2}-\d{2}$/);
-                    const displayValue = isFullDate
-                      ? `${field.value!.slice(8,10)}/${field.value!.slice(5,7)}/${field.value!.slice(0,4)}`
-                      : (field.value ?? "");
+                    const dateValue = field.value?.match(/^\d{4}-\d{2}-\d{2}$/)
+                      ? new Date(field.value + "T12:00:00")
+                      : undefined;
                     return (
-                      <FormItem><FormLabel>Fecha Ingreso</FormLabel><FormControl>
-                        <Input
-                          type="text"
-                          placeholder="DD/MM/AAAA"
-                          value={displayValue}
-                          onChange={(e) => {
-                            const digits = e.target.value.replace(/\D/g, "").slice(0, 8);
-                            if (digits.length === 8) {
-                              field.onChange(`${digits.slice(4,8)}-${digits.slice(2,4)}-${digits.slice(0,2)}`);
-                            } else if (digits.length === 0) {
-                              field.onChange("");
-                            } else {
-                              // Guardar el tipeo parcial con barras automáticas
-                              let partial = digits.length > 2 ? digits.slice(0,2) + "/" + digits.slice(2) : digits;
-                              if (digits.length > 4) partial = partial.slice(0,5) + "/" + digits.slice(4);
-                              field.onChange(partial);
-                            }
-                          }}
-                          data-testid="input-product-entrydate"
-                        />
-                      </FormControl><FormMessage/></FormItem>
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Fecha Ingreso</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                className="w-full pl-3 text-left font-normal"
+                                data-testid="button-entrydate-picker"
+                              >
+                                {dateValue ? (
+                                  format(dateValue, "dd/MM/yyyy")
+                                ) : (
+                                  <span className="text-muted-foreground">Seleccionar fecha</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={dateValue}
+                              onSelect={(day) => {
+                                if (day) {
+                                  field.onChange(
+                                    `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`
+                                  );
+                                }
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
                     );
                   }} />
                   <FormField control={form.control} name="categoryId" render={({field}) => (
