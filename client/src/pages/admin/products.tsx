@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, Upload, X, ImageIcon, Loader2, Tag, Barcode, Eye, EyeOff, CalendarIcon, Check } from "lucide-react";
+import { Plus, Edit2, Trash2, Upload, X, ImageIcon, Loader2, Tag, Barcode, Eye, EyeOff, CalendarIcon, Check, ArrowLeft, ArrowRight, Star } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
@@ -650,25 +650,91 @@ const openNew = () => {
                   <FormLabel>Imagenes del Producto ({images.length}/{MAX_IMAGES})</FormLabel>
                   <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                     {images.map((url, i) => (
-                      <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border border-border bg-muted cursor-pointer" data-testid={`image-preview-${i}`}>
+                      <div
+                        key={i}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData("text/plain", String(i));
+                          e.currentTarget.classList.add("opacity-40", "ring-2", "ring-primary");
+                        }}
+                        onDragEnd={(e) => {
+                          e.currentTarget.classList.remove("opacity-40", "ring-2", "ring-primary");
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.currentTarget.classList.add("ring-2", "ring-primary/50");
+                        }}
+                        onDragLeave={(e) => {
+                          e.currentTarget.classList.remove("ring-2", "ring-primary/50");
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.currentTarget.classList.remove("ring-2", "ring-primary/50");
+                          const fromIdx = parseInt(e.dataTransfer.getData("text/plain"));
+                          const toIdx = i;
+                          if (fromIdx !== toIdx) {
+                            const reordered = [...images];
+                            const [moved] = reordered.splice(fromIdx, 1);
+                            reordered.splice(toIdx, 0, moved);
+                            setImages(reordered);
+                          }
+                        }}
+                        className="relative group aspect-square rounded-xl overflow-hidden border border-border bg-muted cursor-grab active:cursor-grabbing"
+                        data-testid={`image-preview-${i}`}
+                      >
                         <img
                           src={url}
                           alt={`Imagen ${i + 1}`}
-                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-                          onClick={() => setViewImage(url)}
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-200 pointer-events-none"
                           loading="lazy"
                         />
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); removeImage(i); }}
-                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-10"
-                          data-testid={`button-remove-image-${i}`}
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
+                        {/* Badge Principal */}
                         {i === 0 && (
-                          <span className="absolute bottom-1 left-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-medium">Principal</span>
+                          <span className="absolute top-1 left-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-medium shadow-md z-10">
+                            Principal
+                          </span>
                         )}
+                        {/* Controles al hover */}
+                        <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-0.5 p-1 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                          {i > 0 && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); const r = [...images]; [r[i-1], r[i]] = [r[i], r[i-1]]; setImages(r); }}
+                                className="bg-white/90 hover:bg-white text-foreground rounded-full p-1 shadow-sm"
+                                title="Mover izquierda"
+                              >
+                                <ArrowLeft className="w-3 h-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); const r = [...images]; r.splice(i, 1); r.unshift(url); setImages(r); }}
+                                className="bg-white/90 hover:bg-white text-foreground rounded-full p-1 shadow-sm"
+                                title="Hacer principal"
+                              >
+                                <Star className="w-3 h-3" />
+                              </button>
+                            </>
+                          )}
+                          {i < images.length - 1 && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); const r = [...images]; [r[i], r[i+1]] = [r[i+1], r[i]]; setImages(r); }}
+                              className="bg-white/90 hover:bg-white text-foreground rounded-full p-1 shadow-sm"
+                              title="Mover derecha"
+                            >
+                              <ArrowRight className="w-3 h-3" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); removeImage(i); }}
+                            className="bg-destructive/90 hover:bg-destructive text-destructive-foreground rounded-full p-1 shadow-sm"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                     {images.length < MAX_IMAGES && (
@@ -706,7 +772,7 @@ const openNew = () => {
                     onCapture={(files) => handleUpload(files)}
                   />
                   <p className="text-xs text-muted-foreground mt-2">
-                    Maximo {MAX_IMAGES} imagenes. Formatos: JPG, PNG, WebP.
+                    Maximo {MAX_IMAGES} imagenes. Arrastra para reordenar. Formatos: JPG, PNG, WebP.
                   </p>
 
                   {/* Video compacto */}
