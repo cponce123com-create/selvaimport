@@ -259,7 +259,7 @@ const openNew = () => {
     // Validar que entryDate sea una fecha completa antes de enviar
     const isFullDate = !!data.entryDate?.match(/^\d{4}-\d{2}-\d{2}$/);
     const entryDateValue = isFullDate
-      ? new Date(data.entryDate + "T12:00:00")
+      ? data.entryDate + "T12:00:00.000Z"
       : undefined;
 
     const payload = {

@@ -386,7 +386,13 @@ export async function registerRoutes(
   app.post(api.products.create.path, requireAdmin, async (req, res) => {
     try {
       const data = api.products.create.input.parse(req.body);
-      const productData = { ...data, slug: await generateUniqueSlug(data.name) };
+      const productData: Record<string, any> = { ...data, slug: await generateUniqueSlug(data.name) };
+      // entryDate llega como string ISO, convertir a Date para Drizzle
+      if (productData.entryDate) {
+        productData.entryDate = new Date(productData.entryDate);
+      } else {
+        delete productData.entryDate;
+      }
 
       const p = await storage.createProduct(productData as InsertProduct);
       res.status(201).json(p);
@@ -401,9 +407,17 @@ export async function registerRoutes(
       const productId = Number(req.params.id);
       const existing = await storage.getProduct(productId);
 
-      const updateData = { ...data };
+      const updateData = { ...data } as Record<string, any>;
       if (data.name) {
         updateData.slug = await generateUniqueSlug(data.name, productId);
+      }
+      // entryDate llega como string ISO, convertir a Date para Drizzle
+      if (updateData.entryDate) {
+        updateData.entryDate = new Date(updateData.entryDate);
+      } else if (updateData.entryDate === null) {
+        updateData.entryDate = null;
+      } else {
+        delete updateData.entryDate;
       }
 
       const p = await storage.updateProduct(productId, updateData as Partial<InsertProduct>);
