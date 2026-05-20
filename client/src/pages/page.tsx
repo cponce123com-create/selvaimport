@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 import DOMPurify from "dompurify";
 import { toWebP } from "@/lib/utils";
+import { SEOHead } from "@/components/SEOHead";
 
 const ALLOWED_TAGS = ["p", "h1", "h2", "h3", "strong", "em", "u", "a", "ul", "ol", "li", "img", "hr", "br", "div", "span", "blockquote"];
 const ALLOWED_ATTR = ["href", "src", "alt", "class", "style", "target", "rel"];
@@ -65,6 +66,12 @@ export default function SitePage() {
 
   return (
     <AppLayout>
+      <SEOHead
+        title={`${page.title} - Selva Import`}
+        description={page.content?.slice(0, 160) || `${page.title} - Selva Import`}
+        canonicalPath={`/page/${slug}`}
+        image={page.imageUrl || "/logo-800w.webp"}
+      />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <Link href="/" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground mb-8 transition-colors" data-testid="link-back-home">
           <ArrowLeft className="w-4 h-4 mr-2" /> Volver al inicio
