@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -59,10 +59,6 @@ export const products = pgTable("products", {
   createdAt: timestamp("created_at").defaultNow(),
   entryDate: timestamp("entry_date").defaultNow(),
 });
-
-export const productsCategoryIdx = index("products_category_idx").on(products.categoryId);
-export const productsSlugIdx = index("products_slug_idx").on(products.slug);
-export const productsVisibleIdx = index("products_visible_idx").on(products.isVisible);
 
 // ── Maestro de Productos (Templates) ──
 export const productTemplates = pgTable("product_templates", {
