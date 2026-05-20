@@ -240,6 +240,7 @@ export default function ProductDetail() {
   };
 
   return (
+    <>
       <SEOHead
         title={product ? `${product.name} - Selva Import` : "Producto - Selva Import"}
         description={product?.description?.slice(0, 160) || "Producto en Selva Import"}
@@ -557,6 +558,7 @@ export default function ProductDetail() {
         currentProductId={product.id}
       />
     </AppLayout>
+    </>
   );
 }
 
