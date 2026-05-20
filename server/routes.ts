@@ -9,7 +9,7 @@ import { z } from "zod";
 import { v2 as cloudinary } from "cloudinary";
 import multer from "multer";
 import { desc } from "drizzle-orm";
-import { authLimiter, guestOrderLimiter, generalApiLimiter } from "./rateLimiter";
+import { authLimiter, guestOrderLimiter, generalApiLimiter, uploadLimiter } from "./rateLimiter";
 import { sendTelegramMessage, buildOrderMessage, buildStatusMessage, sendTelegramToPhone } from "./telegram";
 import { getCached, setCache, invalidateCache } from "./cache";
 
@@ -116,34 +116,16 @@ function buildProductSlug(name: string): string {
 
 async function generateUniqueSlug(name: string, excludeProductId?: number): Promise<string> {
   const baseSlug = buildProductSlug(name);
-
-  if (!excludeProductId) {
-    let slug = baseSlug;
-    let counter = 1;
-
-    while (true) {
-      const testSlug = counter === 1 ? baseSlug : `${baseSlug}-${counter}`;
-      const existing = await storage.getProductBySlug(testSlug);
-      if (!existing) {
-        slug = testSlug;
-        break;
-      }
-      counter++;
-    }
-
-    return slug;
-  }
-
-  const existingProducts = (await storage.getProducts()).products;
-  const existingSlugs = new Set(
-    existingProducts.filter((p) => p.id !== excludeProductId).map((p) => p.slug)
-  );
-
   let slug = baseSlug;
-  let counter = 2;
+  let counter = 1;
 
-  while (existingSlugs.has(slug)) {
-    slug = `${baseSlug}-${counter}`;
+  while (true) {
+    const testSlug = counter === 1 ? baseSlug : `${baseSlug}-${counter}`;
+    const existing = await storage.getProductBySlug(testSlug);
+    if (!existing || (excludeProductId && existing.id === excludeProductId)) {
+      slug = testSlug;
+      break;
+    }
     counter++;
   }
 
@@ -238,6 +220,58 @@ export async function registerRoutes(
       });
     }
   });
+
+  // ── Sitemap XML dinámico ──
+  app.get('/sitemap.xml', async (_req, res) => {
+    try {
+      const products = await storage.getProducts();
+      const categories = await storage.getCategories();
+      const sitePages = await storage.getSitePages();
+
+      const baseUrl = 'https://selvaimport.onrender.com';
+      const urls: string[] = [];
+
+      // Home
+      urls.push(`  <url><loc>${baseUrl}/</loc><priority>1.0</priority><changefreq>daily</changefreq></url>`);
+
+      // Páginas estáticas
+      urls.push(`  <url><loc>${baseUrl}/cart</loc><priority>0.5</priority><changefreq>monthly</changefreq></url>`);
+      urls.push(`  <url><loc>${baseUrl}/login</loc><priority>0.3</priority><changefreq>monthly</changefreq></url>`);
+      urls.push(`  <url><loc>${baseUrl}/register</loc><priority>0.3</priority><changefreq>monthly</changefreq></url>`);
+      urls.push(`  <url><loc>${baseUrl}/tacora</loc><priority>0.6</priority><changefreq>weekly</changefreq></url>`);
+      urls.push(`  <url><loc>${baseUrl}/selva-natural</loc><priority>0.6</priority><changefreq>weekly</changefreq></url>`);
+
+      // Categorías
+      for (const cat of categories) {
+        if (cat.showOnHome !== false) {
+          urls.push(`  <url><loc>${baseUrl}/?cat=${cat.id}</loc><priority>0.7</priority><changefreq>weekly</changefreq></url>`);
+        }
+      }
+
+      // Productos
+      for (const product of (Array.isArray(products) ? products : (products as any).products || [])) {
+        if (product.isVisible !== false) {
+          urls.push(`  <url><loc>${baseUrl}/product/${encodeURIComponent(product.slug)}</loc><priority>0.8</priority><changefreq>daily</changefreq></url>`);
+        }
+      }
+
+      // Site pages
+      for (const page of sitePages) {
+        urls.push(`  <url><loc>${baseUrl}/page/${encodeURIComponent(page.slug)}</loc><priority>0.5</priority><changefreq>monthly</changefreq></url>`);
+      }
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.join('\n')}
+</urlset>`;
+
+      res.header('Content-Type', 'application/xml');
+      res.send(xml);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
   setupAuth(app);
 
   const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -278,7 +312,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/upload", requireAdmin, upload.single("file"), async (req, res) => {
+  app.post("/api/upload", uploadLimiter, requireAdmin, upload.single("file"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No se envio ningun archivo" });

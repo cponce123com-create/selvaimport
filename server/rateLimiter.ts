@@ -47,3 +47,12 @@ export const generalApiLimiter = rateLimit({
   },
   skip: () => process.env.NODE_ENV === "development",
 });
+
+// ── Rate limiter específico para upload de archivos (50 requests/hora) ──
+export const uploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 50,
+  message: { message: "Demasiadas subidas. Intenta de nuevo en una hora." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});

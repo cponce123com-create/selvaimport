@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { toWebP, getDisplayPrice } from "@/lib/utils";
 import { useLocation } from "wouter";
+import { SEOHead } from "@/components/SEOHead";
 
 const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || "51998130656";
 
@@ -239,6 +240,13 @@ export default function ProductDetail() {
   };
 
   return (
+      <SEOHead
+        title={product ? `${product.name} - Selva Import` : "Producto - Selva Import"}
+        description={product?.description?.slice(0, 160) || "Producto en Selva Import"}
+        canonicalPath={product ? `/product/${product.slug}` : undefined}
+        image={product?.imageUrl || product?.images?.[0] || "/logo-800w.webp"}
+        type="article"
+      />
     <AppLayout>
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 md:py-12">
         <Link href={isTacora ? "/tacora" : "/"} className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground mb-4 transition-colors" data-testid="link-back-catalog">

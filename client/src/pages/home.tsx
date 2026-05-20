@@ -1,3 +1,4 @@
+import { SEOHead } from "@/components/SEOHead";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ProductCard } from "@/components/product/ProductCard";
 import { HomeProductRow } from "@/components/home/HomeProductRow";
@@ -426,6 +427,7 @@ export default function Home() {
 
   return (
     <AppLayout>
+      <SEOHead />
       <section
         id="inicio"
         className="relative overflow-hidden bg-gray-50 scroll-mt-24"

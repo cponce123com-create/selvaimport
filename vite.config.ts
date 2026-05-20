@@ -38,7 +38,7 @@ export default defineConfig({
             handler: "CacheFirst",
             options: {
               cacheName: "cloudinary-images",
-              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 días
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 90 }, // 90 días
               cacheableResponse: { statuses: [0, 200] },
             },
           },
@@ -47,8 +47,8 @@ export default defineConfig({
             handler: "NetworkFirst",
             options: {
               cacheName: "api-products",
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 5 }, // 5 minutos
-              networkTimeoutSeconds: 5,
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 30 }, // 30 minutos
+              networkTimeoutSeconds: 10,
               cacheableResponse: { statuses: [0, 200] },
             },
           },
@@ -57,7 +57,7 @@ export default defineConfig({
             handler: "NetworkFirst",
             options: {
               cacheName: "api-categories",
-              expiration: { maxEntries: 5, maxAgeSeconds: 60 * 10 }, // 10 minutos
+              expiration: { maxEntries: 5, maxAgeSeconds: 60 * 60 }, // 60 minutos
               networkTimeoutSeconds: 5,
               cacheableResponse: { statuses: [0, 200] },
             },
@@ -114,3 +114,4 @@ export default defineConfig({
     },
   },
 });
+);
