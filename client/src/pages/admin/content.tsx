@@ -77,7 +77,7 @@ export default function AdminContent() {
     try {
       const formData = new FormData();
       formData.append("file", files[0]);
-      const res = await fetch("/api/upload", { method: "POST", body: formData, credentials: "include" });
+      const res = await fetch("/api/upload", { method: "POST", body: formData, credentials: "include", headers: { "x-csrf-protection": "1" } });
       if (!res.ok) throw new Error("Error al subir imagen");
       const data = await res.json();
       setEditImageUrl(data.url);

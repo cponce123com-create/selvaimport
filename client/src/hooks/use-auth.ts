@@ -2,6 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@shared/routes";
 import { z } from "zod";
 
+const CSRF_HEADER = "x-csrf-protection";
+const CSRF_VALUE = "1";
+
+function csrfHeaders(): Record<string, string> {
+  return { [CSRF_HEADER]: CSRF_VALUE };
+}
+
 export function useAuth() {
   return useQuery({
     queryKey: [api.auth.me.path],
@@ -21,7 +28,7 @@ export function useLogin() {
     mutationFn: async (data: z.infer<typeof api.auth.login.input>) => {
       const res = await fetch(api.auth.login.path, {
         method: api.auth.login.method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...csrfHeaders() },
         body: JSON.stringify(data),
         credentials: "include",
       });
@@ -45,7 +52,7 @@ export function useGoogleLogin() {
     mutationFn: async (credential: string) => {
       const res = await fetch("/api/auth/google", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...csrfHeaders() },
         body: JSON.stringify({ credential }),
         credentials: "include",
       });
@@ -69,7 +76,7 @@ export function useRegister() {
     mutationFn: async (data: z.infer<typeof api.auth.register.input>) => {
       const res = await fetch(api.auth.register.path, {
         method: api.auth.register.method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...csrfHeaders() },
         body: JSON.stringify(data),
         credentials: "include",
       });
@@ -89,6 +96,7 @@ export function useLogout() {
     mutationFn: async () => {
       const res = await fetch(api.auth.logout.path, {
         method: api.auth.logout.method,
+        headers: csrfHeaders(),
         credentials: "include",
       });
       if (!res.ok) throw new Error("Error al cerrar sesion");
