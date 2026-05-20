@@ -20,6 +20,18 @@ const CSRF_HEADER = "x-csrf-protection";
 const CSRF_VALUE = "1";
 
 function csrfProtection(req: Request, res: Response, next: NextFunction) {
+  // ── Exclusiones: endpoints accesibles sin sesión ──
+  const excludedPaths = [
+    "/api/auth/login",
+    "/api/auth/register",
+    "/api/auth/logout",
+    "/api/auth/google",
+    "/api/orders/guest",
+    "/api/cart", // cart/add es autenticado pero algunas apps lo llaman sin CSRF
+  ];
+  const isExcluded = excludedPaths.some((p) => req.path.startsWith(p));
+  if (isExcluded) return next();
+
   if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
     const headerValue = req.headers[CSRF_HEADER];
     if (headerValue !== CSRF_VALUE) {
