@@ -101,8 +101,6 @@ export default function AdminPurchaseReport() {
           #print-area { display: block !important; }
 
           #print-area {
-            position: fixed;
-            inset: 0;
             width: 100%;
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
             font-size: 8pt;
