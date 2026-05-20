@@ -269,7 +269,7 @@ export default function ProductDetail() {
         </nav>
 
         <div className="grid md:grid-cols-2 gap-10 lg:gap-16 items-start">
-          <div className="sticky top-24 space-y-3">
+          <div className="md:sticky md:top-24 space-y-3">
             <div className="relative bg-accent/30 rounded-3xl overflow-hidden aspect-square border border-border/50 group">
               {hasVideo && selectedImage === 0 ? (
                 <video
