@@ -166,6 +166,7 @@ export interface IStorage {
   findProductTemplateByName(normalizedName: string): Promise<any | undefined>;
   incrementProductTemplateUsage(id: number): Promise<any>;
   deleteProductTemplate(id: number): Promise<void>;
+  deleteAllProductTemplates(): Promise<void>;
 
   sessionStore: session.Store;
 }
@@ -1338,6 +1339,10 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProductTemplate(id: number): Promise<void> {
     await db.delete(productTemplates).where(eq(productTemplates.id, id));
+  }
+
+  async deleteAllProductTemplates(): Promise<void> {
+    await db.delete(productTemplates);
   }
 
 }

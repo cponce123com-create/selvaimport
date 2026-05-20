@@ -14,6 +14,8 @@ export default function AdminProductTemplates() {
   const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isBackfilling, setIsBackfilling] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
   const [viewImage, setViewImage] = useState<string | null>(null);
   const [viewImageList, setViewImageList] = useState<string[]>([]);
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
@@ -21,9 +23,12 @@ export default function AdminProductTemplates() {
   const limit = 20;
   const { toast } = useToast();
 
-  const { data, isLoading, error } = useAdminProductTemplates({ search, page, limit });
+  const { data, isLoading, error, refetch } = useAdminProductTemplates({ search, page, limit });
   const { mutate: deleteTemplate, isPending: isDeleting } = useDeleteProductTemplate();
   const { mutate: updateTemplate, isPending: isUpdating } = useUpdateProductTemplate();
+
+  const CSRF_HEADER = "x-csrf-protection";
+  const CSRF_VALUE = "1";
 
   const templates = data?.templates ?? [];
   const total = data?.total ?? 0;
@@ -42,6 +47,25 @@ export default function AdminProductTemplates() {
     });
   };
 
+  const handleDeleteAll = async () => {
+    setIsDeletingAll(true);
+    try {
+      const res = await fetch("/api/admin/product-templates", {
+        method: "DELETE",
+        headers: { [CSRF_HEADER]: CSRF_VALUE },
+        credentials: "include",
+      });
+      const data = await res.json();
+      toast({ title: data.message || "Todos los templates han sido eliminados" });
+      setShowDeleteAllDialog(false);
+      refetch();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setIsDeletingAll(false);
+    }
+  };
+
   // Top 5 más usados
   const topUsed = templates
     .filter((t: any) => t.usageCount > 0)
@@ -51,34 +75,68 @@ export default function AdminProductTemplates() {
     <AdminLayout>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Maestro de Productos</h1>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isBackfilling}
-          onClick={async () => {
-            setIsBackfilling(true);
-            try {
-              const res = await fetch("/api/admin/product-templates/backfill", {
-                method: "POST",
-                credentials: "include",
-              });
-              const data = await res.json();
-              toast({ title: data.message || "Backfill completado" });
-              window.location.reload();
-            } catch (e: any) {
-              toast({ title: "Error", description: e.message, variant: "destructive" });
-            } finally {
-              setIsBackfilling(false);
-            }
-          }}
-        >
-          {isBackfilling ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <RefreshCw className="w-4 h-4" />
-          )}
-          <span className="ml-2">{isBackfilling ? "Sincronizando..." : "Sincronizar productos existentes"}</span>
-        </Button>
+        <div className="flex gap-2">
+          <AlertDialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                <Trash2 className="w-4 h-4 mr-2" /> Eliminar todos
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Eliminar todos los templates?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta acción eliminará TODOS los registros del Maestro de Productos. Los productos y pedidos existentes no se verán afectados.
+                  Esta acción no se puede deshacer.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setShowDeleteAllDialog(false)}>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteAll}
+                  disabled={isDeletingAll}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {isDeletingAll ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Eliminando...</>
+                  ) : (
+                    "Eliminar todo"
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isBackfilling}
+            onClick={async () => {
+              setIsBackfilling(true);
+              try {
+                const res = await fetch("/api/admin/product-templates/backfill", {
+                  method: "POST",
+                  headers: { [CSRF_HEADER]: CSRF_VALUE },
+                  credentials: "include",
+                });
+                const data = await res.json();
+                toast({ title: data.message || "Backfill completado" });
+                refetch();
+              } catch (e: any) {
+                toast({ title: "Error", description: e.message, variant: "destructive" });
+              } finally {
+                setIsBackfilling(false);
+              }
+            }}
+          >
+            {isBackfilling ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
+            <span className="ml-2">{isBackfilling ? "Sincronizando..." : "Sincronizar"}</span>
+          </Button>
+        </div>
       </div>
 
       {/* ── Stats ── */}

@@ -733,6 +733,16 @@ ${urls.join('\n')}
     }
   });
 
+  // ── Eliminar todos los templates ──
+  app.delete("/api/admin/product-templates", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteAllProductTemplates();
+      res.json({ message: "Todos los templates han sido eliminados" });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
   // ── Backfill: crear templates para productos existentes ──
   app.post("/api/admin/product-templates/backfill", requireAdmin, async (req, res) => {
     try {
