@@ -30,3 +30,9 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Replit agent skills and state
+.local/
+
+# Attached assets (development only)
+attached_assets/
