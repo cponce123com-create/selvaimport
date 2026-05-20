@@ -100,6 +100,19 @@ export default function AdminPurchaseReport() {
           #root { position: relative; }
           #print-area { display: block !important; }
 
+          /* Forzar que todos los wrappers padres permitan flujo completo */
+          .min-h-screen.flex > main,
+          .min-h-screen.flex > main > div {
+            overflow: visible !important;
+            height: auto !important;
+            max-height: none !important;
+          }
+          .min-h-screen.flex > main > div > div {
+            overflow: visible !important;
+            height: auto !important;
+            max-height: none !important;
+          }
+
           #print-area {
             width: 100%;
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -111,7 +124,15 @@ export default function AdminPurchaseReport() {
           .no-print { display: none !important; }
           .print-only { display: block !important; }
 
-          .supplier-block { page-break-inside: avoid; margin-bottom: 18pt; }
+          .supplier-block {
+            page-break-inside: avoid;
+            margin-bottom: 18pt;
+            overflow: visible !important;
+          }
+
+          .report-table.total-table {
+            overflow: visible !important;
+          }
 
           .report-table { width: 100%; border-collapse: collapse; font-size: 7.5pt; }
           .report-table th {
