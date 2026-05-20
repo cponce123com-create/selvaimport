@@ -2,6 +2,7 @@ import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import compression from "compression";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -36,6 +37,12 @@ const httpServer = createServer(app);
 app.use(compression());
 app.use(cookieParser());
 
+// ── Helmet: seguridad de headers (CSP, HSTS, XSS, etc.) ──
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
+
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;
@@ -63,15 +70,6 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-// ── Security Headers ──
-app.use((req, res, next) => {
-  res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("X-Frame-Options", "DENY");
-  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader("Permissions-Policy", "geolocation=()");
-  next();
-});
-
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -98,10 +96,26 @@ app.use((req, res, next) => {
   next();
 });
 
+// ── Middleware global de errores ──
+app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+
+  console.error(`[ERROR] ${status} - ${message}`);
+  if (status === 500) {
+    console.error(err.stack);
+  }
+
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  return res.status(status).json({ message });
+});
+
 (async () => {
   try {
     await initDatabase();
-    // Verificar conexión a la BD
     const { pool } = await import("./db");
     await pool.query("SELECT 1");
     console.log("[DB] Conexión a la base de datos exitosa ✓");
@@ -110,19 +124,6 @@ app.use((req, res, next) => {
   }
 
   await registerRoutes(httpServer, app);
-
-  app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    console.error("Internal Server Error:", err);
-
-    if (res.headersSent) {
-      return next(err);
-    }
-
-    return res.status(status).json({ message });
-  });
 
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);

@@ -11,6 +11,61 @@ import multer from "multer";
 import { desc } from "drizzle-orm";
 import { authLimiter, guestOrderLimiter, generalApiLimiter } from "./rateLimiter";
 import { sendTelegramMessage, buildOrderMessage, buildStatusMessage, sendTelegramToPhone } from "./telegram";
+import { getCached, setCache, invalidateCache } from "./cache";
+
+// ── CSRF protection: requiere header personalizado en mutaciones ──
+// sameSite=strict ya bloquea ataques CSRF desde otros orígenes,
+// esta capa extra protege por si la config de cookie cambia.
+const CSRF_HEADER = "x-csrf-protection";
+const CSRF_VALUE = "1";
+
+function csrfProtection(req: Request, res: Response, next: NextFunction) {
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
+    const headerValue = req.headers[CSRF_HEADER];
+    if (headerValue !== CSRF_VALUE) {
+      return res.status(403).json({ message: "CSRF token inválido o ausente" });
+    }
+  }
+  next();
+}
+
+// ── Helpers para cache ──
+function cacheGet(key: string, ttlMs: number = 120_000) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    // No cachear para admins (necesitan datos frescos)
+    if (req.isAuthenticated?.() && (req.user as any)?.role === "admin") {
+      return next();
+    }
+    const cached = getCached<any>(key);
+    if (cached !== undefined) {
+      return res.json(cached);
+    }
+    const originalJson = res.json.bind(res);
+    res.json = function (body: any) {
+      setCache(key, body, ttlMs);
+      return originalJson(body);
+    };
+    next();
+  };
+}
+
+function invalidateOnMutation(pattern: string) {
+  return (_req: Request, res: Response, next: NextFunction) => {
+    const originalJson = res.json.bind(res);
+    const originalEnd = res.end.bind(res);
+    const originalStatus = res.status.bind(res);
+
+    res.json = function (body: any) {
+      invalidateCache(pattern);
+      return originalJson(body);
+    };
+    res.end = function (body?: any) {
+      invalidateCache(pattern);
+      return originalEnd(body);
+    };
+    next();
+  };
+}
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -149,6 +204,9 @@ export async function registerRoutes(
 ): Promise<Server> {
   // ── Rate limiting general para toda la API pública ──
   app.use("/api", generalApiLimiter);
+
+  // ── CSRF protection para todas las mutaciones de la API ──
+  app.use("/api", csrfProtection);
 
   app.get('/api/health', async (_req, res) => {
     try {
