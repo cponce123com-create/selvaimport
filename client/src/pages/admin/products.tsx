@@ -278,7 +278,7 @@ export default function AdminProducts() {
       minStock: p.minStock ?? undefined,
       brandId: p.brandId ?? undefined,
       model: p.model ?? "",
-      categoryId: p.categoryId,
+      categoryId: p.categoryId ?? undefined,
       entryDate: p.entryDate ? new Date(p.entryDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
     });
     const existingImages: string[] = [];
