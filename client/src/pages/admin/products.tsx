@@ -327,7 +327,7 @@ const openNew = () => {
         }
         const formData = new FormData();
         formData.append("file", file);
-        const res = await fetch("/api/upload", { method: "POST", body: formData, credentials: "include" });
+        const res = await fetch("/api/upload", { method: "POST", body: formData, credentials: "include", headers: { "x-csrf-protection": "1" } });
         if (!res.ok) {
           const err = await res.json();
           throw new Error(err.message || "Error al subir imagen");
@@ -351,7 +351,7 @@ const openNew = () => {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: formData, credentials: "include" });
+      const res = await fetch("/api/upload", { method: "POST", body: formData, credentials: "include", headers: { "x-csrf-protection": "1" } });
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.message || "Error al subir video");
