@@ -97,7 +97,10 @@ export function useUpdateProduct() {
         body: JSON.stringify(data),
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to update product");
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody?.message || "Failed to update product");
+      }
       return api.products.update.responses[200].parse(await res.json());
     },
     onMutate: async ({ id, ...data }) => {
