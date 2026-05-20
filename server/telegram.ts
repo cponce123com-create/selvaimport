@@ -3,6 +3,36 @@
 // Servicio de notificaciones por Telegram
 // =====================================================
 
+const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function fetchWithRetry(url: string, body: object, retries = 1, delayMs = 5000): Promise<Response> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) return res;
+      // Si el error es del servidor (5xx), reintentar
+      if (res.status >= 500 && attempt < retries) {
+        console.warn(`⚠️  Telegram respondió ${res.status}, reintentando en ${delayMs}ms...`);
+        await delay(delayMs);
+        continue;
+      }
+      return res;
+    } catch (e) {
+      if (attempt < retries) {
+        console.warn(`⚠️  Error de red con Telegram, reintentando en ${delayMs}ms...`, e);
+        await delay(delayMs);
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw new Error("All Telegram retries failed");
+}
+
 export async function sendTelegramMessage(text: string): Promise<void> {
   const chatId = process.env.TELEGRAM_CHAT_ID;
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -13,18 +43,19 @@ export async function sendTelegramMessage(text: string): Promise<void> {
   }
 
   try {
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML" }),
-    });
+    const res = await fetchWithRetry(
+      `https://api.telegram.org/bot${token}/sendMessage`,
+      { chat_id: chatId, text, parse_mode: "HTML" },
+      1, // 1 reintento
+      5000, // 5 segundos de delay
+    );
     if (!res.ok) {
       console.error("❌ Error enviando notificación a Telegram:", await res.text());
     } else {
       console.log("✅ Notificación Telegram enviada correctamente");
     }
   } catch (e) {
-    console.error("❌ Error de conexión con Telegram:", e);
+    console.error("❌ Error de conexión con Telegram tras reintentos:", e);
   }
 }
 

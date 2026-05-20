@@ -111,6 +111,7 @@ function App() {
           <TooltipProvider>
             <Toaster />
             <Router />
+            <UpdateBanner />
           </TooltipProvider>
         </QueryClientProvider>
       </HelmetProvider>

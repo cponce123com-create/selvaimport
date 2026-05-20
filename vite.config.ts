@@ -26,6 +26,7 @@ export default defineConfig({
         ],
         screenshots: [
           { src: "/logo-selva-import.jpg", sizes: "512x512", type: "image/jpeg", form_factor: "narrow" },
+          { src: "/parrot_favicon_512.png", sizes: "1280x800", type: "image/png", form_factor: "wide" },
         ],
       },
       workbox: {
