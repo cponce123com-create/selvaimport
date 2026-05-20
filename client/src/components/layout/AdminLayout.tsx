@@ -41,7 +41,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen flex bg-muted/30">
       <aside className="w-64 border-r bg-card flex flex-col sticky top-0 h-screen hidden md:flex shadow-sm">
         <div className="h-16 flex items-center px-6 border-b gap-2.5">
-          <img src="/logo-selva-import.jpg" alt="Selva Import" className="w-8 h-8 rounded-lg object-cover" />
+          <img src="/logo-800w.webp" alt="Selva Import" className="w-8 h-8 rounded-lg object-cover" />
           <span className="font-bold text-xl tracking-tight" data-testid="text-admin-title">Selva Import</span>
         </div>
         <div className="px-4 py-2">

@@ -8,8 +8,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingBag } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { ShoppingBag, Loader2 } from "lucide-react";
+import { useRef, useState, useCallback } from "react";
 
 const schema = z.object({
   email: z.string().email("Correo electronico invalido"),
@@ -22,17 +22,28 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const googleBtnRef = useRef<HTMLDivElement>(null);
+  const [googleLoaded, setGoogleLoaded] = useState(false);
+  const [googleInitialized, setGoogleInitialized] = useState(false);
 
-  useEffect(() => {
+  const handleGoogleClick = useCallback(() => {
+    if (googleInitialized && googleBtnRef.current) {
+      (window as any).google.accounts.id.renderButton(googleBtnRef.current, {
+        theme: "outline",
+        size: "large",
+        width: "100%",
+        text: "signin_with",
+        shape: "rectangular",
+      });
+      return;
+    }
+
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId) return;
+    if (!clientId) {
+      toast({ title: "Error", description: "Google Login no configurado", variant: "destructive" });
+      return;
+    }
 
-    // Lazy load Google Identity Services
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
+    setGoogleLoaded(true);
 
     const handleGoogleResponse = (response: any) => {
       googleLogin(response.credential, {
@@ -46,30 +57,28 @@ export default function Login() {
       });
     };
 
-    const interval = setInterval(() => {
-      if ((window as any).google) {
-        clearInterval(interval);
-        (window as any).google.accounts.id.initialize({
-          client_id: clientId,
-          callback: handleGoogleResponse,
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      (window as any).google.accounts.id.initialize({
+        client_id: clientId,
+        callback: handleGoogleResponse,
+      });
+      if (googleBtnRef.current) {
+        (window as any).google.accounts.id.renderButton(googleBtnRef.current, {
+          theme: "outline",
+          size: "large",
+          width: "100%",
+          text: "signin_with",
+          shape: "rectangular",
         });
-        if (googleBtnRef.current) {
-          (window as any).google.accounts.id.renderButton(googleBtnRef.current, {
-            theme: "outline",
-            size: "large",
-            width: "100%",
-            text: "signin_with",
-            shape: "rectangular",
-          });
-        }
       }
-    }, 100);
-
-    return () => {
-      clearInterval(interval);
-      script.remove();
+      setGoogleInitialized(true);
     };
-  }, [googleLogin, setLocation, toast]);
+    document.head.appendChild(script);
+  }, [googleInitialized, googleLogin, setLocation, toast]);
 
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
@@ -97,7 +106,7 @@ export default function Login() {
       <div className="min-h-[80vh] flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-card border rounded-3xl p-8 shadow-xl">
           <div className="text-center mb-8">
-            <img src="/logo-selva-import.jpg" alt="Selva Import" className="w-16 h-16 rounded-2xl object-cover mx-auto mb-4 shadow-md" />
+            <img src="/logo-800w.webp" alt="Selva Import" className="w-16 h-16 rounded-2xl object-cover mx-auto mb-4 shadow-md" />
             <h1 className="text-3xl font-bold mb-2" data-testid="text-login-title">Iniciar Sesion</h1>
             <p className="text-muted-foreground">Ingresa a tu cuenta para continuar</p>
           </div>
@@ -146,7 +155,22 @@ export default function Login() {
             </div>
           </div>
 
-          <div ref={googleBtnRef} className="w-full mb-4 min-h-[44px]" />
+          {!googleInitialized ? (
+            <button
+              type="button"
+              onClick={handleGoogleClick}
+              disabled={googleLoaded}
+              className="w-full mb-4 min-h-[44px] flex items-center justify-center gap-2 rounded-xl border border-input bg-background hover:bg-accent hover:text-accent-foreground px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              {googleLoaded ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Cargando...</>
+              ) : (
+                <>Iniciar sesion con Google</>
+              )}
+            </button>
+          ) : (
+            <div ref={googleBtnRef} className="w-full mb-4 min-h-[44px]" />
+          )}
 
           <Button
             type="button"

@@ -19,13 +19,14 @@
     <link rel="apple-touch-icon" sizes="192x192" href="/parrot_favicon_192.png" />
 
     <!-- Favicon -->
-    <link rel="icon" type="image/jpeg" href="/logo-selva-import.jpg" />
+    <link rel="icon" type="image/webp" href="/logo-800w.webp" />
 
-    <!-- Preload imagen banner -->
+    <!-- Preload imagen banner (WebP) -->
     <link
       rel="preload"
       as="image"
-      href="/logo-selva-import.jpg"
+      href="/logo-800w.webp"
+      type="image/webp"
       fetchpriority="high"
     />
 
@@ -37,10 +38,23 @@
     <meta property="og:title" content="Selva Import - Tu tienda de confianza" />
     <meta property="og:description" content="Tu tienda de confianza en San Ramón. Tecnología, moda, hogar y más." />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="/logo-selva-import.jpg" />
+    <meta property="og:image" content="/logo-800w.webp" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="canonical" href="/" />
 
+    <style>
+      /* Placeholder para banner mientras carga */
+      .banner-placeholder {
+        background: #0f172a;
+        aspect-ratio: 512 / 512;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff88;
+        font-size: 0.875rem;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

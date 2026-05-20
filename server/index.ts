@@ -38,8 +38,21 @@ app.use(compression());
 app.use(cookieParser());
 
 // ── Helmet: seguridad de headers (CSP, HSTS, XSS, etc.) ──
+// CSP en modo report-only para detectar violaciones sin bloquear
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    useDefaults: false,
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "https://accounts.google.com", "https://pagead2.googlesyndication.com"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "https://res.cloudinary.com", "data:", "blob:"],
+      connectSrc: ["'self'", "https://res.cloudinary.com"],
+      fontSrc: ["'self'"],
+      frameSrc: ["https://accounts.google.com"],
+    },
+    reportOnly: true,
+  },
   crossOriginEmbedderPolicy: false,
 }));
 

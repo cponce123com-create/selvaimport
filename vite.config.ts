@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["logo-selva-import.jpg", "parrot_favicon_*.png", "yape-qr.*"],
+      includeAssets: ["logo-selva-import.jpg", "logo-*.webp", "parrot_favicon_*.png", "yape-qr.*"],
       manifest: {
         name: "Selva Import",
         short_name: "Selva Import",
@@ -30,7 +30,7 @@ export default defineConfig({
       },
       workbox: {
         // Cachear assets estáticos (JS, CSS, fonts) — estrategia Cache First
-        globPatterns: ["**/*.{js,css,html,ico,png,jpg,svg,woff2}"],
+        globPatterns: ["**/*.{js,css,html,ico,png,jpg,svg,woff2,webp}"],
         // Cachear páginas visitadas — estrategia Network First (intenta red, cae a caché)
         runtimeCaching: [
           {

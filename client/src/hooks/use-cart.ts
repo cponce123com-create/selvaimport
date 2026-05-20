@@ -4,6 +4,9 @@ import { z } from "zod";
 import { useAuth } from "./use-auth";
 import { useState, useEffect, useCallback } from "react";
 
+const CSRF_HEADER = "x-csrf-protection";
+const CSRF_VALUE = "1";
+
 const GUEST_CART_KEY = "selva_import_guest_cart";
 
 interface GuestCartItem {
@@ -79,7 +82,7 @@ export function useAddToCart() {
       if (user) {
         const res = await fetch(api.cart.addItem.path, {
           method: api.cart.addItem.method,
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", [CSRF_HEADER]: CSRF_VALUE },
           body: JSON.stringify({ productId: data.productId, quantity: data.quantity }),
           credentials: "include",
         });
@@ -118,7 +121,7 @@ export function useUpdateCartItem() {
         const url = buildUrl(api.cart.updateItem.path, { id });
         const res = await fetch(url, {
           method: api.cart.updateItem.method,
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", [CSRF_HEADER]: CSRF_VALUE },
           body: JSON.stringify({ quantity }),
           credentials: "include",
         });
@@ -156,6 +159,7 @@ export function useClearCart() {
       if (user) {
         const res = await fetch(api.cart.clear.path, {
           method: api.cart.clear.method,
+          headers: { [CSRF_HEADER]: CSRF_VALUE },
           credentials: "include",
         });
         if (!res.ok) throw new Error("Error al vaciar el carrito");

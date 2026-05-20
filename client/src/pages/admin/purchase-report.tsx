@@ -169,7 +169,7 @@ export default function AdminPurchaseReport() {
           <div className="hidden print:block mb-6 pb-4 border-b">
             <div className="flex items-center gap-3 mb-3">
               <img
-                src="/logo-selva-import.jpg"
+                src="/logo-800w.webp"
                 alt="Selva Import"
                 className="w-12 h-12 rounded-lg object-cover"
               />

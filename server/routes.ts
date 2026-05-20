@@ -27,7 +27,6 @@ function csrfProtection(req: Request, res: Response, next: NextFunction) {
     "/api/auth/logout",
     "/api/auth/google",
     "/api/orders/guest",
-    "/api/cart", // cart/add es autenticado pero algunas apps lo llaman sin CSRF
   ];
   const isExcluded = excludedPaths.some((p) => req.path.startsWith(p));
   if (isExcluded) return next();

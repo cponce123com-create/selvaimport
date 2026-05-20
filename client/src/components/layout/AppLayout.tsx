@@ -195,7 +195,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
             <Link href="/" data-testid="link-home" className="flex items-center gap-2 group">
               <img
-                src="/logo-selva-import.jpg"
+                src="/logo-800w.webp"
                 alt="Selva Import"
                 className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg object-cover group-hover:scale-110 transition-transform shadow-sm"
               />
@@ -597,7 +597,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-2">
                 <img
-                  src="/logo-selva-import.jpg"
+                  src="/logo-800w.webp"
                   alt="Selva Import"
                   className="w-7 h-7 rounded-md object-cover"
                 />
