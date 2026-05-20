@@ -88,23 +88,23 @@ export default function AdminPurchaseReport() {
     <AdminLayout>
       {/* ── Estilos de impresión ── */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
         .report-root {
-          font-family: 'Inter', sans-serif;
+          font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
         }
 
         @media print {
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
           body > * { display: none !important; }
+          body > #root { display: block !important; }
+          #root { position: relative; }
           #print-area { display: block !important; }
 
           #print-area {
             position: fixed;
             inset: 0;
             width: 100%;
-            font-family: 'Inter', sans-serif;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
             font-size: 8pt;
             color: #111;
             background: #fff;

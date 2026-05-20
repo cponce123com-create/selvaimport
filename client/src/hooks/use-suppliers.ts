@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
+const CSRF_HEADER = "x-csrf-protection";
+const CSRF_VALUE = "1";
+
 export type Supplier = {
   id: number;
   name: string;
@@ -37,7 +40,7 @@ export function useCreateSupplier() {
       const parsed = supplierSchema.parse(data);
       const res = await fetch("/api/admin/suppliers", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", [CSRF_HEADER]: CSRF_VALUE },
         body: JSON.stringify(parsed),
         credentials: "include",
       });
@@ -56,7 +59,7 @@ export function useUpdateSupplier() {
     mutationFn: async ({ id, data }: { id: number; data: Partial<z.infer<typeof supplierSchema>> }) => {
       const res = await fetch(`/api/admin/suppliers/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", [CSRF_HEADER]: CSRF_VALUE },
         body: JSON.stringify(data),
         credentials: "include",
       });
@@ -75,6 +78,7 @@ export function useDeleteSupplier() {
     mutationFn: async (id: number) => {
       const res = await fetch(`/api/admin/suppliers/${id}`, {
         method: "DELETE",
+        headers: { [CSRF_HEADER]: CSRF_VALUE },
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to delete supplier");
