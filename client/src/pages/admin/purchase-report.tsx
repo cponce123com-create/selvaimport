@@ -6,9 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileBarChart, Loader2, Download, Printer } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { FileBarChart, Loader2, Printer } from "lucide-react";
 
 interface ReportItem {
   supplierId: number | null;
@@ -46,9 +44,11 @@ interface ReportData {
   hasta: string | null;
 }
 
+const fmt = (n: number) => `S/ ${n.toFixed(2)}`;
+const fmtProfit = (n: number) => `${n >= 0 ? "+" : ""}S/ ${n.toFixed(2)}`;
+
 export default function AdminPurchaseReport() {
   const { data: suppliers = [] } = useSuppliers();
-  const { toast } = useToast();
   const printRef = useRef<HTMLDivElement>(null);
 
   const [desde, setDesde] = useState("");
@@ -63,7 +63,6 @@ export default function AdminPurchaseReport() {
       if (desde) params.set("desde", desde);
       if (hasta) params.set("hasta", hasta);
       if (supplierId && supplierId !== "all") params.set("supplierId", supplierId);
-
       const res = await fetch(`/api/admin/purchase-report?${params.toString()}`, {
         credentials: "include",
       });
@@ -73,7 +72,7 @@ export default function AdminPurchaseReport() {
       }
       return res.json();
     },
-    enabled: false, // Solo se ejecuta cuando se hace clic en "Generar"
+    enabled: false,
   });
 
   const handleGenerate = () => {
@@ -87,265 +86,392 @@ export default function AdminPurchaseReport() {
 
   return (
     <AdminLayout>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Informe de Compra</h1>
-        {generated && report && (
-          <Button variant="outline" onClick={handlePrint} data-testid="button-export-pdf">
-            <Printer className="w-4 h-4 mr-2" /> Exportar PDF
-          </Button>
-        )}
-      </div>
+      {/* ── Estilos de impresión ── */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-      {/* ── Filtros ── */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="text-lg">Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4 items-end">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-muted-foreground">Fecha desde</label>
-              <Input
-                type="date"
-                value={desde}
-                onChange={(e) => setDesde(e.target.value)}
-                className="w-48"
-                data-testid="input-report-desde"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-muted-foreground">Fecha hasta</label>
-              <Input
-                type="date"
-                value={hasta}
-                onChange={(e) => setHasta(e.target.value)}
-                className="w-48"
-                data-testid="input-report-hasta"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-muted-foreground">Proveedor</label>
-              <Select value={supplierId} onValueChange={setSupplierId}>
-                <SelectTrigger className="w-56" data-testid="select-report-supplier">
-                  <SelectValue placeholder="Todos los proveedores" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los proveedores</SelectItem>
-                  {suppliers.map((s: any) => (
-                    <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button onClick={handleGenerate} disabled={isLoading} data-testid="button-generate-report">
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <FileBarChart className="w-4 h-4 mr-2" />
-              )}
-              Generar
+        .report-root {
+          font-family: 'Inter', sans-serif;
+        }
+
+        @media print {
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+          body > * { display: none !important; }
+          #print-area { display: block !important; }
+
+          #print-area {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            font-family: 'Inter', sans-serif;
+            font-size: 8pt;
+            color: #111;
+            background: #fff;
+          }
+
+          .no-print { display: none !important; }
+          .print-only { display: block !important; }
+
+          .supplier-block { page-break-inside: avoid; margin-bottom: 18pt; }
+
+          .report-table { width: 100%; border-collapse: collapse; font-size: 7.5pt; }
+          .report-table th {
+            background: #1a3a2a !important;
+            color: #fff !important;
+            padding: 5pt 6pt;
+            text-align: left;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+          }
+          .report-table th.num { text-align: right; }
+          .report-table td { padding: 4pt 6pt; border-bottom: 0.5pt solid #e5e7eb; vertical-align: middle; }
+          .report-table tr:nth-child(even) td { background: #f8faf9 !important; }
+          .report-table .subtotal-row td {
+            background: #e8f5ee !important;
+            font-weight: 600;
+            border-top: 1pt solid #a7d8b8;
+          }
+          .report-table .total-row td {
+            background: #1a3a2a !important;
+            color: #fff !important;
+            font-weight: 700;
+            font-size: 8.5pt;
+            border-top: 2pt solid #0d2016;
+          }
+          .num { text-align: right; }
+          .profit-pos { color: #16a34a !important; }
+          .profit-neg { color: #dc2626 !important; }
+          .total-row .profit-pos { color: #4ade80 !important; }
+          .price-strike { text-decoration: line-through; color: #9ca3af; font-size: 6.5pt; }
+
+          .supplier-header {
+            background: #e8f5ee !important;
+            border-left: 3pt solid #1a3a2a;
+            padding: 5pt 8pt;
+            font-weight: 700;
+            font-size: 9pt;
+            color: #1a3a2a;
+            margin-bottom: 0;
+          }
+
+          .print-header { margin-bottom: 14pt; padding-bottom: 10pt; border-bottom: 1.5pt solid #1a3a2a; }
+          .print-header-top { display: flex; align-items: center; gap: 10pt; margin-bottom: 4pt; }
+          .print-logo { width: 36pt; height: 36pt; border-radius: 6pt; object-fit: cover; }
+          .print-title { font-size: 14pt; font-weight: 700; color: #1a3a2a; margin: 0; }
+          .print-subtitle { font-size: 8pt; color: #6b7280; margin: 0; }
+          .print-meta { font-size: 7.5pt; color: #6b7280; margin-top: 3pt; }
+
+          .summary-bar {
+            display: flex;
+            gap: 14pt;
+            background: #f0faf4 !important;
+            border: 0.5pt solid #a7d8b8;
+            border-radius: 4pt;
+            padding: 6pt 10pt;
+            margin-bottom: 12pt;
+          }
+          .summary-item { flex: 1; }
+          .summary-label { font-size: 6.5pt; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+          .summary-value { font-size: 10pt; font-weight: 700; color: #1a3a2a; }
+          .summary-value.profit { color: #16a34a !important; }
+
+          .prod-cell { display: flex; align-items: center; gap: 5pt; }
+          .prod-thumb { width: 22pt; height: 22pt; border-radius: 3pt; object-fit: cover; flex-shrink: 0; background: #f3f4f6; }
+          .prod-name { font-weight: 500; font-size: 7.5pt; line-height: 1.3; }
+
+          @page { size: A4 portrait; margin: 10mm 12mm; }
+        }
+
+        /* ── Pantalla ── */
+        @media screen {
+          .print-only { display: none; }
+          .report-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+          .report-table th {
+            background: #1a3a2a;
+            color: #fff;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+          }
+          .report-table th.num { text-align: right; }
+          .report-table td { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
+          .report-table tr:hover td { background: #f8faf9; }
+          .report-table .subtotal-row td {
+            background: #e8f5ee;
+            font-weight: 600;
+            border-top: 1px solid #a7d8b8;
+          }
+          .report-table .total-row td {
+            background: #1a3a2a;
+            color: #fff;
+            font-weight: 700;
+            font-size: 15px;
+          }
+          .num { text-align: right; }
+          .profit-pos { color: #16a34a; }
+          .profit-neg { color: #dc2626; }
+          .total-row .profit-pos { color: #4ade80; }
+          .price-strike { text-decoration: line-through; color: #9ca3af; font-size: 11px; }
+          .supplier-header {
+            background: #e8f5ee;
+            border-left: 4px solid #1a3a2a;
+            padding: 8px 14px;
+            font-weight: 700;
+            font-size: 15px;
+            color: #1a3a2a;
+          }
+          .prod-cell { display: flex; align-items: center; gap: 10px; }
+          .prod-thumb { width: 36px; height: 36px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background: #f3f4f6; }
+          .prod-name { font-weight: 500; }
+        }
+      `}</style>
+
+      <div className="report-root">
+        {/* ── Encabezado pantalla ── */}
+        <div className="no-print flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-[#1a3a2a]">Informe de Compra</h1>
+          {generated && report && (
+            <Button
+              onClick={handlePrint}
+              data-testid="button-export-pdf"
+              className="bg-[#1a3a2a] hover:bg-[#0d2016] text-white"
+            >
+              <Printer className="w-4 h-4 mr-2" /> Imprimir / Exportar PDF
             </Button>
+          )}
+        </div>
+
+        {/* ── Filtros ── */}
+        <Card className="mb-8 no-print border-[#a7d8b8]">
+          <CardHeader>
+            <CardTitle className="text-base text-[#1a3a2a]">Filtros</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-4 items-end">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-muted-foreground">Fecha desde</label>
+                <Input
+                  type="date"
+                  value={desde}
+                  onChange={(e) => setDesde(e.target.value)}
+                  className="w-44"
+                  data-testid="input-report-desde"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-muted-foreground">Fecha hasta</label>
+                <Input
+                  type="date"
+                  value={hasta}
+                  onChange={(e) => setHasta(e.target.value)}
+                  className="w-44"
+                  data-testid="input-report-hasta"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-muted-foreground">Proveedor</label>
+                <Select value={supplierId} onValueChange={setSupplierId}>
+                  <SelectTrigger className="w-52" data-testid="select-report-supplier">
+                    <SelectValue placeholder="Todos los proveedores" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los proveedores</SelectItem>
+                    {suppliers.map((s: any) => (
+                      <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                onClick={handleGenerate}
+                disabled={isLoading}
+                data-testid="button-generate-report"
+                className="bg-[#1a3a2a] hover:bg-[#0d2016] text-white"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <FileBarChart className="w-4 h-4 mr-2" />
+                )}
+                Generar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ── Estado: cargando / error ── */}
+        {isLoading && (
+          <div className="no-print flex items-center justify-center py-20 text-muted-foreground">
+            <Loader2 className="w-8 h-8 animate-spin mr-3" />
+            Generando informe...
           </div>
-        </CardContent>
-      </Card>
+        )}
+        {isError && (
+          <div className="no-print text-center py-20 text-destructive font-medium">
+            Error al generar el informe. Intenta de nuevo.
+          </div>
+        )}
 
-      {/* ── Resultado ── */}
-      {isLoading && (
-        <div className="flex items-center justify-center py-16 text-muted-foreground">
-          <Loader2 className="w-8 h-8 animate-spin mr-3" />
-          Generando informe...
-        </div>
-      )}
+        {/* ── Área de impresión ── */}
+        {!isLoading && report && (
+          <div ref={printRef} id="print-area">
 
-      {isError && (
-        <div className="text-center py-16 text-destructive">
-          Error al generar el informe. Intenta de nuevo.
-        </div>
-      )}
+            {/* Cabecera (solo en impresión) */}
+            <div className="print-only print-header">
+              <div className="print-header-top">
+                <img src="/logo-800w.webp" alt="Selva Import" className="print-logo" />
+                <div>
+                  <p className="print-title">Selva Import</p>
+                  <p className="print-subtitle">Informe de Compra</p>
+                </div>
+              </div>
+              <p className="print-meta">
+                Generado: {new Date(report.generatedAt || "").toLocaleString("es-PE")}
+                {(report.desde || report.hasta) && (
+                  <> &nbsp;|&nbsp; Rango: {report.desde ?? "Sin límite"} → {report.hasta ?? "Sin límite"}</>
+                )}
+              </p>
+            </div>
 
-      {!isLoading && report && (
-        <div ref={printRef} id="print-area">
-          {/* ── Cabecera para impresión ── */}
-          <div className="hidden print:block mb-6 pb-4 border-b">
-            <div className="flex items-center gap-3 mb-3">
-              <img
-                src="/logo-800w.webp"
-                alt="Selva Import"
-                className="w-12 h-12 rounded-lg object-cover"
-              />
-              <div>
-                <h2 className="text-xl font-bold">Selva Import</h2>
-                <p className="text-sm text-muted-foreground">Informe de Compra</p>
+            {/* Resumen general (solo en impresión) */}
+            <div className="print-only summary-bar">
+              <div className="summary-item">
+                <div className="summary-label">Productos</div>
+                <div className="summary-value">{report.grandTotalProducts}</div>
+              </div>
+              <div className="summary-item">
+                <div className="summary-label">Unidades</div>
+                <div className="summary-value">{report.grandTotalUnits}</div>
+              </div>
+              <div className="summary-item">
+                <div className="summary-label">Total Invertido</div>
+                <div className="summary-value">{fmt(report.grandTotalCost)}</div>
+              </div>
+              <div className="summary-item">
+                <div className="summary-label">Ganancia Total</div>
+                <div className="summary-value profit">{fmtProfit(report.grandTotalProfit)}</div>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Generado: {new Date(report.generatedAt || "").toLocaleString("es-PE")}
-            </p>
-            {(report.desde || report.hasta) && (
-              <p className="text-sm text-muted-foreground">
-                Rango: {report.desde || "Sin límite"} → {report.hasta || "Sin límite"}
-              </p>
-            )}
-          </div>
 
-          {/* ── Tabla por proveedor ── */}
-          {report.suppliers.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">
-              <FileBarChart className="w-16 h-16 mx-auto mb-4 opacity-30" />
-              <p className="text-lg font-medium">No se encontraron resultados</p>
-              <p className="text-sm">Prueba con un rango de fechas diferente.</p>
-            </div>
-          ) : (
-            <div className="space-y-8">
-              {report.suppliers.map((supplier, si) => (
-                <div key={si} className="bg-card border rounded-2xl overflow-hidden shadow-sm">
-                  <div className="px-4 py-3 bg-muted/20 border-b">
-                    <h3 className="font-semibold text-lg flex items-center gap-2">
-                      {supplier.supplierName}
-                    </h3>
-                  </div>
-                  <Table>
-                    <TableHeader className="bg-muted/10">
-                      <TableRow>
-                        <TableHead>Producto</TableHead>
-                        <TableHead>Código Barras</TableHead>
-                        <TableHead>Marca</TableHead>
-                        <TableHead>Modelo</TableHead>
-                        <TableHead className="text-right">Precio Compra Unit.</TableHead>
-                        <TableHead className="text-right">Unidades</TableHead>
-                        <TableHead className="text-right">Subtotal Gastado</TableHead>
-                        <TableHead className="text-right">Precio Venta</TableHead>
-                        <TableHead className="text-right">Ganancia x Unidad</TableHead>
-                        <TableHead className="text-right">Ganancia Total</TableHead>
-                        <TableHead>Fecha Ingreso</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {supplier.items.map((item, ii) => (
-                        <TableRow key={ii}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-muted rounded overflow-hidden flex-shrink-0">
+            {report.suppliers.length === 0 ? (
+              <div className="no-print text-center py-20 text-muted-foreground">
+                <FileBarChart className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                <p className="text-lg font-medium">No se encontraron resultados</p>
+                <p className="text-sm">Prueba con un rango de fechas diferente.</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {report.suppliers.map((supplier, si) => (
+                  <div key={si} className="supplier-block overflow-hidden rounded-xl border border-[#a7d8b8] no-print:shadow-sm">
+                    <div className="supplier-header">{supplier.supplierName}</div>
+                    <table className="report-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: "34%" }}>Producto</th>
+                          <th className="num" style={{ width: "11%" }}>Precio Compra</th>
+                          <th className="num" style={{ width: "8%" }}>Unid.</th>
+                          <th className="num" style={{ width: "12%" }}>Subtotal</th>
+                          <th className="num" style={{ width: "12%" }}>Precio Venta</th>
+                          <th className="num" style={{ width: "10%" }}>Gan. Unidad</th>
+                          <th className="num" style={{ width: "10%" }}>Gan. Total</th>
+                          <th style={{ width: "10%" }}>Ingreso</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {supplier.items.map((item, ii) => (
+                          <tr key={ii}>
+                            <td>
+                              <div className="prod-cell">
                                 {(item.images?.[0] || item.imageUrl) ? (
                                   <img
                                     src={(item.images?.[0] || item.imageUrl) ?? ""}
-                                    className="w-full h-full object-cover"
+                                    className="prod-thumb"
                                     alt={item.productName}
                                   />
                                 ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-[10px]">
-                                    SIN FOTO
+                                  <div
+                                    className="prod-thumb"
+                                    style={{ display: "flex", alignItems: "center", justifyContent: "center", fontSize: "6pt", color: "#9ca3af" }}
+                                  >
+                                    –
                                   </div>
                                 )}
+                                <span className="prod-name">{item.productName}</span>
                               </div>
-                              <span className="font-medium">{item.productName}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {item.barcode || <span className="text-muted-foreground/50">-</span>}
-                          </TableCell>
-                          <TableCell>{item.brand || <span className="text-muted-foreground/50">-</span>}</TableCell>
-                          <TableCell>{item.model || <span className="text-muted-foreground/50">-</span>}</TableCell>
-                          <TableCell className="text-right">S/ {item.purchasePrice.toFixed(2)}</TableCell>
-                          <TableCell className="text-right font-medium">{item.inventory}</TableCell>
-                          <TableCell className="text-right font-medium">S/ {(item.purchasePrice * item.inventory).toFixed(2)}</TableCell>
-                          <TableCell className="text-right">
-                            {item.offerPrice != null ? (
-                              <><s className="text-muted-foreground">S/ {item.price.toFixed(2)}</s> S/ {item.offerPrice.toFixed(2)}</>
-                            ) : (
-                              <>S/ {item.price.toFixed(2)}</>
-                            )}
-                          </TableCell>
-                          <TableCell className={`text-right font-medium ${item.unitProfit >= 0 ? "text-green-600" : "text-destructive"}`}>
-                            {item.unitProfit >= 0 ? "+" : ""}S/ {item.unitProfit.toFixed(2)}
-                          </TableCell>
-                          <TableCell className={`text-right font-medium ${item.totalProfit >= 0 ? "text-green-600" : "text-destructive"}`}>
-                            {item.totalProfit >= 0 ? "+" : ""}S/ {item.totalProfit.toFixed(2)}
-                          </TableCell>
-                          <TableCell>
-                            {item.entryDate
-                              ? new Date(item.entryDate).toLocaleDateString("es-PE", {
-                                  year: "numeric", month: "2-digit", day: "2-digit"
-                                })
-                              : <span className="text-muted-foreground/50">-</span>
-                            }
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {/* Subtotal del proveedor */}
-                      <TableRow className="bg-muted/10">
-                        <TableCell colSpan={4} className="font-semibold">Subtotal ({supplier.subtotalProducts} productos)</TableCell>
-                        <TableCell className="text-right text-muted-foreground">-</TableCell>
-                        <TableCell className="text-right font-semibold">{supplier.subtotalUnits}</TableCell>
-                        <TableCell className="text-right font-semibold">S/ {supplier.subtotalCost.toFixed(2)}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">-</TableCell>
-                        <TableCell className="text-right text-muted-foreground">-</TableCell>
-                        <TableCell className={`text-right font-semibold ${supplier.subtotalProfit >= 0 ? "text-green-600" : "text-destructive"}`}>
-                          {supplier.subtotalProfit >= 0 ? "+" : ""}S/ {supplier.subtotalProfit.toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-right text-muted-foreground">-</TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              ))}
+                            </td>
+                            <td className="num">{fmt(item.purchasePrice)}</td>
+                            <td className="num" style={{ fontWeight: 600 }}>{item.inventory}</td>
+                            <td className="num" style={{ fontWeight: 600 }}>{fmt(item.purchasePrice * item.inventory)}</td>
+                            <td className="num">
+                              {item.offerPrice != null ? (
+                                <span>
+                                  <span className="price-strike">S/ {item.price.toFixed(2)}</span>{" "}
+                                  S/ {item.offerPrice.toFixed(2)}
+                                </span>
+                              ) : (
+                                fmt(item.price)
+                              )}
+                            </td>
+                            <td className={`num ${item.unitProfit >= 0 ? "profit-pos" : "profit-neg"}`} style={{ fontWeight: 600 }}>
+                              {fmtProfit(item.unitProfit)}
+                            </td>
+                            <td className={`num ${item.totalProfit >= 0 ? "profit-pos" : "profit-neg"}`} style={{ fontWeight: 600 }}>
+                              {fmtProfit(item.totalProfit)}
+                            </td>
+                            <td>
+                              {item.entryDate
+                                ? new Date(item.entryDate).toLocaleDateString("es-PE", {
+                                    day: "2-digit", month: "2-digit", year: "numeric",
+                                  })
+                                : <span style={{ color: "#9ca3af" }}>–</span>
+                              }
+                            </td>
+                          </tr>
+                        ))}
 
-              {/* ── TOTAL GENERAL ── */}
-              <div className="bg-primary/5 border border-primary/20 rounded-2xl overflow-hidden shadow-sm">
-                <Table>
-                  <TableBody>
-                    <TableRow className="bg-primary/10">
-                      <TableCell className="font-bold text-lg" colSpan={4}>
-                        TOTAL GENERAL ({report.grandTotalProducts} productos)
-                      </TableCell>
-                      <TableCell className="text-right font-bold text-lg">-</TableCell>
-                      <TableCell className="text-right font-bold text-lg">{report.grandTotalUnits}</TableCell>
-                      <TableCell className="text-right font-bold text-lg">
-                        S/ {report.grandTotalCost.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right text-muted-foreground">-</TableCell>
-                      <TableCell className="text-right text-muted-foreground">-</TableCell>
-                      <TableCell className={`text-right font-bold text-lg ${report.grandTotalProfit >= 0 ? "text-green-600" : "text-destructive"}`}>
-                        {report.grandTotalProfit >= 0 ? "+" : ""}S/ {report.grandTotalProfit.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right text-muted-foreground">-</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                        {/* Subtotal proveedor */}
+                        <tr className="subtotal-row">
+                          <td>Subtotal — {supplier.subtotalProducts} producto{supplier.subtotalProducts !== 1 ? "s" : ""}</td>
+                          <td className="num" style={{ color: "#6b7280" }}>–</td>
+                          <td className="num">{supplier.subtotalUnits}</td>
+                          <td className="num">{fmt(supplier.subtotalCost)}</td>
+                          <td className="num" style={{ color: "#6b7280" }}>–</td>
+                          <td className="num" style={{ color: "#6b7280" }}>–</td>
+                          <td className={`num ${supplier.subtotalProfit >= 0 ? "profit-pos" : "profit-neg"}`}>
+                            {fmtProfit(supplier.subtotalProfit)}
+                          </td>
+                          <td style={{ color: "#6b7280" }}>–</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+
+                {/* TOTAL GENERAL */}
+                <table className="report-table" style={{ borderRadius: "8px", overflow: "hidden" }}>
+                  <tbody>
+                    <tr className="total-row">
+                      <td style={{ width: "34%" }}>
+                        TOTAL GENERAL — {report.grandTotalProducts} productos
+                      </td>
+                      <td className="num" style={{ width: "11%", opacity: 0.5 }}>–</td>
+                      <td className="num" style={{ width: "8%" }}>{report.grandTotalUnits}</td>
+                      <td className="num" style={{ width: "12%" }}>{fmt(report.grandTotalCost)}</td>
+                      <td className="num" style={{ width: "12%", opacity: 0.5 }}>–</td>
+                      <td className="num" style={{ width: "10%", opacity: 0.5 }}>–</td>
+                      <td className={`num ${report.grandTotalProfit >= 0 ? "profit-pos" : "profit-neg"}`} style={{ width: "10%" }}>
+                        {fmtProfit(report.grandTotalProfit)}
+                      </td>
+                      <td style={{ width: "10%", opacity: 0.5 }}>–</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── Estilos de impresión ── */}
-      <style>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          #print-area, #print-area * {
-            visibility: visible;
-          }
-          #print-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            padding: 20px;
-          }
-          .print\:block {
-            display: block !important;
-          }
-          .no-print {
-            display: none !important;
-          }
-          @page {
-            size: A4 landscape;
-            margin: 15mm;
-          }
-        }
-      `}</style>
+            )}
+          </div>
+        )}
+      </div>
     </AdminLayout>
   );
 }
