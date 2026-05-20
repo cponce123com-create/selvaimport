@@ -2,6 +2,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { z } from "zod";
 
+const CSRF_HEADER = "x-csrf-protection";
+const CSRF_VALUE = "1";
+
 export function useProducts(params?: { search?: string; categoryId?: number; admin?: boolean }) {
   return useQuery({
     queryKey: [api.products.list.path, params],
@@ -72,7 +75,7 @@ export function useCreateProduct() {
     mutationFn: async (data: z.infer<typeof api.products.create.input>) => {
       const res = await fetch(api.products.create.path, {
         method: api.products.create.method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", [CSRF_HEADER]: CSRF_VALUE },
         body: JSON.stringify(data),
         credentials: "include",
       });
@@ -90,7 +93,7 @@ export function useUpdateProduct() {
       const url = buildUrl(api.products.update.path, { id });
       const res = await fetch(url, {
         method: api.products.update.method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", [CSRF_HEADER]: CSRF_VALUE },
         body: JSON.stringify(data),
         credentials: "include",
       });
@@ -144,6 +147,7 @@ export function useDeleteProduct() {
       const url = buildUrl(api.products.delete.path, { id });
       const res = await fetch(url, {
         method: api.products.delete.method,
+        headers: { [CSRF_HEADER]: CSRF_VALUE },
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to delete product");
@@ -180,7 +184,7 @@ export function useToggleProductVisibility() {
     mutationFn: async ({ id, isVisible }: { id: number; isVisible: boolean }) => {
       const res = await fetch(`/api/admin/products/${id}/visibility`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", [CSRF_HEADER]: CSRF_VALUE },
         body: JSON.stringify({ isVisible }),
         credentials: "include",
       });
@@ -257,7 +261,7 @@ export function useUpdateProductTemplate() {
     mutationFn: async ({ id, ...data }: { id: number; brand?: string | null; model?: string | null; barcode?: string | null; sku?: string | null; unit?: string | null; categoryId?: number | null; supplierId?: number | null }) => {
       const res = await fetch(`/api/admin/product-templates/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", [CSRF_HEADER]: CSRF_VALUE },
         body: JSON.stringify(data),
         credentials: "include",
       });
@@ -280,6 +284,7 @@ export function useDeleteProductTemplate() {
     mutationFn: async (id: number) => {
       const res = await fetch(`/api/admin/product-templates/${id}`, {
         method: "DELETE",
+        headers: { [CSRF_HEADER]: CSRF_VALUE },
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to delete template");
