@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -60,8 +60,6 @@ export const products = pgTable("products", {
   entryDate: timestamp("entry_date").defaultNow(),
 });
 
-export const productsCategoryVisibleIdx = index('products_category_visible_idx').on(products.categoryId, products.isVisible);
-
 // ── Maestro de Productos (Templates) ──
 export const productTemplates = pgTable("product_templates", {
   id: serial("id").primaryKey(),
@@ -115,8 +113,6 @@ export const orders = pgTable("orders", {
   guestAccessToken: text("guest_access_token"),
   createdAt: timestamp("created_at").defaultNow(),
 });
-
-export const ordersStatusCreatedIdx = index('orders_status_created_idx').on(orders.status, orders.createdAt);
 
 export const orderItems = pgTable("order_items", {
   id: serial("id").primaryKey(),
@@ -182,8 +178,6 @@ export const homeRowItems = pgTable("home_row_items", {
   productId: integer("product_id").references(() => products.id).notNull(),
   sortOrder: integer("sort_order").notNull().default(0),
 });
-
-export const homeRowItemsRowIdx = index('home_row_items_row_idx').on(homeRowItems.homeRowId, homeRowItems.sortOrder);
 
 // Sección de 4 rectángulos del home
 export const homeRectangles = pgTable("home_rectangles", {
