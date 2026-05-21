@@ -116,6 +116,7 @@ export interface IStorage {
   ): Promise<OrderWithItems>;
 
   updateOrderStatus(id: number, status: string): Promise<Order>;
+  deleteOrder(id: number): Promise<void>;
 
   getSitePage(slug: string): Promise<SitePage | undefined>;
   getSitePages(): Promise<SitePage[]>;
@@ -165,6 +166,7 @@ export interface IStorage {
   createProductTemplateFromProduct(productId: number): Promise<any>;
   findProductTemplateByName(normalizedName: string): Promise<any | undefined>;
   incrementProductTemplateUsage(id: number): Promise<any>;
+  updateProductTemplate(id: number, data: { brand?: string | null; model?: string | null; barcode?: string | null; sku?: string | null; unit?: string | null; categoryId?: number | null; supplierId?: number | null }): Promise<any>;
   deleteProductTemplate(id: number): Promise<void>;
   deleteAllProductTemplates(): Promise<void>;
 
@@ -424,11 +426,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateCartItem(itemId: number, quantity: number): Promise<CartItemWithProduct> {
-    if (quantity <= 0) {
-      await this.removeCartItem(itemId);
-      return null as unknown as CartItemWithProduct;
-    }
-
     const [currentItem] = await db.select().from(cartItems).where(eq(cartItems.id, itemId));
     if (!currentItem) {
       throw new Error("Item no encontrado");
@@ -495,7 +492,10 @@ export class DatabaseStorage implements IStorage {
     if (!order) return undefined;
 
     const items = await db.select().from(orderItems).where(eq(orderItems.orderId, id));
-    const allProducts = await db.select().from(products);
+    const productIds = Array.from(new Set(items.map(i => i.productId)));
+    const allProducts = productIds.length > 0
+      ? await db.select().from(products).where(or(...productIds.map(id => eq(products.id, id))))
+      : [];
 
     return {
       ...order,

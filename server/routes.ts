@@ -191,6 +191,10 @@ async function applyCouponToTotal(total: number, shippingAddress: string) {
   };
 }
 
+function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) {
+  return (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -334,10 +338,10 @@ export async function registerRoutes(
     }
   });
 
-  app.get(api.categories.list.path, async (_req, res) => {
+  app.get(api.categories.list.path, asyncHandler(async (_req, res) => {
     const cats = await storage.getCategories();
     res.json(cats);
-  });
+  }));
 
   app.post(api.categories.create.path, requireAdmin, async (req, res) => {
     try {
@@ -349,7 +353,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get(api.products.list.path, async (req, res) => {
+  app.get(api.products.list.path, asyncHandler(async (req, res) => {
     const categoryId = req.query.categoryId ? Number(req.query.categoryId) : undefined;
     const search = req.query.search as string | undefined;
 
@@ -379,7 +383,7 @@ export async function registerRoutes(
       isAdmin ? true : undefined // includeHidden: admin ve todos los productos
     );
     res.json(result);
-  });
+  }));
 
   // ── Toggle visibilidad de producto (admin) ──
   app.patch("/api/admin/products/:id/visibility", requireAdmin, async (req, res) => {
@@ -420,17 +424,17 @@ export async function registerRoutes(
     }
   });
 
-  app.get(api.products.get.path, async (req, res) => {
+  app.get(api.products.get.path, asyncHandler(async (req, res) => {
     const product = await storage.getProduct(Number(req.params.id));
     if (!product) {
       return res.status(404).json({ message: "Producto no encontrado" });
     }
     res.json(product);
-  });
+  }));
 
   // ── Buscar producto por slug (para URLs amigables) ──
-  app.get("/api/products/slug/:slug", async (req, res) => {
-    const product = await storage.getProductBySlug(req.params.slug);
+  app.get("/api/products/slug/:slug", asyncHandler(async (req, res) => {
+    const product = await storage.getProductBySlug(req.params.slug as string);
     if (!product) {
       return res.status(404).json({ message: "Producto no encontrado" });
     }
@@ -450,7 +454,7 @@ export async function registerRoutes(
       ? allBrands.find((b) => b.id === product.brandId) || null
       : null;
     res.json({ ...product, category, supplier, brand });
-  });
+  }));
 
   app.post(api.products.create.path, requireAdmin, async (req, res) => {
     try {
@@ -744,10 +748,10 @@ export async function registerRoutes(
     }
   });
 
-  app.get(api.cart.get.path, requireAuth, async (req, res) => {
+  app.get(api.cart.get.path, requireAuth, asyncHandler(async (req, res) => {
     const cart = await storage.getCart(req.user!.id);
     res.json(cart);
-  });
+  }));
 
   app.post(api.cart.addItem.path, requireAuth, async (req, res) => {
     try {
@@ -775,21 +779,21 @@ export async function registerRoutes(
     }
   });
 
-  app.delete(api.cart.clear.path, requireAuth, async (req, res) => {
+  app.delete(api.cart.clear.path, requireAuth, asyncHandler(async (req, res) => {
     await storage.clearCart(req.user!.id);
     res.status(204).end();
-  });
+  }));
 
-  app.get(api.orders.list.path, requireAuth, async (req, res) => {
+  app.get(api.orders.list.path, requireAuth, asyncHandler(async (req, res) => {
     const ordersList =
       req.user!.role === "admin"
         ? await storage.getOrders()
         : await storage.getOrders(req.user!.id);
 
     res.json(ordersList);
-  });
+  }));
 
-  app.get(api.orders.get.path, requireAuth, async (req, res) => {
+  app.get(api.orders.get.path, requireAuth, asyncHandler(async (req, res) => {
     const order = await storage.getOrder(Number(req.params.id));
 
     if (!order) {
@@ -801,7 +805,7 @@ export async function registerRoutes(
     }
 
     res.json(order);
-  });
+  }));
 
   // ── Pedido de usuario registrado ──
   app.post(api.orders.create.path, requireAuth, async (req, res) => {
@@ -942,12 +946,13 @@ export async function registerRoutes(
       const { randomBytes } = await import("crypto");
       const guestAccessToken = randomBytes(32).toString("hex");
 
-      const allProducts = (await storage.getProducts()).products;
+      const productIds = data.items.map(i => i.productId);
+      const allProducts = await Promise.all(productIds.map(id => storage.getProduct(id)));
 
       let total = 0;
 
       const orderItems = data.items.map((item) => {
-        const product = allProducts.find((p) => p.id === item.productId);
+        const product = allProducts.find((p) => p?.id === item.productId);
 
         if (!product) {
           throw new Error(`Producto no encontrado: ${item.productId}`);
@@ -1071,18 +1076,18 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/pages", async (_req, res) => {
+  app.get("/api/pages", asyncHandler(async (_req, res) => {
     const pages = await storage.getSitePages();
     res.json(pages);
-  });
+  }));
 
-  app.get("/api/pages/:slug", async (req, res) => {
-    const page = await storage.getSitePage(req.params.slug);
+  app.get("/api/pages/:slug", asyncHandler(async (req, res) => {
+    const page = await storage.getSitePage(req.params.slug as string);
     if (!page) {
       return res.status(404).json({ message: "Pagina no encontrada" });
     }
     res.json(page);
-  });
+  }));
 
   app.put("/api/admin/pages/:slug", requireAdmin, async (req, res) => {
     try {
@@ -1101,7 +1106,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/orders/guest/:id", async (req, res) => {
+  app.get("/api/orders/guest/:id", asyncHandler(async (req, res) => {
     const token = req.query.token as string;
 
     if (!token) {
@@ -1123,12 +1128,12 @@ export async function registerRoutes(
     }
 
     res.json(order);
-  });
+  }));
 
-  app.get("/api/banner-slides", async (_req, res) => {
+  app.get("/api/banner-slides", asyncHandler(async (_req, res) => {
     const slides = await storage.getBannerSlides(true);
     res.json(slides);
-  });
+  }));
 
   app.get("/api/admin/banner-slides", requireAdmin, async (_req, res) => {
     const slides = await storage.getBannerSlides(false);

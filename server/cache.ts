@@ -64,7 +64,7 @@ export function invalidateCache(pattern?: string): void {
   }
   // Soporte para patrones más precisos: trata pattern como substring o regex
   for (const key of Array.from(store.keys())) {
-    if (key.includes(pattern) || key.match(pattern)) {
+    if (key.includes(pattern)) {
       store.delete(key);
     }
   }
