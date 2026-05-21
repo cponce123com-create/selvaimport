@@ -16,4 +16,5 @@ export const pool = new Pool({
     ? { rejectUnauthorized: false }
     : false,
 });
+pool.on('error', (err) => console.error('[pool] idle client error:', err));
 export const db = drizzle(pool, { schema });

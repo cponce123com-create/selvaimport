@@ -221,56 +221,6 @@ export async function registerRoutes(
     }
   });
 
-  // ── Sitemap XML dinámico ──
-  app.get('/sitemap.xml', async (_req, res) => {
-    try {
-      const products = await storage.getProducts();
-      const categories = await storage.getCategories();
-      const sitePages = await storage.getSitePages();
-
-      const baseUrl = 'https://selvaimport.onrender.com';
-      const urls: string[] = [];
-
-      // Home
-      urls.push(`  <url><loc>${baseUrl}/</loc><priority>1.0</priority><changefreq>daily</changefreq></url>`);
-
-      // Páginas estáticas
-      urls.push(`  <url><loc>${baseUrl}/cart</loc><priority>0.5</priority><changefreq>monthly</changefreq></url>`);
-      urls.push(`  <url><loc>${baseUrl}/login</loc><priority>0.3</priority><changefreq>monthly</changefreq></url>`);
-      urls.push(`  <url><loc>${baseUrl}/register</loc><priority>0.3</priority><changefreq>monthly</changefreq></url>`);
-      urls.push(`  <url><loc>${baseUrl}/tacora</loc><priority>0.6</priority><changefreq>weekly</changefreq></url>`);
-      urls.push(`  <url><loc>${baseUrl}/selva-natural</loc><priority>0.6</priority><changefreq>weekly</changefreq></url>`);
-
-      // Categorías
-      for (const cat of categories) {
-        if (cat.showOnHome !== false) {
-          urls.push(`  <url><loc>${baseUrl}/?cat=${cat.id}</loc><priority>0.7</priority><changefreq>weekly</changefreq></url>`);
-        }
-      }
-
-      // Productos
-      for (const product of (Array.isArray(products) ? products : (products as any).products || [])) {
-        if (product.isVisible !== false) {
-          urls.push(`  <url><loc>${baseUrl}/product/${encodeURIComponent(product.slug)}</loc><priority>0.8</priority><changefreq>daily</changefreq></url>`);
-        }
-      }
-
-      // Site pages
-      for (const page of sitePages) {
-        urls.push(`  <url><loc>${baseUrl}/page/${encodeURIComponent(page.slug)}</loc><priority>0.5</priority><changefreq>monthly</changefreq></url>`);
-      }
-
-      const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.join('\n')}
-</urlset>`;
-
-      res.header('Content-Type', 'application/xml');
-      res.send(xml);
-    } catch (e: any) {
-      res.status(500).json({ message: e.message });
-    }
-  });
 
   setupAuth(app);
 
@@ -1138,9 +1088,6 @@ ${urls.join('\n')}
     try {
       const { title, content, imageUrl } = req.body;
 
-      if (typeof title !== "string" && typeof content !== "string") {
-        return res.status(400).json({ message: "Se requiere titulo o contenido" });
-      }
 
       const updates: Record<string, any> = {};
       if (typeof title === "string") updates.title = title;

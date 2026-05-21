@@ -215,7 +215,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProducts(categoryId?: number, search?: string, onlyShowOnHome?: boolean, page?: number, limit?: number, includeHidden?: boolean): Promise<{ products: ProductWithCategory[]; total: number; page: number; totalPages: number }> {
-    const cacheKey = `products:${categoryId || ''}:${search || ''}:${onlyShowOnHome || ''}:${page || ''}:${limit || ''}`;
+    const cacheKey = `products:${categoryId || ''}:${search || ''}:${onlyShowOnHome || ''}:${page || ''}:${limit || ''}:${includeHidden || ''}`;
     const cached = getCached<{ products: ProductWithCategory[]; total: number; page: number; totalPages: number }>(cacheKey);
     if (cached) return cached;
     const [cats, allSuppliers] = await Promise.all([
@@ -325,19 +325,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteProduct(id: number): Promise<void> {
-    // Eliminar registros relacionados para evitar errores de FK
-    await db.delete(priceHistory).where(eq(priceHistory.productId, id));
-    await db.delete(cartItems).where(eq(cartItems.productId, id));
-    await db.delete(orderItems).where(eq(orderItems.productId, id));
-    await db.delete(homeRowItems).where(eq(homeRowItems.productId, id));
-    await db.delete(homeRectangleItems).where(eq(homeRectangleItems.productId, id));
-    // Banner slides: limpiar referencias (poner null en lugar de borrar el slide)
-    await db.update(bannerSlides).set({ productId1: null }).where(eq(bannerSlides.productId1, id));
-    await db.update(bannerSlides).set({ productId2: null }).where(eq(bannerSlides.productId2, id));
-    // Rectángulos de inicio: limpiar referencia
-    await db.update(homeRectangles).set({ productId: null }).where(eq(homeRectangles.productId, id));
-    // Finalmente, eliminar el producto
-    await db.delete(products).where(eq(products.id, id));
+    await db.transaction(async (tx) => {
+      // Eliminar registros relacionados para evitar errores de FK
+      await tx.delete(priceHistory).where(eq(priceHistory.productId, id));
+      await tx.delete(cartItems).where(eq(cartItems.productId, id));
+      await tx.delete(orderItems).where(eq(orderItems.productId, id));
+      await tx.delete(homeRowItems).where(eq(homeRowItems.productId, id));
+      await tx.delete(homeRectangleItems).where(eq(homeRectangleItems.productId, id));
+      // Banner slides: limpiar referencias (poner null en lugar de borrar el slide)
+      await tx.update(bannerSlides).set({ productId1: null }).where(eq(bannerSlides.productId1, id));
+      await tx.update(bannerSlides).set({ productId2: null }).where(eq(bannerSlides.productId2, id));
+      // Rectángulos de inicio: limpiar referencia
+      await tx.update(homeRectangles).set({ productId: null }).where(eq(homeRectangles.productId, id));
+      // Finalmente, eliminar el producto
+      await tx.delete(products).where(eq(products.id, id));
+    });
     invalidateCache('products');
     invalidateCache('categories');
   }
@@ -424,7 +426,7 @@ export class DatabaseStorage implements IStorage {
   async updateCartItem(itemId: number, quantity: number): Promise<CartItemWithProduct> {
     if (quantity <= 0) {
       await this.removeCartItem(itemId);
-      throw new Error("Item removed");
+      return null as unknown as CartItemWithProduct;
     }
 
     const [currentItem] = await db.select().from(cartItems).where(eq(cartItems.id, itemId));
@@ -453,15 +455,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOrders(userId?: number): Promise<OrderWithItems[]> {
-    const conditions = [];
-    if (userId) conditions.push(eq(orders.userId, userId));
-
-    const query = db.select().from(orders).orderBy(desc(orders.createdAt));
-    if (conditions.length > 0) {
-      query.where(and(...conditions));
-    }
-
-    const ordersList = await query;
+    const ordersList = userId
+      ? await db.select().from(orders).where(eq(orders.userId, userId)).orderBy(desc(orders.createdAt))
+      : await db.select().from(orders).orderBy(desc(orders.createdAt));
     if (ordersList.length === 0) return [];
 
     const orderIds = ordersList.map((o) => o.id);

@@ -79,7 +79,10 @@ export function useCreateProduct() {
         body: JSON.stringify(data),
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to create product");
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody?.message || "Failed to create product");
+      }
       return api.products.create.responses[201].parse(await res.json());
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: [api.products.list.path] }),
