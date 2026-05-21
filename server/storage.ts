@@ -724,15 +724,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getBannerSlides(activeOnly = false): Promise<BannerSlideWithProducts[]> {
-    const conditions = [];
-    if (activeOnly) conditions.push(eq(bannerSlides.isActive, true));
+    const cacheKey = `bannerSlides:${activeOnly}`;
+    const cached = getCached<BannerSlideWithProducts[]>(cacheKey);
+    if (cached) return cached;
 
-    const query = db.select().from(bannerSlides).orderBy(bannerSlides.sortOrder);
-    if (conditions.length > 0) {
-      query.where(and(...conditions));
-    }
-
-    const slides = await query;
+    const slides = activeOnly
+      ? await db.select().from(bannerSlides).where(eq(bannerSlides.isActive, true)).orderBy(bannerSlides.sortOrder)
+      : await db.select().from(bannerSlides).orderBy(bannerSlides.sortOrder);
     if (slides.length === 0) return [];
 
     const productIds = new Set<number>();
@@ -756,12 +754,14 @@ export class DatabaseStorage implements IStorage {
     const productMap = new Map(allProducts.map((p) => [p.id, p]));
     const categoryMap = new Map(allCategories.map((c) => [c.id, c]));
 
-    return slides.map((slide) => ({
+    const result = slides.map((slide) => ({
       ...slide,
       product1: slide.productId1 ? productMap.get(slide.productId1) || null : null,
       product2: slide.productId2 ? productMap.get(slide.productId2) || null : null,
       buttonCategory: slide.buttonCategoryId ? categoryMap.get(slide.buttonCategoryId) || null : null,
     }));
+    setCache(cacheKey, result, 120000);
+    return result;
   }
 
   async getBannerSlide(id: number): Promise<BannerSlide | undefined> {
@@ -781,6 +781,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBannerSlide(id: number): Promise<void> {
     await db.delete(bannerSlides).where(eq(bannerSlides.id, id));
+    invalidateCache('bannerSlides');
   }
 
   async getCoupons(): Promise<Coupon[]> {
@@ -840,6 +841,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getHomeRows(activeOnly = false): Promise<(HomeRow & { items: (HomeRowItem & { product: ProductWithCategory })[] })[]> {
+    const cacheKey = `homeRows:${activeOnly}`;
+    const cached = getCached<any>(cacheKey);
+    if (cached) return cached;
+
     const rows = activeOnly
       ? await db.select().from(homeRows).where(eq(homeRows.isActive, true)).orderBy(homeRows.sortOrder)
       : await db.select().from(homeRows).orderBy(homeRows.sortOrder);
@@ -863,13 +868,15 @@ export class DatabaseStorage implements IStorage {
       allProducts.map((p) => [p.id, { ...p, category: allCats.find((c) => c.id === p.categoryId) }])
     );
 
-    return rows.map((row) => ({
+    const result = rows.map((row) => ({
       ...row,
       items: items
         .filter((i) => i.homeRowId === row.id)
         .map((i) => ({ ...i, product: productMap.get(i.productId)! }))
         .filter((i) => i.product),
     }));
+    setCache(cacheKey, result, 120000);
+    return result;
   }
 
   async getHomeRow(id: number): Promise<HomeRow | undefined> {
@@ -879,17 +886,20 @@ export class DatabaseStorage implements IStorage {
 
   async createHomeRow(data: InsertHomeRow): Promise<HomeRow> {
     const [row] = await db.insert(homeRows).values(data).returning();
+    invalidateCache('homeRows');
     return row;
   }
 
   async updateHomeRow(id: number, data: Partial<InsertHomeRow>): Promise<HomeRow> {
     const [row] = await db.update(homeRows).set(data).where(eq(homeRows.id, id)).returning();
+    invalidateCache('homeRows');
     return row;
   }
 
   async deleteHomeRow(id: number): Promise<void> {
     await db.delete(homeRowItems).where(eq(homeRowItems.homeRowId, id));
     await db.delete(homeRows).where(eq(homeRows.id, id));
+    invalidateCache('homeRows');
   }
 
   async setHomeRowItems(homeRowId: number, productIds: number[]): Promise<void> {
@@ -904,9 +914,14 @@ export class DatabaseStorage implements IStorage {
         }))
       );
     }
+    invalidateCache('homeRows');
   }
 
   async getHomeRectangles(): Promise<(HomeRectangle & { product?: ProductWithCategory | null; category?: Category | null; items?: (HomeRectangleItem & { product: ProductWithCategory })[] })[]> {
+    const cacheKey = 'homeRectangles';
+    const cached = getCached<any>(cacheKey);
+    if (cached) return cached;
+
     const rects = await db.select().from(homeRectangles).orderBy(homeRectangles.position);
     if (rects.length === 0) return [];
 
@@ -939,7 +954,7 @@ export class DatabaseStorage implements IStorage {
     );
     const categoryMap = new Map(allCats.map((c) => [c.id, c]));
 
-    return rects.map((rect) => ({
+    const result = rects.map((rect) => ({
       ...rect,
       product: rect.productId ? productMap.get(rect.productId) || null : null,
       category: rect.categoryId ? categoryMap.get(rect.categoryId) || null : null,
@@ -948,20 +963,22 @@ export class DatabaseStorage implements IStorage {
         .map((i) => ({ ...i, product: productMap.get(i.productId)! }))
         .filter((i) => i.product),
     }));
+    setCache(cacheKey, result, 120000);
+    return result;
   }
 
   async upsertHomeRectangle(position: number, data: Partial<InsertHomeRectangle>): Promise<HomeRectangle> {
     const [existing] = await db.select().from(homeRectangles).where(eq(homeRectangles.position, position));
 
+    let rect: HomeRectangle;
     if (existing) {
-      const [updated] = await db
+      [rect] = await db
         .update(homeRectangles)
         .set(data)
         .where(eq(homeRectangles.id, existing.id))
         .returning();
-      return updated;
     } else {
-      const [created] = await db
+      [rect] = await db
         .insert(homeRectangles)
         .values({
           position,
@@ -972,8 +989,9 @@ export class DatabaseStorage implements IStorage {
           isActive: data.isActive ?? true,
         })
         .returning();
-      return created;
     }
+    invalidateCache('homeRectangles');
+    return rect;
   }
 
   async setHomeRectangleItems(homeRectangleId: number, productIds: number[]): Promise<void> {
@@ -988,10 +1006,15 @@ export class DatabaseStorage implements IStorage {
         }))
       );
     }
+    invalidateCache('homeRectangles');
   }
 
   async getSuppliers(): Promise<Supplier[]> {
-    return await db.select().from(suppliers).orderBy(desc(suppliers.createdAt));
+    const cached = getCached<Supplier[]>('suppliers');
+    if (cached) return cached;
+    const result = await db.select().from(suppliers).orderBy(desc(suppliers.createdAt));
+    setCache('suppliers', result, 120000);
+    return result;
   }
 
   async getSupplier(id: number): Promise<Supplier | undefined> {
@@ -1001,11 +1024,13 @@ export class DatabaseStorage implements IStorage {
 
   async createSupplier(data: InsertSupplier): Promise<Supplier> {
     const [supplier] = await db.insert(suppliers).values(data).returning();
+    invalidateCache('suppliers');
     return supplier;
   }
 
   async updateSupplier(id: number, data: Partial<InsertSupplier>): Promise<Supplier> {
     const [supplier] = await db.update(suppliers).set(data).where(eq(suppliers.id, id)).returning();
+    invalidateCache('suppliers');
     return supplier;
   }
 
@@ -1013,14 +1038,20 @@ export class DatabaseStorage implements IStorage {
     // Set supplier_id to null on all products that reference this supplier
     await db.update(products).set({ supplierId: null }).where(eq(products.supplierId, id));
     await db.delete(suppliers).where(eq(suppliers.id, id));
+    invalidateCache('suppliers');
   }
 
   async getBrands(): Promise<Brand[]> {
-    return await db.select().from(brands).orderBy(brands.name);
+    const cached = getCached<Brand[]>('brands');
+    if (cached) return cached;
+    const result = await db.select().from(brands).orderBy(brands.name);
+    setCache('brands', result, 120000);
+    return result;
   }
 
   async createBrand(data: InsertBrand): Promise<Brand> {
     const [brand] = await db.insert(brands).values(data).returning();
+    invalidateCache('brands');
     return brand;
   }
 
@@ -1028,6 +1059,7 @@ export class DatabaseStorage implements IStorage {
     // Set brand_id to null on all products that reference this brand
     await db.update(products).set({ brandId: null }).where(eq(products.brandId, id));
     await db.delete(brands).where(eq(brands.id, id));
+    invalidateCache('brands');
   }
 
   async getPurchaseReport({ desde, hasta, supplierId }: {
@@ -1344,4 +1376,4 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
- new DatabaseStorage();
+

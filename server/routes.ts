@@ -705,13 +705,14 @@ export async function registerRoutes(
       const allProducts = await db.select({ id: productsTable.id, name: productsTable.name }).from(productsTable);
       let creados = 0;
       let existentes = 0;
-      for (const p of allProducts) {
-        try {
-          const created = await storage.createProductTemplateFromProduct(p.id);
-          if (created) creados++;
+      for (let i = 0; i < allProducts.length; i += 5) {
+        const batch = allProducts.slice(i, i + 5);
+        const results = await Promise.all(
+          batch.map(p => storage.createProductTemplateFromProduct(p.id).catch(() => null))
+        );
+        for (const r of results) {
+          if (r) creados++;
           else existentes++;
-        } catch {
-          existentes++;
         }
       }
       res.json({ message: `Backfill completado. ${creados} templates creados, ${existentes} ya existentes.`, creados, existentes });
@@ -1019,30 +1020,47 @@ export async function registerRoutes(
 
   app.get(api.admin.customers.path, requireAdmin, async (_req, res) => {
     try {
+      const { db } = await import("./db");
+      const { users, orders } = await import("@shared/schema");
+      const { eq, sql } = await import("drizzle-orm");
+
       const allUsers = await storage.getUsers();
-      const allOrders = await storage.getOrders();
+
+      // Aggregate orders per user via SQL GROUP BY
+      const orderAggs = await db.select({
+        userId: orders.userId,
+        orderCount: sql<number>`COUNT(*)`,
+        totalSpent: sql<string>`COALESCE(SUM(${orders.totalAmount}), 0)`,
+      }).from(orders).where(sql`${orders.userId} IS NOT NULL`).groupBy(orders.userId);
+
+      const orderMap = new Map(orderAggs.map(o => [o.userId, o]));
 
       const customers = allUsers
         .filter((u) => u.role !== "admin")
         .map((u) => {
-          const userOrders = allOrders.filter((o) => o.userId === u.id);
-          const totalSpent = userOrders.reduce(
-            (acc, o) => acc + Number(o.totalAmount),
-            0
-          );
-
+          const agg = orderMap.get(u.id);
           return {
             id: u.id,
             name: u.name,
             email: u.email,
             type: "registered" as const,
-            ordersCount: userOrders.length,
-            totalSpent,
+            ordersCount: agg?.orderCount ?? 0,
+            totalSpent: Number(agg?.totalSpent ?? 0),
             createdAt: u.createdAt,
           };
         });
 
-      const guestOrders = allOrders.filter((o) => !o.userId);
+      // Guest orders — lightweight query without items
+      const guestRows = await db.select({
+        id: orders.id,
+        userId: orders.userId,
+        totalAmount: orders.totalAmount,
+        guestName: orders.guestName,
+        guestPhone: orders.guestPhone,
+        createdAt: orders.createdAt,
+      }).from(orders).where(sql`${orders.userId} IS NULL`);
+
+      const guestOrders = guestRows;
       const guestMap = new Map<
         string,
         { name: string; phone: string; orders: typeof guestOrders }
@@ -1482,60 +1500,56 @@ export async function registerRoutes(
   // ── Dashboard metrics endpoint ──
   app.get("/api/admin/metrics/dashboard", requireAdmin, async (_req, res) => {
     try {
+      const { db } = await import("./db");
+      const { orders } = await import("@shared/schema");
+      const { eq, and, gte, desc, sql } = await import("drizzle-orm");
+
       const now = new Date();
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      const allOrders = await storage.getOrders();
+      const [todayResult, monthResult, recentOrders, lowStockItems] = await Promise.all([
+        // Ventas y pedidos de hoy
+        db.select({
+          salesTotal: sql<string>`COALESCE(SUM(${orders.totalAmount}), 0)`,
+          pendingCount: sql<number>`COUNT(*) FILTER (WHERE ${orders.status} NOT IN ('entregado','cancelado','cancelled'))`,
+        }).from(orders).where(
+          and(
+            gte(orders.createdAt, startOfDay),
+            sql`${orders.status} NOT IN ('cancelado','cancelled')`
+          )
+        ).then(r => r[0]),
 
-      // Ventas hoy
-      const salesToday = allOrders
-        .filter((o) => {
-          if (!o.createdAt) return false;
-          const d = new Date(o.createdAt);
-          return d >= startOfDay && o.status !== "cancelado" && o.status !== "cancelled";
-        })
-        .reduce((sum, o) => sum + Number(o.totalAmount), 0);
+        // Ingresos del mes
+        db.select({
+          revenue: sql<string>`COALESCE(SUM(${orders.totalAmount}), 0)`,
+          orderCount: sql<number>`COUNT(*)`,
+        }).from(orders).where(
+          and(
+            gte(orders.createdAt, startOfMonth),
+            sql`${orders.status} NOT IN ('cancelado','cancelled')`
+          )
+        ).then(r => r[0]),
 
-      // Pedidos pendientes (no entregados ni cancelados)
-      const pendingOrders = allOrders.filter(
-        (o) => o.status !== "entregado" && o.status !== "cancelado" && o.status !== "cancelled"
-      ).length;
+        // Últimos 5 pedidos
+        db.select({
+          id: orders.id,
+          status: orders.status,
+          totalAmount: orders.totalAmount,
+          guestName: orders.guestName,
+          createdAt: orders.createdAt,
+        }).from(orders).orderBy(desc(orders.createdAt)).limit(5),
 
-      // Productos con stock bajo (< 5)
-      const lowStockItems = await storage.checkLowStock(5);
-
-      // Ingresos del mes actual
-      const monthlyRevenue = allOrders
-        .filter((o) => {
-          if (!o.createdAt) return false;
-          const d = new Date(o.createdAt);
-          return d >= startOfMonth && o.status !== "cancelado" && o.status !== "cancelled";
-        })
-        .reduce((sum, o) => sum + Number(o.totalAmount), 0);
-
-      // Últimos 5 pedidos
-      const recentOrders = [...allOrders]
-        .sort((a, b) => {
-          const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return db - da;
-        })
-        .slice(0, 5)
-        .map((o) => ({
-          id: o.id,
-          status: o.status,
-          totalAmount: o.totalAmount,
-          guestName: o.guestName,
-          createdAt: o.createdAt,
-        }));
+        // Stock bajo
+        storage.checkLowStock(5),
+      ]);
 
       res.json({
-        salesToday,
-        pendingOrders,
+        salesToday: Number(todayResult.salesTotal),
+        pendingOrders: Number(todayResult.pendingCount),
         lowStockItems: lowStockItems.length,
         lowStockProducts: lowStockItems,
-        monthlyRevenue,
+        monthlyRevenue: Number(monthResult.revenue),
         recentOrders,
       });
     } catch (e: any) {
